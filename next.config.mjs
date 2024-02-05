@@ -14,6 +14,9 @@ const nextConfig = {
      * @see https://nextjs.org/docs/app/api-reference/next-config-js/basePath
      */
     basePath: process.env.BASE_PATH,
+    env: {
+      BASE_PATH: process.env.BASE_PATH
+    },
   
     /**
      * Disable server-based image optimization. Next.js does not support
@@ -24,6 +27,7 @@ const nextConfig = {
     images: {
       unoptimized: true,
     },
+    reactStrictMode: true,
   };
   
   export default nextConfig;
