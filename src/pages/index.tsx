@@ -19,7 +19,7 @@ export default function IndexPage() {
 						with cloud and software innovation.
 					</h1>
 					<h4 className={subtitle({ class: "mt-4" })}>
-						Cloud Dreams: Coding Tomorrow's Reality.
+						Cloud Dreams: Coding Tomorrow&apos;s Reality.
 					</h4>
 				</div>
 
