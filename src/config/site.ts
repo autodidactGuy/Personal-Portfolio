@@ -57,6 +57,7 @@ export const siteConfig = {
 		github: "https://github.com/autodidactGuy",
 		twitter: "https://twitter.com/autodidactGuy",
 		docs: "https://linkedin.com/in/autodidactGuy",
+		resume: `${basePath}/HassanRaza-Resume.pdf`,
 		linkedin: "https://linkedin.com/in/autodidactGuy",
 		discord: "#",
 		sponsor: "#"

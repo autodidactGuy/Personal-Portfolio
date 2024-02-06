@@ -1,40 +1,39 @@
 import { Link } from "@nextui-org/link";
-import { Snippet } from "@nextui-org/snippet";
-import { Code } from "@nextui-org/code";
 import { button as buttonStyles } from "@nextui-org/theme";
-import { siteConfig } from "@/config/site";
+import { basePath, siteConfig } from "@/config/site";
 import { title, subtitle } from "@/components/primitives";
 import { GithubIcon } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
 import { FaLinkedin } from "react-icons/fa6";
+import { IoDocument } from "react-icons/io5";
+import { Code, Snippet } from "@nextui-org/react";
+import {Image} from "@nextui-org/react";
 
 export default function IndexPage() {
 	return (
 		<DefaultLayout>
 			<section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-				<div className="inline-block max-w-lg text-center justify-center">
-					<h1 className={title()}>Crafting the next&nbsp;</h1><br/>
-					<h1 className={title({ color: "violet" })}>wave of tech&nbsp;</h1>
-					<h1 className={title()}>
-						with cloud and software innovation.
-					</h1>
-					<h4 className={subtitle({ class: "mt-4" })}>
-						Cloud Dreams: Coding Tomorrow&apos;s Reality.
-					</h4>
+				<div className="contents lg:flex gap-6 places-items-center">
+					<Image
+						isBlurred
+						alt="Hassan Raza"
+						width={200}
+						height={200}
+						src={`${basePath}/favicon.png`}
+					/>
+					<div className="inline-block max-w-lg text-center justify-center">
+						<h1 className={title()}>Crafting the next&nbsp;</h1><br/>
+						<h1 className={title({ color: "blue" })}>wave of tech&nbsp;</h1>
+						<h1 className={title()}>
+							with cloud and software innovation.
+						</h1>
+						<h4 className={subtitle({ class: "mt-4" })}>
+							Cloud Dreams: Coding Tomorrow&apos;s Reality.
+						</h4>
+					</div>
 				</div>
-
+				
 				<div className="flex gap-3">
-					{/* <Link
-						isExternal
-						href={siteConfig.links.docs}
-						className={buttonStyles({
-							color: "primary",
-							radius: "full",
-							variant: "shadow",
-						})}
-					>
-						Documentation
-					</Link> */}
 					<Link
 						isExternal
 						className={buttonStyles({ variant: "bordered", radius: "full" })}
@@ -50,6 +49,18 @@ export default function IndexPage() {
 					>
 						<GithubIcon size={20} />
 						GitHub
+					</Link>
+					<Link
+						isExternal
+						href={siteConfig.links.resume}
+						className={buttonStyles({
+							color: "primary",
+							radius: "full",
+							variant: "solid",
+						})}
+					>
+						<IoDocument size={20} />
+						Resume
 					</Link>
 				</div>
 

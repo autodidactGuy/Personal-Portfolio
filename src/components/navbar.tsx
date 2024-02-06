@@ -10,26 +10,22 @@ import {
 	NavbarBrand,
 	NavbarItem,
 	NavbarMenuItem,
+	Avatar,
 } from "@nextui-org/react";
 
 import { link as linkStyles } from "@nextui-org/theme";
 
-import { siteConfig } from "@/config/site";
+import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";
 import clsx from "clsx";
 
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
-	TwitterIcon,
 	GithubIcon,
-	DiscordIcon,
-	HeartFilledIcon,
 	SearchIcon,
 } from "@/components/icons";
 import { FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import { MdMail } from "react-icons/md";
-
-import { Logo } from "@/components/icons";
 
 export const Navbar = () => {
 	const searchInput = (
@@ -40,8 +36,7 @@ export const Navbar = () => {
 				input: "text-sm",
 			}}
 			endContent={
-				<Kbd className="hidden lg:inline-block" keys={["command"]}>
-					K
+				<Kbd className="hidden lg:inline-block" keys={["enter"]}>
 				</Kbd>
 			}
 			labelPlacement="outside"
@@ -54,12 +49,31 @@ export const Navbar = () => {
 	);
 
 	return (
-		<NextUINavbar maxWidth="xl" position="sticky">
+		<NextUINavbar
+			maxWidth="xl"
+			position="sticky"
+			isBordered
+			classNames={{
+				item: [
+				"flex",
+				"relative",
+				"h-full",
+				"items-center",
+				"data-[active=true]:after:content-['']",
+				"data-[active=true]:after:absolute",
+				"data-[active=true]:after:bottom-0",
+				"data-[active=true]:after:left-0",
+				"data-[active=true]:after:right-0",
+				"data-[active=true]:after:h-[2px]",
+				"data-[active=true]:after:rounded-[2px]",
+				"data-[active=true]:after:bg-primary",
+				],
+			}}>
 			<NavbarContent className="basis-1/5 sm:basis-full" justify="start">
 				<NavbarBrand className="gap-3 max-w-fit">
 					<NextLink className="flex justify-start items-center gap-1" href="/">
-						<Logo />
-						<p className="font-bold text-inherit">Hassan Raza</p>
+						<Avatar src={`${basePath}/favicon.png`} name="HR" size="sm" />
+						<p className="font-bold text-inherit ml-2">Hassan Raza</p>
 					</NextLink>
 				</NavbarBrand>
 				<div className="hidden lg:flex gap-4 justify-start ml-2">
@@ -81,7 +95,7 @@ export const Navbar = () => {
 			</NavbarContent>
 
       		<NavbarContent className="hidden sm:flex basis-1/5 sm:basis-full" justify="end">
-				<NavbarItem className="hidden sm:flex gap-2">
+				<NavbarItem className="hidden lg:flex gap-2">
 					<Link isExternal href={siteConfig.links.linkedin}>
 						<FaLinkedin className="text-default-500" size={24}/>
 					</Link>
@@ -94,7 +108,7 @@ export const Navbar = () => {
 					<ThemeSwitch />
 				</NavbarItem>
 				<NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
-				<NavbarItem className="hidden md:flex">
+				<NavbarItem className="hidden lg:flex">
 					<Button
 						as={Link}
 						className="text-sm font-normal text-default-600 bg-default-100"
@@ -107,9 +121,15 @@ export const Navbar = () => {
 				</NavbarItem>
 			</NavbarContent>
 
-			<NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
+			<NavbarContent className="lg:hidden basis-1 pl-4" justify="end">
+				<Link isExternal href={siteConfig.links.linkedin}>
+					<FaLinkedin className="text-default-500" size={24}/>
+				</Link>
 				<Link isExternal href={siteConfig.links.github}>
 					<GithubIcon className="text-default-500" />
+				</Link>
+				<Link isExternal href={siteConfig.links.twitter}>
+					<FaXTwitter className="text-default-500" size={24}/>
 				</Link>
 				<ThemeSwitch />
 				<NavbarMenuToggle />
