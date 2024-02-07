@@ -1,30 +1,29 @@
 import { Navbar } from "@/components/navbar";
 import { Link } from "@nextui-org/link";
 import { Head } from "./head";
+import { useTheme } from "next-themes";
+import { basePath, siteConfig } from "@/config/site";
+import { Avatar } from "@nextui-org/react";
+import { Footer } from "./Footer";
 
 export default function DefaultLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
+
+	const { theme } = useTheme();
+
+	const animation = theme === "light" ? "lightAnimation" : "darkAnimation";
+	
 	return (
 		<div className="relative flex flex-col h-screen">
 			<Head />
 			<Navbar />
-			<main className="container mx-auto max-w-7xl px-6 flex-grow">
+			<main className={`px-6 flex-grow ${animation}`}>
 				{children}
 			</main>
-			<footer className="w-full flex items-center justify-center py-3">
-				<Link
-					isExternal
-					className="flex items-center gap-1 text-current"
-					href="https://linkedin.com/in/autodidactGuy"
-					title="Linkedin - Hassan Raza"
-				>
-					<span className="text-default-600">&copy; {new Date().getFullYear()} - </span>
-					<p className="text-primary">Hassan Raza</p>
-				</Link>
-			</footer>
+			<Footer />
 		</div>
 	);
 }

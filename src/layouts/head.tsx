@@ -14,7 +14,7 @@ export const Head = () => {
 				content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
 				name="viewport"
 			/>
-			<link href={`${basePath}/favicon.png`} rel="icon" />
+			<link href={`${basePath}/favicon.png`} rel="icon" sizes="16x16 32x32" type="image/png"/>
 		</NextHead>
 	);
 };

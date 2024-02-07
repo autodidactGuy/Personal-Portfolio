@@ -4,7 +4,9 @@ export const basePath = process.env.BASE_PATH;
 
 export const siteConfig = {
 	name: "Hassan Raza",
-	description: "Software Engineer",
+	initials: "HR",
+	slogan: "Software Engineer",
+	description: "Experienced software engineer with a diverse skill set and a proven track record of contributing to innovative solutions in the field. With a solid foundation in Java, JavaScript, TypeScript, and a wealth of experience in Spring Boot, Java, TypeScript, Node.js, React.js, RESTful APIs, Microservices, Angular, PHP, Laravel. I have consistently delivered high-quality software solutions.",
 	navItems: [
 		{
 			label: "Home",

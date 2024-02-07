@@ -10,6 +10,45 @@ html {
 html.dark-mode {
   --cursor-color: #fff
 }
+
+.darkAnimation {
+  background: radial-gradient(
+    circle,
+    rgba(23, 126, 200, 0.3) 0%,
+    rgba(40, 59, 181, 0.12) 60%
+  );
+  background-size: 120% 250%;
+  animation: gradient 20s ease infinite;
+  backdrop-filter: blur(8px);
+}
+
+.lightAnimation {
+  background: radial-gradient(
+    circle,
+    rgba(23, 126, 200, 0.09) 0%,
+    rgba(40, 59, 181, 0.06) 60%
+  );
+  background-size: 150% 150%;
+  animation: gradient 20s ease infinite;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 150%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.text-right{
+  text-align: right;
+}
+
 /* :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;

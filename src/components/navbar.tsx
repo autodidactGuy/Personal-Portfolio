@@ -52,7 +52,6 @@ export const Navbar = () => {
 		<NextUINavbar
 			maxWidth="xl"
 			position="sticky"
-			isBordered
 			classNames={{
 				item: [
 				"flex",
@@ -72,8 +71,8 @@ export const Navbar = () => {
 			<NavbarContent className="basis-1/5 sm:basis-full" justify="start">
 				<NavbarBrand className="gap-3 max-w-fit">
 					<NextLink className="flex justify-start items-center gap-1" href="/">
-						<Avatar src={`${basePath}/favicon.png`} name="HR" size="sm" />
-						<p className="font-bold text-inherit ml-2">Hassan Raza</p>
+						<Avatar src={`${basePath}/favicon.png`} name={siteConfig.initials} size="sm" />
+						<p className="font-bold text-inherit ml-2">{siteConfig.name}</p>
 					</NextLink>
 				</NavbarBrand>
 				<div className="hidden lg:flex gap-4 justify-start ml-2">
@@ -141,13 +140,7 @@ export const Navbar = () => {
 					{siteConfig.navMenuItems.map((item, index) => (
 						<NavbarMenuItem key={`${item}-${index}`}>
 							<Link
-								color={
-									index === 2
-										? "primary"
-										: index === siteConfig.navMenuItems.length - 1
-										? "danger"
-										: "foreground"
-								}
+								color="foreground"
 								href="#"
 								size="lg"
 							>
