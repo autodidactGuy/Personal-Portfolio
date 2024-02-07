@@ -3,7 +3,7 @@ import NextLink from "next/link";
 
 export function Footer() {
     return (
-        <footer className="container mx-auto max-w-7xl w-full flex justify-between items-center px-6 py-3 sticky bottom-0 bg-background">
+        <footer className="container mx-auto max-w-7xl w-full flex justify-between items-center px-6 py-3 bg-background">
             <div className="gap-3 max-w-fit hidden sm:flex">
                 <NextLink className="text-left" href="/">
                     <p className="font-bold text-inherit ml-2 text-lg tracking-wide leading-3">{siteConfig.name}</p>

@@ -9,15 +9,6 @@ import { Accordion, AccordionItem, Button, Input, Kbd, Spinner, Textarea } from 
 import { Controller, SubmitHandler } from "react-hook-form";
 import { useTheme } from "next-themes";
 
-
-interface ContactData {
-    name: string;
-    email: string;
-    phone: string;
-    subject: string;
-    message: string;
-}
-
 const contactFormSchema = z.object({
     name: z.string().min(1, { message: "Name is required" }),
     email: z.string().email({ message: "Invalid email address" }),
