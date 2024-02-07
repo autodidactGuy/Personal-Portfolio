@@ -8,6 +8,7 @@ import { FaLinkedin } from "react-icons/fa6";
 import { IoDocument } from "react-icons/io5";
 import { Code, Snippet } from "@nextui-org/react";
 import {Image} from "@nextui-org/react";
+import { MdMail } from "react-icons/md";
 
 export default function IndexPage() {
 	return (
@@ -21,7 +22,7 @@ export default function IndexPage() {
 						height={200}
 						src={`${basePath}/favicon.png`}
 					/>
-					<div className="inline-block max-w-lg text-center justify-center">
+					<div className="inline-block max-w-lg text-center lg:text-left justify-center">
 						<h1 className={title()}>Crafting the next&nbsp;</h1><br/>
 						<h1 className={title({ color: "blue" })}>wave of tech&nbsp;</h1>
 						<h1 className={title()}>
@@ -42,14 +43,14 @@ export default function IndexPage() {
 						<FaLinkedin size={20} />
 						LinkedIn
 					</Link>
-					<Link
+					{/* <Link
 						isExternal
 						className={buttonStyles({ variant: "bordered", radius: "full" })}
 						href={siteConfig.links.github}
 					>
 						<GithubIcon size={20} />
 						GitHub
-					</Link>
+					</Link> */}
 					<Link
 						isExternal
 						href={siteConfig.links.resume}
@@ -61,6 +62,16 @@ export default function IndexPage() {
 					>
 						<IoDocument size={20} />
 						Resume
+					</Link>
+					<Link
+						href="/contact"
+						className={buttonStyles({
+							radius: "full",
+							variant: "bordered"
+						})}
+					>
+						<MdMail size={20}/>
+						Contact
 					</Link>
 				</div>
 

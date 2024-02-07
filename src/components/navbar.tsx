@@ -111,10 +111,9 @@ export const Navbar = () => {
 					<Button
 						as={Link}
 						className="text-sm font-normal text-default-600 bg-default-100"
-						href="#/contact"
-						startContent={<MdMail className="text-default-500" size={24}/>}
-						variant="flat"
-					>
+						href="/contact"
+						startContent={<MdMail className="text-default-500" size={20}/>}
+						variant="flat">
 						Contact
 					</Button>
 				</NavbarItem>
@@ -127,7 +126,7 @@ export const Navbar = () => {
 				<Link isExternal href={siteConfig.links.github}>
 					<GithubIcon className="text-default-500" />
 				</Link>
-				<Link isExternal href={siteConfig.links.twitter}>
+				<Link isExternal className="hidden xsm:block" href={siteConfig.links.twitter}>
 					<FaXTwitter className="text-default-500" size={24}/>
 				</Link>
 				<ThemeSwitch />
@@ -141,7 +140,7 @@ export const Navbar = () => {
 						<NavbarMenuItem key={`${item}-${index}`}>
 							<Link
 								color="foreground"
-								href="#"
+								href={item.href}
 								size="lg"
 							>
 								{item.label}

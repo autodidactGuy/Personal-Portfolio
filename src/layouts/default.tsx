@@ -1,10 +1,10 @@
 import { Navbar } from "@/components/navbar";
 import { Link } from "@nextui-org/link";
 import { Head } from "./head";
+import { Footer } from "./footer";
 import { useTheme } from "next-themes";
 import { basePath, siteConfig } from "@/config/site";
 import { Avatar } from "@nextui-org/react";
-import { Footer } from "./Footer";
 
 export default function DefaultLayout({
 	children,

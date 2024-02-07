@@ -21,12 +21,12 @@ export const siteConfig = {
 			href: "#/skills",
 		},
 		{
-			label: "Portfolio",
-			href: "#/portfolio",
+			label: "Praise",
+			href: "#/praise",
 		},
 		{
-			label: "Recommendations",
-			href: "#/recommendations",
+			label: "Portfolio",
+			href: "#/portfolio",
 		}
 	],
 	navMenuItems: [
@@ -43,24 +43,25 @@ export const siteConfig = {
 			href: "#/skills",
 		},
 		{
+			label: "Praise",
+			href: "#/praise",
+		},
+		{
 			label: "Portfolio",
 			href: "#/portfolio",
 		},
 		{
-			label: "Recommendations",
-			href: "#/recommendations",
-		},
-		{
 			label: "Contact",
-			href: "#/contact",
+			href: "/contact",
 		}
 	],
 	links: {
 		github: "https://github.com/autodidactGuy",
-		twitter: "https://twitter.com/autodidactGuy",
+		twitter: "https://x.com/autodidactGuy",
 		docs: "https://linkedin.com/in/autodidactGuy",
 		resume: `${basePath}/HassanRaza-Resume.pdf`,
 		linkedin: "https://linkedin.com/in/autodidactGuy",
+		calendly: "https://calendly.com/autodidactGuy/15min",
 		discord: "#",
 		sponsor: "#"
 	},

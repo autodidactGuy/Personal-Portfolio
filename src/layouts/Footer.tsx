@@ -2,7 +2,7 @@ import { basePath, siteConfig } from "@/config/site";
 import { Avatar } from "@nextui-org/react";
 import NextLink from "next/link";
 
-export const Footer = () => {
+export function Footer() {
     return (
         <footer className="container mx-auto max-w-7xl w-full flex justify-between items-center px-6 py-3 sticky bottom-0 bg-background">
             <div className="gap-3 max-w-fit hidden sm:flex">
