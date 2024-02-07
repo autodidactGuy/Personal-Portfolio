@@ -28,8 +28,8 @@ export default function Contact() {
     return (
         <DefaultLayout>
 			<section className="hidden lg:flex flex-row justify-center gap-4 py-8">
-                {scheduleWidget}
                 {contactForm}
+                {scheduleWidget}
             </section>
             <section className="contents lg:hidden items-center justify-center gap-4 py-8">
                 <Accordion>

@@ -1,5 +1,4 @@
 import { basePath, siteConfig } from "@/config/site";
-import { Avatar } from "@nextui-org/react";
 import NextLink from "next/link";
 
 export function Footer() {
