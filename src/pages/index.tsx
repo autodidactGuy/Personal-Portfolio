@@ -8,6 +8,7 @@ import { FaLinkedin } from "react-icons/fa6";
 import { IoDocument } from "react-icons/io5";
 import { Code, Snippet } from "@nextui-org/react";
 import {Image} from "@nextui-org/react";
+import NextImage from "next/image";
 import { MdMail } from "react-icons/md";
 
 export default function IndexPage() {
@@ -16,13 +17,15 @@ export default function IndexPage() {
 			<section className="flex flex-col items-center justify-center gap-4 py-8 sm:py-40">
 				<div className="contents lg:flex gap-6 places-items-center">
 					<Image
+						as={NextImage}
 						isBlurred
 						alt="Hassan Raza"
 						width={200}
 						height={200}
+						className="animate__animated animate__fadeInUp "
 						src={`${basePath}/favicon.png`}
 					/>
-					<div className="inline-block max-w-lg text-center lg:text-left justify-center">
+					<div className="animate__animated animate__fadeInUp inline-block max-w-lg text-center lg:text-left justify-center">
 						<h1 className={title()}>Crafting the next&nbsp;</h1><br/>
 						<h1 className={title({ color: "blue" })}>wave of tech&nbsp;</h1>
 						<h1 className={title()}>
@@ -34,7 +37,7 @@ export default function IndexPage() {
 					</div>
 				</div>
 				
-				<div className="flex gap-3">
+				<div className="flex gap-3 animate__animated animate__fadeInUp ">
 					<Link
 						isExternal
 						className={buttonStyles({ variant: "bordered", radius: "full" })}

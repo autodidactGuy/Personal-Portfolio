@@ -39,13 +39,17 @@ export default function Contact() {
     });
 
     const onSubmit: SubmitHandler<z.infer<typeof contactFormSchema>> = async (data) => {
-        try {
-            console.log(data);
-            toast.success("Contact message successfully sent!");
-            reset();
-        } catch (error) {
-            toast.error("Contact message failed to sent!")
-        }
+        return new Promise(() => {
+            setTimeout(function() {
+                try {
+                    console.log(data);
+                    toast.success("Contact message successfully sent!");
+                    reset();
+                } catch (error) {
+                    toast.error("Contact message failed to sent!")
+                }
+            }, 0);
+        });
       };
 
     const contactForm = (
@@ -81,7 +85,7 @@ export default function Contact() {
                     {...field}
                     type="email"
                     variant="faded"
-                    label="Email" 
+                    label="Email"
                     isInvalid={!!errors.email}
                     errorMessage={errors.email?.message}
                 />
@@ -134,8 +138,13 @@ export default function Contact() {
                 )}
             />
 
-            <Button type="submit" variant="solid" color={(isSubmitting) ? "default" : "primary"} radius="full" disabled={isSubmitting}>
-                {isSubmitting ? <Spinner /> : 'Send Message'}
+            <Button
+                type="submit"
+                variant="solid"
+                color={(isSubmitting) ? "default" : "primary"}
+                radius="full"
+                isLoading={isSubmitting}>
+                Send Message
             </Button>
 
         </form>

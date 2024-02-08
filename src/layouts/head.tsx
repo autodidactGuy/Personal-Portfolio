@@ -5,8 +5,8 @@ import { basePath, siteConfig } from "@/config/site";
 export const Head = () => {
 	return (
 		<NextHead>
-			<title>{siteConfig.name}</title>
-			<meta key="title" content={siteConfig.name} property="og:title" />
+			<title>{`${siteConfig.name} - ${siteConfig.slogan}`}</title>
+			<meta key="title" content={`${siteConfig.name} - ${siteConfig.title} - ${siteConfig.slogan}`} property="og:title" />
 			<meta content={siteConfig.description} property="og:description" />
 			<meta content={siteConfig.description} name="description" />
 			<meta

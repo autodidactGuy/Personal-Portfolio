@@ -7,7 +7,7 @@ export function Footer() {
             <div className="gap-3 max-w-fit hidden sm:flex">
                 <NextLink className="text-left" href="/">
                     <p className="font-bold text-inherit ml-2 text-lg tracking-wide leading-3">{siteConfig.name}</p>
-                    <p className="text-inherit ml-2 text-sm">{siteConfig.slogan}</p> 
+                    <p className="text-inherit ml-2 text-sm">{siteConfig.title}</p> 
                 </NextLink>
             </div>
             <div className="w-full sm:w-fit">
