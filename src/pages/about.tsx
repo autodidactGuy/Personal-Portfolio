@@ -10,7 +10,7 @@ import { MdWork } from "react-icons/md";
 export default function About() {
     return (
         <DefaultLayout>
-			<section className="flex flex-col lg:flex-row justify-center gap-4 py-8">
+			<section className="flex flex-col lg:flex-row justify-center gap-4 py-8 max-w-screen-lg m-auto">
                  <Card className="flex-none h-fit pb-4 animate__animated animate__fadeInUp ">
                     <CardBody className="bg-white bordered items-center">
                         <Image

@@ -157,7 +157,7 @@ export default function Contact() {
     );
     return (
         <DefaultLayout>
-			<section className="hidden lg:flex flex-row justify-center gap-4 py-8">
+			<section className="hidden lg:flex flex-row justify-center gap-4 py-8 max-w-screen-lg m-auto">
                 {contactForm}
                 {scheduleWidget}
             </section>
