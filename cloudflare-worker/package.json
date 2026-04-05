@@ -1,0 +1,13 @@
+{
+  "name": "portfolio-decap-auth-worker",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.9.1"
+  }
+}

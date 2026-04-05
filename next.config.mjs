@@ -1,33 +1,28 @@
 /** @type {import('next').NextConfig} */
 
+const repositoryName =
+  process.env.GITHUB_REPOSITORY?.split("/")[1] ||
+  process.env.NEXT_PUBLIC_REPOSITORY_NAME ||
+  "Personal-Portfolio";
+
+const basePath =
+  process.env.NEXT_PUBLIC_BASE_PATH ??
+  process.env.BASE_PATH ??
+  "";
+
 const nextConfig = {
-    /**
-     * Enable static exports for the App Router.
-     *
-     * @see https://nextjs.org/docs/app/building-your-application/deploying/static-exports
-     */
-    output: "export",
-  
-    /**
-     * Set base path. This is the slug of your GitHub repository.
-     *
-     * @see https://nextjs.org/docs/app/api-reference/next-config-js/basePath
-     */
-    basePath: process.env.BASE_PATH,
-    env: {
-      BASE_PATH: process.env.BASE_PATH
-    },
-  
-    /**
-     * Disable server-based image optimization. Next.js does not support
-     * dynamic features with static exports.
-     *
-     * @see https://nextjs.org/docs/app/api-reference/components/image#unoptimized
-     */
-    images: {
-      unoptimized: true,
-    },
-    reactStrictMode: true,
-  };
-  
-  export default nextConfig;
+  output: "export",
+  trailingSlash: true,
+  basePath,
+  assetPrefix: basePath || undefined,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+    NEXT_PUBLIC_REPOSITORY_NAME: repositoryName,
+  },
+  images: {
+    unoptimized: true,
+  },
+  reactStrictMode: true,
+};
+
+export default nextConfig;
