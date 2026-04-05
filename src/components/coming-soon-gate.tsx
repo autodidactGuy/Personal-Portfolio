@@ -20,7 +20,6 @@ function hasCmsSession() {
 
     try {
       const parsedValue = JSON.parse(rawValue);
-      console.log("Parsed CMS session value:", parsedValue);
 
       return Boolean(parsedValue?.token || parsedValue?.jwt || rawValue);
     } catch {

@@ -1,6 +1,6 @@
 local_backend: false
-site_url: https://hassanraza.us
-display_url: https://hassanraza.us
+site_url: __SITE_URL__
+display_url: __DISPLAY_URL__
 logo_url: /favicon.png
 publish_mode: editorial_workflow
 
@@ -8,7 +8,7 @@ backend:
   name: github
   repo: autodidactGuy/Personal-Portfolio
   branch: cms-staging
-  base_url: http://127.0.0.1:8787
+  base_url: __BACKEND_BASE_URL__
   auth_endpoint: /auth
 
 media_folder: "public/images"
@@ -150,7 +150,7 @@ collections:
             name: "comingSoonMode"
             widget: "object"
             fields:
-              - { label: "Enabled", name: "enabled", widget: "boolean", default: true }
+              - { label: "Enabled", name: "enabled", widget: "boolean", default: false }
               - { label: "Headline", name: "headline", widget: "string" }
               - { label: "Description", name: "description", widget: "text" }
           - label: "Navigation"

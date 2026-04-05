@@ -10,11 +10,35 @@
     <div id="nc-root"></div>
     <noscript>Decap CMS requires JavaScript to load.</noscript>
     <script>
-      window.CMS_MANUAL_INIT = false;
+      window.CMS_MANUAL_INIT = true;
     </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/decap-cms@^3.10.1/dist/decap-cms.js"
     ></script>
+    <script>
+      window.addEventListener("load", async () => {
+        const isLocalHost =
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1";
+
+        const siteUrl = isLocalHost ? window.location.origin : "https://hassanraza.us";
+        const backendBaseUrl = isLocalHost
+          ? "http://127.0.0.1:8787"
+          : "https://personal-portfolio.hassanraza632.workers.dev";
+
+        const response = await fetch("./config.yml", { cache: "no-store" });
+        const template = await response.text();
+        const hydratedConfig = template
+          .replace(/__SITE_URL__/g, siteUrl)
+          .replace(/__DISPLAY_URL__/g, siteUrl)
+          .replace(/__BACKEND_BASE_URL__/g, backendBaseUrl);
+
+        window.CMS.init({
+          config: window.jsyaml.load(hydratedConfig),
+        });
+      });
+    </script>
   </body>
 </html>
