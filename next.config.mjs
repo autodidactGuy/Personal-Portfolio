@@ -23,6 +23,22 @@ const nextConfig = {
     unoptimized: true,
   },
   reactStrictMode: true,
+  async rewrites() {
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+
+    return [
+      {
+        source: "/cms-admin",
+        destination: "/cms-admin/index.html",
+      },
+      {
+        source: "/cms-admin/",
+        destination: "/cms-admin/index.html",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

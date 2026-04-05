@@ -4,37 +4,70 @@ import NextImage from "next/image";
 import { Image } from "@nextui-org/react";
 import { siteConfig, withBasePath } from "@/config/site";
 
-const CMS_USER_STORAGE_KEYS = ["netlify-cms-user", "decap-cms-user"];
-const CMS_ROUTE_PREFIXES = ["/cms-admin", "/admin"];
+export const CMS_USER_STORAGE_KEYS = ["netlify-cms-user", "decap-cms-user"];
+export const CMS_ROUTE_PREFIXES = ["/cms-admin", "/admin"];
 
-function hasCmsSession() {
+type CmsSession = {
+  displayName: string;
+  isLoggedIn: boolean;
+};
+
+function readCmsSession(): CmsSession {
   if (typeof window === "undefined") {
-    return false;
+    return {
+      displayName: "Admin",
+      isLoggedIn: false,
+    };
   }
 
-  return CMS_USER_STORAGE_KEYS.some((storageKey) => {
+  for (const storageKey of CMS_USER_STORAGE_KEYS) {
     const rawValue = window.localStorage.getItem(storageKey);
 
     if (!rawValue) {
-      return false;
+      continue;
     }
 
     try {
       const parsedValue = JSON.parse(rawValue);
+      const isLoggedIn = Boolean(parsedValue?.token || parsedValue?.jwt || rawValue);
+      const displayName =
+        parsedValue?.name ||
+        parsedValue?.login ||
+        parsedValue?.user?.name ||
+        parsedValue?.user?.login ||
+        parsedValue?.user_metadata?.full_name ||
+        parsedValue?.user_metadata?.name ||
+        "Admin";
 
-      return Boolean(parsedValue?.token || parsedValue?.jwt || rawValue);
+      if (isLoggedIn) {
+        return {
+          displayName,
+          isLoggedIn: true,
+        };
+      }
     } catch {
-      return true;
+      return {
+        displayName: "Admin",
+        isLoggedIn: true,
+      };
     }
-  });
+  }
+
+  return {
+    displayName: "Admin",
+    isLoggedIn: false,
+  };
 }
 
 export function useComingSoonGate() {
   const router = useRouter();
-  const [isCmsAdmin, setIsCmsAdmin] = useState(false);
+  const [cmsSession, setCmsSession] = useState<CmsSession>({
+    displayName: "Admin",
+    isLoggedIn: false,
+  });
 
   useEffect(() => {
-    setIsCmsAdmin(hasCmsSession());
+    setCmsSession(readCmsSession());
   }, []);
 
   const isCmsRoute = CMS_ROUTE_PREFIXES.some(
@@ -42,10 +75,12 @@ export function useComingSoonGate() {
       router.pathname.startsWith(routePrefix) || router.asPath.startsWith(routePrefix)
   );
   const isComingSoonEnabled = siteConfig.comingSoonMode.enabled;
-  const shouldShowComingSoon = isComingSoonEnabled && !isCmsAdmin && !isCmsRoute;
+  const shouldShowComingSoon = isComingSoonEnabled && !cmsSession.isLoggedIn && !isCmsRoute;
 
   return {
-    isCmsAdmin,
+    cmsSession,
+    isCmsAdmin: cmsSession.isLoggedIn,
+    isCmsRoute,
     shouldShowComingSoon,
   };
 }

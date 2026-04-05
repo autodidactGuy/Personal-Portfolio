@@ -1,3 +1,4 @@
+import { AdminBar } from "@/components/admin-bar";
 import { Navbar } from "@/components/navbar";
 import { Head } from "./head";
 import { Footer } from "./footer";
@@ -18,6 +19,7 @@ export default function DefaultLayout({
 	return (
 		<div className="relative flex flex-col h-screen">
 			<Head />
+			<AdminBar />
 			{!shouldShowComingSoon ? <Navbar /> : null}
 			<main className={`px-6 flex-grow ${animation}`}>
 				{shouldShowComingSoon ? <ComingSoonScreen /> : children}
