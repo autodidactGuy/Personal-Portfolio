@@ -5,6 +5,11 @@
   "slogan": "Tech Artisan: Excellence Reimagined",
   "description": "Experienced software engineer building cloud-native platforms, strong product foundations, and thoughtful technical narratives across software, data, and AI.",
   "avatar": "/favicon.png",
+  "comingSoonMode": {
+    "enabled": true,
+    "headline": "Coming Soon",
+    "description": "A refreshed experience is on the way."
+  },
   "navigation": {
     "primary": [
       { "label": "Home", "href": "/" },

@@ -40,12 +40,12 @@ This repo's Decap config currently points to:
 
 `https://personal-portfolio.hassanraza632.workers.dev/`
 
-If your deployed Worker URL changes, update [config.yml](/Users/hassanraza/Projects/Personal-Portfolio/public/admin/config.yml) and your GitHub OAuth callback URL together.
+If your deployed Worker URL changes, update [config.yml](/Users/hassanraza/Projects/Personal-Portfolio/public/cms-admin/config.yml) and your GitHub OAuth callback URL together.
 
 ## Expected local and production admin URLs
 
-- Production: `https://hassanraza.us/admin/`
-- Local: `http://localhost:3000/admin/`
+- Production: `https://hassanraza.us/cms-admin/`
+- Local: `http://localhost:3000/cms-admin/`
 
 ## How authorization is restricted
 

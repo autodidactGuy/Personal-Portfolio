@@ -12,6 +12,11 @@ export const siteSettingsSchema = z.object({
   slogan: z.string().min(1),
   description: z.string().min(1),
   avatar: z.string().min(1),
+  comingSoonMode: z.object({
+    enabled: z.boolean().default(false),
+    headline: z.string().min(1).default("Coming Soon"),
+    description: z.string().min(1).default("A refreshed experience is on the way."),
+  }),
   navigation: z.object({
     primary: z.array(navigationItemSchema).min(1),
   }),

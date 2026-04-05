@@ -42,8 +42,8 @@ Your Worker must expose:
 
 ## Login flow
 
-1. The editor opens `https://hassanraza.us/admin/`.
-2. Decap reads `public/admin/config.yml`.
+1. The editor opens `https://hassanraza.us/cms-admin/`.
+2. Decap reads `public/cms-admin/config.yml`.
 3. Clicking login sends the user to `https://YOUR_CLOUDFLARE_WORKER_DOMAIN/auth`.
 4. The Worker redirects to GitHub OAuth.
 5. GitHub redirects back to `https://YOUR_CLOUDFLARE_WORKER_DOMAIN/callback?code=...`.
@@ -63,7 +63,7 @@ The Worker only needs to:
 
 ## Decap config mapping
 
-`public/admin/config.yml` is already prepared for this model:
+`public/cms-admin/config.yml` is already prepared for this model:
 
 ```yml
 backend:

@@ -146,6 +146,13 @@ collections:
           - { label: "Slogan", name: "slogan", widget: "string" }
           - { label: "Description", name: "description", widget: "text" }
           - { label: "Avatar", name: "avatar", widget: "image" }
+          - label: "Coming Soon Mode"
+            name: "comingSoonMode"
+            widget: "object"
+            fields:
+              - { label: "Enabled", name: "enabled", widget: "boolean", default: true }
+              - { label: "Headline", name: "headline", widget: "string" }
+              - { label: "Description", name: "description", widget: "text" }
           - label: "Navigation"
             name: "navigation"
             widget: "object"
