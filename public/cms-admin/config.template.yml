@@ -7,7 +7,7 @@ publish_mode: editorial_workflow
 backend:
   name: github
   repo: autodidactGuy/Personal-Portfolio
-  branch: cms-staging
+  branch: main
   base_url: __BACKEND_BASE_URL__
   auth_endpoint: /auth
 

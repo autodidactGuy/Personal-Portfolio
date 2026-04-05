@@ -54,15 +54,17 @@ export function ComingSoonScreen() {
   return (
     <section className="mx-auto flex min-h-[70vh] w-full max-w-4xl items-center justify-center px-6 py-20">
       <div className="text-center">
-        <Image
+        <div className="mb-6 flex justify-center">
+          <Image
             as={NextImage}
             isBlurred
             alt={siteConfig.name}
             width={220}
             height={220}
-            className="animate__animated animate__fadeInUp mx-auto"
+            className="animate__animated animate__fadeInUp"
             src={withBasePath(siteConfig.avatar)}
           />
+        </div>
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">
           {siteConfig.name}
         </p>
