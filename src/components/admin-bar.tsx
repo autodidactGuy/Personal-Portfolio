@@ -32,11 +32,11 @@ export function AdminBar() {
 
   return (
     <div className="border-b border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-        <p className="text-sm font-medium text-primary">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 overflow-x-clip">
+        <p className="min-w-0 text-sm font-medium text-primary">
           {isPreviewMode ? "Preview mode enabled" : "Admin mode enabled"}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
           <Button
             as={Link}
             color="primary"
@@ -50,7 +50,7 @@ export function AdminBar() {
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
               <Button
-                className="bg-background"
+                className="max-w-full bg-background"
                 endContent={
                   <Avatar
                     className="h-7 w-7 text-tiny"
@@ -62,12 +62,15 @@ export function AdminBar() {
                 radius="full"
                 variant="bordered"
               >
-                {cmsSession.displayName}
+                <span className="max-w-[140px] truncate">{cmsSession.displayName}</span>
               </Button>
             </DropdownTrigger>
-            <DropdownMenu aria-label="Admin actions">
+            <DropdownMenu
+              aria-label="Admin actions"
+              className="min-w-[220px] max-w-[280px]"
+            >
               <DropdownItem key="name" className="text-default-500" isReadOnly>
-                Signed in as {cmsSession.displayName}
+                <span className="block truncate">Signed in as {cmsSession.displayName}</span>
               </DropdownItem>
               <DropdownItem key="cms" href={withBasePath("/cms-admin/")}>
                 Go to CMS Admin
