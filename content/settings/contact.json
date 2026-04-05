@@ -1,6 +1,6 @@
 {
   "title": "Start a conversation",
-  "description": "Send a note or book a short intro call. Both options stay available in the static site and can be updated without touching React code.",
+  "description": "Send a note or book a short intro call. ",
   "formHeading": "Contact Me",
   "scheduleHeading": "Schedule a Call"
 }
