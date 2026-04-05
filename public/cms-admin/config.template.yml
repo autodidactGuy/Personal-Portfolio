@@ -2,7 +2,7 @@ local_backend: false
 site_url: __SITE_URL__
 display_url: __DISPLAY_URL__
 logo_url: /favicon.png
-publish_mode: editorial_workflow
+publish_mode: simple
 
 backend:
   name: github
