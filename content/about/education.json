@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "degree": "Masters of Science in Computer Science",
+      "institute": "Maharishi International University",
+      "location": "Fairfield, Iowa",
+      "from": "08 / 2022",
+      "to": "04 / 2024",
+      "result": "3.95",
+      "image": "/education/miu.png"
+    },
+    {
+      "degree": "Bachelors of Science in Computer Science",
+      "institute": "The University of Lahore",
+      "location": "Lahore, Pakistan",
+      "from": "09 / 2015",
+      "to": "03 / 2019",
+      "result": "3.83",
+      "image": "/education/uol.png"
+    }
+  ]
+}

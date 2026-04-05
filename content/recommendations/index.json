@@ -1,0 +1,20 @@
+{
+  "title": "Recommendations",
+  "items": [
+    {
+      "name": "Engineering Partner",
+      "role": "Former teammate",
+      "quote": "Hassan combines strong delivery instincts with calm technical judgment, especially on systems that need both speed and durability."
+    },
+    {
+      "name": "Product Stakeholder",
+      "role": "Cross-functional collaborator",
+      "quote": "He communicates tradeoffs clearly and gives teams confidence that the implementation and the bigger picture stay aligned."
+    },
+    {
+      "name": "Leadership Reference",
+      "role": "Manager",
+      "quote": "One of Hassan's strengths is turning ambiguous requirements into structured execution plans without losing momentum."
+    }
+  ]
+}

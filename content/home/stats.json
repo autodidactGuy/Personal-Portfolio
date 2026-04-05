@@ -1,0 +1,9 @@
+{
+  "title": "What this portfolio emphasizes",
+  "items": [
+    { "label": "Years Building", "value": "7+" },
+    { "label": "Cloud-First Products", "value": "12" },
+    { "label": "Published Stories", "value": "4" },
+    { "label": "Case Studies", "value": "3" }
+  ]
+}

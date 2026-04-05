@@ -1,0 +1,25 @@
+{
+  "name": "Hassan Raza",
+  "initials": "HR",
+  "title": "Software Engineer",
+  "slogan": "Tech Artisan: Excellence Reimagined",
+  "description": "Experienced software engineer building cloud-native platforms, strong product foundations, and thoughtful technical narratives across software, data, and AI.",
+  "avatar": "/favicon.png",
+  "navigation": {
+    "primary": [
+      { "label": "Home", "href": "/" },
+      { "label": "About", "href": "/about" },
+      { "label": "Projects", "href": "/projects" },
+      { "label": "Case Studies", "href": "/case-studies" },
+      { "label": "Blog", "href": "/blog" },
+      { "label": "Contact", "href": "/contact" }
+    ]
+  },
+  "links": {
+    "github": "https://github.com/autodidactGuy",
+    "twitter": "https://x.com/autodidactGuy",
+    "linkedin": "https://linkedin.com/in/autodidactGuy",
+    "resume": "/HassanRaza-Resume.pdf",
+    "calendly": "https://calendly.com/autodidactGuy/15min"
+  }
+}

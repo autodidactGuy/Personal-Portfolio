@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "personal-portfolio",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-04",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "GITHUB_OAUTH_SCOPE": "repo",
+    "ALLOWED_GITHUB_USERS": "autodidactGuy",
+    "ALLOWED_ORIGINS": "https://hassanraza.us",
+    "ORIGIN": "https://hassanraza.us",
+    "REPO_BASE_PATH": ""
+  }
+}

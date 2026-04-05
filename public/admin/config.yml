@@ -1,0 +1,225 @@
+local_backend: false
+site_url: https://hassanraza.us
+display_url: https://hassanraza.us
+logo_url: /favicon.png
+publish_mode: editorial_workflow
+
+backend:
+  name: github
+  repo: autodidactGuy/Personal-Portfolio
+  branch: cms-staging
+  base_url: http://127.0.0.1:8787
+  auth_endpoint: /auth
+
+media_folder: "public/images"
+public_folder: "/images"
+
+collections:
+  - name: "homepage"
+    label: "Homepage"
+    files:
+      - name: "hero"
+        label: "Hero"
+        file: "content/home/hero.json"
+        format: "json"
+        fields:
+          - { label: "Eyebrow", name: "eyebrow", widget: "string" }
+          - { label: "Headline", name: "headline", widget: "string" }
+          - { label: "Highlighted Text", name: "highlightedText", widget: "string" }
+          - { label: "Supporting Text", name: "supportingText", widget: "text" }
+          - { label: "Image", name: "image", widget: "image" }
+          - label: "Primary CTA"
+            name: "primaryCta"
+            widget: "object"
+            fields:
+              - { label: "Label", name: "label", widget: "string" }
+              - { label: "Href", name: "href", widget: "string" }
+              - { label: "External", name: "external", widget: "boolean", default: true }
+          - label: "Secondary CTA"
+            name: "secondaryCta"
+            widget: "object"
+            fields:
+              - { label: "Label", name: "label", widget: "string" }
+              - { label: "Href", name: "href", widget: "string" }
+              - { label: "External", name: "external", widget: "boolean", default: false }
+      - name: "stats"
+        label: "Stats"
+        file: "content/home/stats.json"
+        format: "json"
+        fields:
+          - { label: "Section Title", name: "title", widget: "string" }
+          - label: "Items"
+            name: "items"
+            widget: "list"
+            fields:
+              - { label: "Label", name: "label", widget: "string" }
+              - { label: "Value", name: "value", widget: "string" }
+      - name: "niw"
+        label: "Proposed Endeavor"
+        file: "content/home/niw.json"
+        format: "json"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Summary", name: "summary", widget: "text" }
+          - { label: "Pillars", name: "pillars", widget: "list" }
+          - label: "CTA"
+            name: "cta"
+            widget: "object"
+            fields:
+              - { label: "Label", name: "label", widget: "string" }
+              - { label: "Href", name: "href", widget: "string" }
+  - name: "recommendations"
+    label: "Recommendations"
+    files:
+      - name: "recommendation-list"
+        label: "Recommendation List"
+        file: "content/recommendations/index.json"
+        format: "json"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - label: "Items"
+            name: "items"
+            widget: "list"
+            fields:
+              - { label: "Name", name: "name", widget: "string" }
+              - { label: "Role", name: "role", widget: "string" }
+              - { label: "Quote", name: "quote", widget: "text" }
+  - name: "about"
+    label: "About"
+    files:
+      - name: "profile"
+        label: "Profile"
+        file: "content/about/profile.json"
+        format: "json"
+        fields:
+          - { label: "Headline", name: "headline", widget: "string" }
+          - { label: "Summary", name: "summary", widget: "text" }
+          - { label: "Body", name: "body", widget: "list" }
+          - { label: "Photo", name: "photo", widget: "image" }
+      - name: "experience"
+        label: "Experience"
+        file: "content/about/experience.json"
+        format: "json"
+        fields:
+          - label: "Experience Items"
+            name: "items"
+            widget: "list"
+            summary: "{{fields.title}} - {{fields.company}}"
+            collapsed: false
+            fields:
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Company", name: "company", widget: "string" }
+              - { label: "Company Comments", name: "companyComments", widget: "string", required: false }
+              - { label: "Location", name: "location", widget: "string" }
+              - { label: "From", name: "from", widget: "string" }
+              - { label: "To", name: "to", widget: "string" }
+              - { label: "Image", name: "image", widget: "image" }
+      - name: "education"
+        label: "Education"
+        file: "content/about/education.json"
+        format: "json"
+        fields:
+          - label: "Education Items"
+            name: "items"
+            widget: "list"
+            summary: "{{fields.degree}}"
+            collapsed: false
+            fields:
+              - { label: "Degree", name: "degree", widget: "string" }
+              - { label: "Institute", name: "institute", widget: "string" }
+              - { label: "Location", name: "location", widget: "string" }
+              - { label: "From", name: "from", widget: "string" }
+              - { label: "To", name: "to", widget: "string" }
+              - { label: "Result", name: "result", widget: "string" }
+              - { label: "Image", name: "image", widget: "image" }
+  - name: "settings"
+    label: "Settings"
+    files:
+      - name: "site"
+        label: "Site Settings"
+        file: "content/settings/site.json"
+        format: "json"
+        fields:
+          - { label: "Name", name: "name", widget: "string" }
+          - { label: "Initials", name: "initials", widget: "string" }
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Slogan", name: "slogan", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Avatar", name: "avatar", widget: "image" }
+          - label: "Navigation"
+            name: "navigation"
+            widget: "object"
+            fields:
+              - label: "Primary"
+                name: "primary"
+                widget: "list"
+                fields:
+                  - { label: "Label", name: "label", widget: "string" }
+                  - { label: "Href", name: "href", widget: "string" }
+          - label: "Links"
+            name: "links"
+            widget: "object"
+            fields:
+              - { label: "GitHub", name: "github", widget: "string" }
+              - { label: "Twitter", name: "twitter", widget: "string" }
+              - { label: "LinkedIn", name: "linkedin", widget: "string" }
+              - { label: "Resume", name: "resume", widget: "string" }
+              - { label: "Calendly", name: "calendly", widget: "string" }
+      - name: "contact"
+        label: "Contact Settings"
+        file: "content/settings/contact.json"
+        format: "json"
+        fields:
+          - { label: "Title", name: "title", widget: "string" }
+          - { label: "Description", name: "description", widget: "text" }
+          - { label: "Form Heading", name: "formHeading", widget: "string" }
+          - { label: "Schedule Heading", name: "scheduleHeading", widget: "string" }
+  - name: "case-studies"
+    label: "Case Studies"
+    folder: "content/case-studies"
+    create: true
+    slug: "{{slug}}"
+    extension: "mdx"
+    format: "frontmatter"
+    summary: "{{title}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Summary", name: "summary", widget: "text" }
+      - { label: "Body", name: "body", widget: "markdown" }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Published", name: "published", widget: "boolean", default: true }
+  - name: "blog"
+    label: "Blog"
+    folder: "content/blog"
+    create: true
+    slug: "{{slug}}"
+    extension: "mdx"
+    format: "frontmatter"
+    summary: "{{title}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Summary", name: "summary", widget: "text" }
+      - { label: "Date", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
+      - { label: "Body", name: "body", widget: "markdown" }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Published", name: "published", widget: "boolean", default: true }
+  - name: "projects"
+    label: "Projects"
+    folder: "content/projects"
+    create: true
+    slug: "{{slug}}"
+    extension: "mdx"
+    format: "frontmatter"
+    summary: "{{title}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Summary", name: "summary", widget: "text" }
+      - { label: "Body", name: "body", widget: "markdown" }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Published", name: "published", widget: "boolean", default: true }

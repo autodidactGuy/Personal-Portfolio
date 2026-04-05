@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "title": "Software Development Engineer II",
+      "company": "Amazon Inc",
+      "companyComments": "Contracted via Insight Global",
+      "location": "Seattle, Washington",
+      "from": "05 / 2023",
+      "to": "01 / 2024",
+      "image": "/experience/amazon.svg"
+    },
+    {
+      "title": "Full Stack Developer",
+      "company": "ThinkGeniux Private Limited",
+      "companyComments": "",
+      "location": "Lahore, Pakistan",
+      "from": "10 / 2018",
+      "to": "07 / 2022",
+      "image": "/experience/tgx.png"
+    },
+    {
+      "title": "Web App Developer",
+      "company": "Metologix Private Limited",
+      "companyComments": "",
+      "location": "Lahore, Pakistan",
+      "from": "08 / 2016",
+      "to": "09 / 2018",
+      "image": "/experience/metologix.png"
+    }
+  ]
+}
