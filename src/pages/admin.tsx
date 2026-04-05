@@ -4,7 +4,7 @@ import { withBasePath } from "@/config/site";
 
 export default function AdminRedirectPage() {
   useEffect(() => {
-    window.location.replace(withBasePath("/cms-admin/index.html"));
+    window.location.replace(withBasePath("/cms-admin/"));
   }, []);
 
   return null;
