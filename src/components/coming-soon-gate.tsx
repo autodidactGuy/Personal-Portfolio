@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-
-import { siteConfig } from "@/config/site";
+import NextImage from "next/image";
+import { Image } from "@nextui-org/react";
+import { siteConfig, withBasePath } from "@/config/site";
 
 const CMS_USER_STORAGE_KEYS = ["netlify-cms-user", "decap-cms-user"];
 const CMS_ROUTE_PREFIXES = ["/cms-admin", "/admin"];
@@ -53,6 +54,15 @@ export function ComingSoonScreen() {
   return (
     <section className="mx-auto flex min-h-[70vh] w-full max-w-4xl items-center justify-center px-6 py-20">
       <div className="text-center">
+        <Image
+            as={NextImage}
+            isBlurred
+            alt={siteConfig.name}
+            width={220}
+            height={220}
+            className="animate__animated animate__fadeInUp mx-auto"
+            src={withBasePath(siteConfig.avatar)}
+          />
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary">
           {siteConfig.name}
         </p>
