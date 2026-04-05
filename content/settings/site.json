@@ -1,30 +1,48 @@
 {
   "name": "Hassan Raza",
   "initials": "HR",
-  "title": "Software Engineer",
-  "slogan": "Tech Artisan: Excellence Reimagined",
-  "description": "Experienced software engineer building cloud-native platforms, strong product foundations, and thoughtful technical narratives across software, data, and AI.",
-  "avatar": "/favicon.png",
-  "comingSoonMode": {
-    "enabled": true,
-    "headline": "Coming Soon",
-    "description": "A refreshed experience is on the way."
-  },
   "navigation": {
     "primary": [
-      { "label": "Home", "href": "/" },
-      { "label": "About", "href": "/about" },
-      { "label": "Projects", "href": "/projects" },
-      { "label": "Case Studies", "href": "/case-studies" },
-      { "label": "Blog", "href": "/blog" },
-      { "label": "Contact", "href": "/contact" }
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      },
+      {
+        "label": "Projects",
+        "href": "/projects"
+      },
+      {
+        "label": "Case Studies",
+        "href": "/case-studies"
+      },
+      {
+        "label": "Blog",
+        "href": "/blog"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
     ]
   },
+  "title": "Senior Software Engineer",
+  "avatar": "/favicon.png",
   "links": {
     "github": "https://github.com/autodidactGuy",
     "twitter": "https://x.com/autodidactGuy",
     "linkedin": "https://linkedin.com/in/autodidactGuy",
     "resume": "/HassanRaza-Resume.pdf",
     "calendly": "https://calendly.com/autodidactGuy/15min"
+  },
+  "description": "Experienced software engineer building cloud-native platforms, strong product foundations, and thoughtful technical narratives across software, data, and AI.",
+  "slogan": "Tech Artisan: Excellence Reimagined",
+  "comingSoonMode": {
+    "enabled": true,
+    "headline": "Coming Soon",
+    "description": "A refreshed experience is on the way."
   }
 }
