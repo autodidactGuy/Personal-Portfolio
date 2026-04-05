@@ -8,6 +8,12 @@
   </head>
   <body>
     <div id="nc-root"></div>
+    <div
+      id="cms-status"
+      style="max-width: 720px; margin: 40px auto; padding: 16px; font: 14px/1.5 system-ui, sans-serif;"
+    >
+      Initializing CMS...
+    </div>
     <noscript>Decap CMS requires JavaScript to load.</noscript>
     <script>
       window.CMS_MANUAL_INIT = true;
@@ -18,7 +24,27 @@
       src="https://cdn.jsdelivr.net/npm/decap-cms@^3.10.1/dist/decap-cms.js"
     ></script>
     <script>
-      window.addEventListener("load", async () => {
+      const statusElement = document.getElementById("cms-status");
+
+      function setStatus(message, isError = false) {
+        if (!statusElement) return;
+        statusElement.textContent = message;
+        statusElement.style.color = isError ? "#b91c1c" : "#475569";
+      }
+
+      async function waitFor(test, label, timeoutMs = 10000) {
+        const start = Date.now();
+
+        while (!test()) {
+          if (Date.now() - start > timeoutMs) {
+            throw new Error(`Timed out waiting for ${label}`);
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", async () => {
         const isLocalHost =
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1";
@@ -32,17 +58,40 @@
           return;
         }
 
-        const response = await fetch("./config.template.yml", { cache: "no-store" });
-        const template = await response.text();
-        const hydratedConfig = template
-          .replace(/__SITE_URL__/g, siteUrl)
-          .replace(/__DISPLAY_URL__/g, siteUrl)
-          .replace(/__BACKEND_BASE_URL__/g, backendBaseUrl);
+        try {
+          setStatus("Loading CMS scripts...");
+          await waitFor(() => window.jsyaml, "js-yaml");
+          await waitFor(() => window.CMS, "Decap CMS");
 
-        window.__CMS_INITIALIZED__ = true;
-        window.CMS.init({
-          config: window.jsyaml.load(hydratedConfig),
-        });
+          setStatus("Loading CMS configuration...");
+          const response = await fetch("./config.template.yml", { cache: "no-store" });
+
+          if (!response.ok) {
+            throw new Error(`Config request failed with status ${response.status}`);
+          }
+
+          const template = await response.text();
+          const hydratedConfig = template
+            .replace(/__SITE_URL__/g, siteUrl)
+            .replace(/__DISPLAY_URL__/g, siteUrl)
+            .replace(/__BACKEND_BASE_URL__/g, backendBaseUrl);
+
+          setStatus("Starting Decap CMS...");
+          window.__CMS_INITIALIZED__ = true;
+          window.CMS.init({
+            config: window.jsyaml.load(hydratedConfig),
+          });
+
+          if (statusElement) {
+            statusElement.remove();
+          }
+        } catch (error) {
+          console.error("CMS bootstrap failed:", error);
+          setStatus(
+            `CMS failed to load: ${error instanceof Error ? error.message : String(error)}`,
+            true
+          );
+        }
       });
     </script>
   </body>
