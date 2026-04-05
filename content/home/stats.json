@@ -1,5 +1,6 @@
 {
   "title": "What this portfolio emphasizes",
+  "badgeLabel": "Snapshot",
   "items": [
     { "label": "Years Building", "value": "7+" },
     { "label": "Cloud-First Products", "value": "12" },

@@ -47,7 +47,7 @@ export function AdminBar() {
           >
             Open CMS Admin
           </Button>
-          <Dropdown placement="bottom-end">
+          <Dropdown placement="bottom-end" shouldBlockScroll={false}>
             <DropdownTrigger>
               <Button
                 className="max-w-full bg-background"

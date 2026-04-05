@@ -48,6 +48,7 @@ collections:
         format: "json"
         fields:
           - { label: "Section Title", name: "title", widget: "string" }
+          - { label: "Badge Label", name: "badgeLabel", widget: "string" }
           - label: "Items"
             name: "items"
             widget: "list"

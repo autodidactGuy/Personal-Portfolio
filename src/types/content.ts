@@ -54,6 +54,7 @@ export const homeHeroSchema = z.object({
 
 export const homeStatsSchema = z.object({
   title: z.string().min(1),
+  badgeLabel: z.string().min(1),
   items: z
     .array(
       z.object({
