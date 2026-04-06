@@ -19,12 +19,15 @@ import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";
 import clsx from "clsx";
 
+import { useComingSoonGate } from "@/components/coming-soon-gate";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { SearchIcon } from "@/components/icons";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { MdMail } from "react-icons/md";
 
 export const Navbar = () => {
+	const { cmsSession, isCmsRoute } = useComingSoonGate();
+	const hasAdminBar = cmsSession.isLoggedIn && !isCmsRoute;
 	const searchInput = (
 		<Input
 			aria-label="Search"
@@ -50,6 +53,7 @@ export const Navbar = () => {
 			maxWidth="xl"
 			position="sticky"
 			classNames={{
+				base: hasAdminBar ? "top-[53px] z-40" : "top-0 z-40",
 				item: [
 				"flex",
 				"relative",

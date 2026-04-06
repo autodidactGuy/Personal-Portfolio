@@ -31,7 +31,7 @@ export function AdminBar() {
   };
 
   return (
-    <div className="border-b border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-sm">
+    <div className="sticky top-0 z-50 border-b border-primary/20 bg-primary/10 px-4 py-2 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 overflow-x-clip">
         <p className="min-w-0 text-sm font-medium text-primary">
           {isPreviewMode ? "Preview mode enabled" : "Admin mode enabled"}
