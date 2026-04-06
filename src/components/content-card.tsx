@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Button, Card, CardBody, CardFooter, CardHeader, Chip } from "@nextui-org/react";
-import { HiOutlineCalendarDays } from "react-icons/hi2";
+import { Button, Card, CardBody, CardHeader, Chip, Tooltip } from "@nextui-org/react";
+import { HiOutlineCalendarDays, HiStar } from "react-icons/hi2";
 
 import { ContentCover } from "@/components/content-cover";
 import { siteConfig } from "@/config/site";
@@ -49,7 +49,7 @@ export function ContentCard({
     <Card
       key={slug}
       isBlurred
-      className="group overflow-hidden border border-default-200/80 bg-background/75 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
+      className="group h-full overflow-hidden border border-default-200/80 bg-background/75 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
     >
       <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
         <ContentCover
@@ -65,49 +65,6 @@ export function ContentCard({
           <p className="text-xl font-semibold tracking-tight">{frontmatter.title}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {frontmatter.featured ? (
-            <Chip color="primary" radius="full" size="sm" variant="flat">
-              Featured
-            </Chip>
-          ) : null}
-          <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" />
-        </div>
-      </CardHeader>
-      <CardBody className="gap-4 pb-3 pt-3">
-        <p className="text-default-700">{frontmatter.summary}</p>
-        <Button
-          as={Link}
-          className="w-fit font-medium transition-transform duration-300 group-hover:translate-x-0.5"
-          color="primary"
-          href={href}
-          radius="full"
-          variant="flat"
-        >
-          Read more
-        </Button>
-      </CardBody>
-      <CardFooter className="flex-col items-start gap-4 border-t border-default-200/70 pt-4">
-        {shouldShowMeta ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-default-200/60 bg-default-100/25 px-2.5 py-0.5 text-[11px] font-medium text-default-500">
-              <HiOutlineCalendarDays className="text-primary/75" size={12} />
-              <span>
-                {new Date(frontmatter.date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-              {siteConfig.githubHandle ? (
-                <>
-                  <span className="h-1 w-1 rounded-full bg-default-300/90" />
-                  <span>By @{siteConfig.githubHandle}</span>
-                </>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
@@ -119,13 +76,58 @@ export function ContentCard({
           >
             {displayTypeLabel}
           </Chip>
-          {frontmatter.tags.map((tag) => (
-            <Chip key={tag} radius="full" size="sm" variant="flat">
-              {tag}
-            </Chip>
-          ))}
+          {frontmatter.featured ? (
+            <Tooltip content="Featured" delay={150}>
+              <span className="inline-flex h-8 w-8 items-center justify-center text-primary transition-transform duration-300 group-hover:scale-110">
+                <HiStar className="drop-shadow-[0_0_10px_rgba(0,114,245,0.28)]" size={16} />
+              </span>
+            </Tooltip>
+          ) : null}
+          <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" />
         </div>
-      </CardFooter>
+      </CardHeader>
+      <CardBody className="gap-4 pb-3 pt-3">
+        <p className="text-default-700">{frontmatter.summary}</p>
+        <div className=" flex flex-col items-start gap-4 pt-2">
+          {shouldShowMeta ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-default-200/60 bg-default-100/25 px-2.5 py-0.5 text-[11px] font-medium text-default-500">
+                  <HiOutlineCalendarDays className="text-primary/75" size={12} />
+                  <span>
+                    {new Date(frontmatter.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  {siteConfig.githubHandle ? (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-default-300/90" />
+                      <span>By @{siteConfig.githubHandle}</span>
+                    </>
+                  ) : null}
+              </div>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">  
+            {frontmatter.tags.map((tag) => (
+              <Chip key={tag} radius="full" size="sm" variant="flat">
+                {tag}
+              </Chip>
+            ))}
+          </div>
+          <Button
+            as={Link}
+            className="w-fit font-medium transition-transform duration-300 group-hover:translate-x-0.5"
+            color="primary"
+            href={href}
+            radius="full"
+            variant="flat"
+          >
+            Read more
+          </Button>
+        </div>
+      </CardBody>
     </Card>
   );
 }
