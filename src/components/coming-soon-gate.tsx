@@ -12,6 +12,43 @@ type CmsSession = {
   isLoggedIn: boolean;
 };
 
+type CmsStoredSession = {
+  token?: string;
+  jwt?: string;
+  name?: string;
+  login?: string;
+  user?: {
+    name?: string;
+    login?: string;
+  };
+  user_metadata?: {
+    full_name?: string;
+    name?: string;
+  };
+};
+
+function getDisplayName(parsedValue: CmsStoredSession) {
+  return (
+    parsedValue?.name ||
+    parsedValue?.login ||
+    parsedValue?.user?.name ||
+    parsedValue?.user?.login ||
+    parsedValue?.user_metadata?.full_name ||
+    parsedValue?.user_metadata?.name ||
+    "Admin"
+  );
+}
+
+function hasUsableCmsToken(parsedValue: CmsStoredSession) {
+  const token = parsedValue?.token || parsedValue?.jwt;
+
+  if (typeof token !== "string") {
+    return false;
+  }
+
+  return token.trim().length >= 20;
+}
+
 function readCmsSession(): CmsSession {
   if (typeof window === "undefined") {
     return {
@@ -28,16 +65,9 @@ function readCmsSession(): CmsSession {
     }
 
     try {
-      const parsedValue = JSON.parse(rawValue);
-      const isLoggedIn = Boolean(parsedValue?.token || parsedValue?.jwt || rawValue);
-      const displayName =
-        parsedValue?.name ||
-        parsedValue?.login ||
-        parsedValue?.user?.name ||
-        parsedValue?.user?.login ||
-        parsedValue?.user_metadata?.full_name ||
-        parsedValue?.user_metadata?.name ||
-        "Admin";
+      const parsedValue = JSON.parse(rawValue) as CmsStoredSession;
+      const isLoggedIn = hasUsableCmsToken(parsedValue);
+      const displayName = getDisplayName(parsedValue);
 
       if (isLoggedIn) {
         return {
@@ -46,10 +76,7 @@ function readCmsSession(): CmsSession {
         };
       }
     } catch {
-      return {
-        displayName: "Admin",
-        isLoggedIn: true,
-      };
+      continue;
     }
   }
 

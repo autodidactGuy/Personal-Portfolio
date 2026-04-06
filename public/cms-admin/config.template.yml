@@ -9,7 +9,7 @@ backend:
   repo: autodidactGuy/Personal-Portfolio
   branch: main
   base_url: __BACKEND_BASE_URL__
-  auth_endpoint: /auth
+  auth_endpoint: __AUTH_ENDPOINT__
 
 media_folder: "public/images"
 public_folder: "/images"

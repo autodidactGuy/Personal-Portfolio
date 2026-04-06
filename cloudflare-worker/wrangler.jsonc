@@ -8,7 +8,7 @@
     "enabled": true
   },
   "vars": {
-    "GITHUB_OAUTH_SCOPE": "repo",
+    "GITHUB_OAUTH_SCOPE": "public_repo",
     "ALLOWED_GITHUB_USERS": "autodidactGuy",
     "ALLOWED_ORIGINS": "https://hassanraza.us",
     "ORIGIN": "https://hassanraza.us",
