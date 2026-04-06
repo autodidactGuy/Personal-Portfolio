@@ -12,6 +12,10 @@
         "href": "/about"
       },
       {
+        "label": "Recommendations",
+        "href": "/recommendations"
+      },
+      {
         "label": "Projects",
         "href": "/projects"
       },
