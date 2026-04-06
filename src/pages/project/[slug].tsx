@@ -3,9 +3,11 @@ import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 import Link from "next/link";
 import { Button, Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { HiArrowLongLeft } from "react-icons/hi2";
 
+import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
-import { compileMdx, getCollectionSlugs, getProjectBySlug } from "@/lib/content";
+import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
 import type { ContentFrontmatter } from "@/types/content";
 
@@ -21,7 +23,16 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
   return (
     <DefaultLayout>
       <article className="mx-auto max-w-4xl py-10">
-        <Card isBlurred className="border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
+        <Card isBlurred className="overflow-hidden border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
+          <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
+            <ContentCover
+              coverImage={project.frontmatter.coverImage}
+              eyebrow="Project"
+              heightClassName="h-[210px] sm:h-[250px]"
+              title={project.frontmatter.title}
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+          </div>
           <CardHeader className="flex flex-col items-start gap-5 px-6 py-6 sm:px-8 sm:py-8">
             <Button
               as={Link}
@@ -29,6 +40,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
               href="/projects"
               radius="full"
               size="sm"
+              startContent={<HiArrowLongLeft size={18} />}
               variant="flat"
             >
               Back to Projects
@@ -67,7 +79,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
 
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
-    paths: getCollectionSlugs("projects").map((slug) => ({
+    paths: getProjectSlugs().map((slug) => ({
       params: { slug },
     })),
     fallback: false,

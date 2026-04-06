@@ -7,20 +7,20 @@ import { z } from "zod";
 
 import {
   aboutProfileSchema,
-  blogFrontmatterSchema,
   contactSettingsSchema,
   contentFrontmatterSchema,
   educationListSchema,
   experienceListSchema,
   homeHeroSchema,
   homeStatsSchema,
+  postFrontmatterSchema,
   proposedEndeavorSchema,
   recommendationsSchema,
   siteSettingsSchema,
-  type BlogFrontmatter,
   type ContentCollection,
   type ContentEntry,
   type ContentFrontmatter,
+  type PostFrontmatter,
 } from "@/types/content";
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
@@ -116,6 +116,15 @@ export function getRecommendations() {
   return getPageContent("recommendations/index.json", recommendationsSchema);
 }
 
+export function getFeaturedRecommendations() {
+  const recommendations = getRecommendations();
+
+  return {
+    ...recommendations,
+    items: recommendations.items.filter((recommendation) => recommendation.featured),
+  };
+}
+
 export function getAboutProfile() {
   return getPageContent("about/profile.json", aboutProfileSchema);
 }
@@ -128,39 +137,40 @@ export function getEducation() {
   return getPageContent("about/education.json", educationListSchema).items;
 }
 
-export function getAllPosts() {
-  return listSlugs("blog")
-    .map((slug) => readMdxEntry("blog", slug, blogFrontmatterSchema))
+export function getPosts() {
+  return listSlugs("posts")
+    .map((slug) => readMdxEntry("posts", slug, postFrontmatterSchema))
     .filter((entry) => entry.frontmatter.published)
     .sort(byPublishedDateDesc);
 }
 
 export function getProjects() {
-  return listSlugs("projects")
-    .map((slug) => readMdxEntry("projects", slug, contentFrontmatterSchema))
-    .filter((entry) => entry.frontmatter.published);
-}
-
-export function getCaseStudies() {
-  return listSlugs("case-studies")
-    .map((slug) => readMdxEntry("case-studies", slug, contentFrontmatterSchema))
-    .filter((entry) => entry.frontmatter.published);
+  return getPosts().filter((entry) => entry.frontmatter.contentType === "project");
 }
 
 export function getCollectionSlugs(collection: ContentCollection) {
   return listSlugs(collection);
 }
 
-export function getBlogPostBySlug(slug: string) {
-  return readMdxEntry("blog", slug, blogFrontmatterSchema);
+export function getProjectSlugs() {
+  return getProjects().map((project) => project.slug);
+}
+
+export function getPostBySlug(slug: string) {
+  return readMdxEntry("posts", slug, postFrontmatterSchema);
 }
 
 export function getProjectBySlug(slug: string) {
-  return readMdxEntry("projects", slug, contentFrontmatterSchema);
-}
+  const project = getPostBySlug(slug);
 
-export function getCaseStudyBySlug(slug: string) {
-  return readMdxEntry("case-studies", slug, contentFrontmatterSchema);
+  if (project.frontmatter.contentType !== "project") {
+    throw new Error(`Post "${slug}" is not a project`);
+  }
+
+  return {
+    ...project,
+    frontmatter: contentFrontmatterSchema.parse(project.frontmatter),
+  };
 }
 
 export async function compileMdx(source: string) {

@@ -60,6 +60,7 @@ collections:
         file: "content/home/niw.json"
         format: "json"
         fields:
+          - { label: "Section Label", name: "sectionLabel", widget: "string" }
           - { label: "Title", name: "title", widget: "string" }
           - { label: "Summary", name: "summary", widget: "text" }
           - { label: "Pillars", name: "pillars", widget: "list" }
@@ -85,6 +86,7 @@ collections:
               - { label: "Name", name: "name", widget: "string" }
               - { label: "Role", name: "role", widget: "string" }
               - { label: "Quote", name: "quote", widget: "text" }
+              - { label: "Featured", name: "featured", widget: "boolean", default: false }
   - name: "about"
     label: "About"
     files:
@@ -182,25 +184,9 @@ collections:
           - { label: "Description", name: "description", widget: "text" }
           - { label: "Form Heading", name: "formHeading", widget: "string" }
           - { label: "Schedule Heading", name: "scheduleHeading", widget: "string" }
-  - name: "case-studies"
-    label: "Case Studies"
-    folder: "content/case-studies"
-    create: true
-    slug: "{{slug}}"
-    extension: "mdx"
-    format: "frontmatter"
-    summary: "{{title}}"
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Summary", name: "summary", widget: "text" }
-      - { label: "Body", name: "body", widget: "markdown" }
-      - { label: "Tags", name: "tags", widget: "list", required: false }
-      - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
-      - { label: "Featured", name: "featured", widget: "boolean", default: false }
-      - { label: "Published", name: "published", widget: "boolean", default: true }
-  - name: "blog"
-    label: "Blog"
-    folder: "content/blog"
+  - name: "posts"
+    label: "Posts"
+    folder: "content/posts"
     create: true
     slug: "{{slug}}"
     extension: "mdx"
@@ -210,22 +196,14 @@ collections:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Summary", name: "summary", widget: "text" }
       - { label: "Date", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
-      - { label: "Body", name: "body", widget: "markdown" }
-      - { label: "Tags", name: "tags", widget: "list", required: false }
-      - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
-      - { label: "Featured", name: "featured", widget: "boolean", default: false }
-      - { label: "Published", name: "published", widget: "boolean", default: true }
-  - name: "projects"
-    label: "Projects"
-    folder: "content/projects"
-    create: true
-    slug: "{{slug}}"
-    extension: "mdx"
-    format: "frontmatter"
-    summary: "{{title}}"
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Summary", name: "summary", widget: "text" }
+      - label: "Content Type"
+        name: "contentType"
+        widget: "select"
+        options:
+          - { label: "Article", value: "article" }
+          - { label: "Case Study", value: "case-study" }
+          - { label: "News", value: "news" }
+          - { label: "Project", value: "project" }
       - { label: "Body", name: "body", widget: "markdown" }
       - { label: "Tags", name: "tags", widget: "list", required: false }
       - { label: "Cover Image", name: "coverImage", widget: "image", required: false }

@@ -66,6 +66,7 @@ export const homeStatsSchema = z.object({
 });
 
 export const proposedEndeavorSchema = z.object({
+  sectionLabel: z.string().min(1),
   title: z.string().min(1),
   summary: z.string().min(1),
   pillars: z.array(z.string().min(1)).min(1),
@@ -80,6 +81,7 @@ export const recommendationsSchema = z.object({
         name: z.string().min(1),
         role: z.string().min(1),
         quote: z.string().min(1),
+        featured: z.boolean().default(false),
       })
     )
     .min(1),
@@ -124,14 +126,17 @@ export const contentFrontmatterSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   tags: z.array(z.string()).default([]),
-  coverImage: z.string().min(1).default("/favicon.png"),
+  coverImage: z.string().default(""),
   featured: z.boolean().default(false),
   published: z.boolean().default(true),
   body: z.string().optional(),
 });
 
-export const blogFrontmatterSchema = contentFrontmatterSchema.extend({
+export const postContentTypeSchema = z.enum(["article", "case-study", "news", "project"]);
+
+export const postFrontmatterSchema = contentFrontmatterSchema.extend({
   date: z.string().min(1),
+  contentType: postContentTypeSchema,
 });
 
 export type NavigationItem = z.infer<typeof navigationItemSchema>;
@@ -147,9 +152,10 @@ export type EducationItem = z.infer<typeof educationItemSchema>;
 export type ExperienceList = z.infer<typeof experienceListSchema>;
 export type EducationList = z.infer<typeof educationListSchema>;
 export type ContentFrontmatter = z.infer<typeof contentFrontmatterSchema>;
-export type BlogFrontmatter = z.infer<typeof blogFrontmatterSchema>;
+export type PostContentType = z.infer<typeof postContentTypeSchema>;
+export type PostFrontmatter = z.infer<typeof postFrontmatterSchema>;
 
-export type ContentCollection = "blog" | "projects" | "case-studies";
+export type ContentCollection = "posts";
 
 export type ContentEntry<TFrontmatter> = {
   slug: string;

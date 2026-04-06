@@ -2,12 +2,13 @@
 title: "Building a Content Platform for Static Hosting"
 summary: "A practical look at structuring Markdown, JSON, and CMS workflows when the site must stay fully static."
 date: "2026-03-18"
+contentType: "article"
 tags:
   - Next.js
   - Decap CMS
   - GitHub Pages
-coverImage: "/favicon.png"
 featured: true
+coverImage: '/decap.jpg'
 published: true
 ---
 
@@ -25,7 +26,7 @@ For a portfolio, a static-first approach keeps deployment simple while still giv
 
 ```ts
 export async function getStaticProps() {
-  const posts = await getAllPosts();
+  const posts = await getPosts();
 
   return {
     props: {

@@ -1,13 +1,14 @@
 {
+  "sectionLabel": "Featured Focus",
   "title": "Proposed Endeavor (NIW)",
   "summary": "A focused body of work around resilient cloud systems, practical AI adoption, and software that expands access to better digital experiences.",
   "pillars": [
     "Design cloud-native systems that are understandable and maintainable.",
     "Translate complex technical work into evidence-backed outcomes.",
-    "Build software artifacts, case studies, and writing that demonstrate public value."
+    "Build software artifacts, posts, and writing that demonstrate public value."
   ],
   "cta": {
-    "label": "Read Case Studies",
-    "href": "/case-studies"
+    "label": "Read the Post",
+    "href": "/blog/niw-platform-story"
   }
 }
