@@ -50,13 +50,59 @@ function createStateToken() {
   return crypto.randomUUID();
 }
 
+function sanitizeOriginCandidate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmedValue = String(value).trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const withoutUnexpectedQuery = trimmedValue.split("?")[0];
+
+  try {
+    return new URL(withoutUnexpectedQuery).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getRequestOrigin(request, url) {
+  const explicitOrigin = sanitizeOriginCandidate(url.searchParams.get("origin"));
+
+  if (explicitOrigin) {
+    return explicitOrigin;
+  }
+
+  const originHeader = sanitizeOriginCandidate(request.headers.get("Origin"));
+
+  if (originHeader) {
+    return originHeader;
+  }
+
+  const refererHeader = request.headers.get("Referer");
+
+  if (!refererHeader) {
+    return null;
+  }
+
+  try {
+    return new URL(refererHeader).origin;
+  } catch {
+    return null;
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const callbackUrl = `${url.origin}/callback`;
 
     if (url.pathname === "/auth") {
-      const requestedOrigin = url.searchParams.get("origin");
+      const requestedOrigin = getRequestOrigin(request, url);
 
       if (!requestedOrigin || !isAllowedOrigin(requestedOrigin, env)) {
         return new Response("Invalid origin", {

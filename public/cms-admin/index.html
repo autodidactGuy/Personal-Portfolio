@@ -80,10 +80,7 @@
             .replace(/__SITE_URL__/g, siteUrl)
             .replace(/__DISPLAY_URL__/g, siteUrl)
             .replace(/__BACKEND_BASE_URL__/g, backendBaseUrl)
-            .replace(
-              /__AUTH_ENDPOINT__/g,
-              `/auth?origin=${encodeURIComponent(window.location.origin)}`
-            );
+            .replace(/__AUTH_ENDPOINT__/g, "/auth");
 
           setStatus("Starting Decap CMS...");
           window.__CMS_INITIALIZED__ = true;
