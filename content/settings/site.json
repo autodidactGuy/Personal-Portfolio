@@ -12,16 +12,16 @@
         "href": "/about"
       },
       {
-        "label": "Recommendations",
-        "href": "/recommendations"
-      },
-      {
         "label": "Projects",
         "href": "/projects"
       },
       {
         "label": "Blog",
         "href": "/blog"
+      },
+      {
+        "label": "Recommendations",
+        "href": "/recommendations"
       },
       {
         "label": "Contact",

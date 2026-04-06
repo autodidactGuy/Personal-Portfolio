@@ -13,10 +13,14 @@ backend:
 
 media_folder: "public/images"
 public_folder: "/images"
+media_library:
+  name: default
 
 collections:
   - name: "homepage"
     label: "Homepage"
+    media_folder: "public/images/home"
+    public_folder: "/images/home"
     files:
       - name: "hero"
         label: "Hero"
@@ -72,6 +76,8 @@ collections:
               - { label: "Href", name: "href", widget: "string" }
   - name: "recommendations"
     label: "Recommendations"
+    media_folder: "public/images/recommendations"
+    public_folder: "/images/recommendations"
     files:
       - name: "recommendation-list"
         label: "Recommendation List"
@@ -89,6 +95,8 @@ collections:
               - { label: "Featured", name: "featured", widget: "boolean", default: false }
   - name: "about"
     label: "About"
+    media_folder: "public/images/about"
+    public_folder: "/images/about"
     files:
       - name: "profile"
         label: "Profile"
@@ -137,6 +145,8 @@ collections:
               - { label: "Image", name: "image", widget: "image" }
   - name: "settings"
     label: "Settings"
+    media_folder: "public/images/settings"
+    public_folder: "/images/settings"
     files:
       - name: "site"
         label: "Site Settings"
@@ -187,6 +197,8 @@ collections:
   - name: "posts"
     label: "Posts"
     folder: "content/posts"
+    media_folder: "public/images/posts"
+    public_folder: "/images/posts"
     create: true
     slug: "{{slug}}"
     extension: "mdx"

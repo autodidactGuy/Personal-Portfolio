@@ -47,8 +47,6 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
                   <div className="h-14 w-2 rounded-full bg-primary/55" />
                 </div>
               </div>
-              <div className="absolute bottom-9 left-8 h-px w-16 bg-gradient-to-r from-primary/0 via-primary/18 to-primary/0 dark:via-primary/30" />
-              <div className="absolute bottom-6 left-8 h-px w-24 bg-gradient-to-r from-transparent via-black/6 to-transparent dark:via-white/10" />
             </div>
             <CardHeader className="items-start justify-between pb-0 pt-5">
               <span className="relative z-10 text-[10px] font-semibold uppercase tracking-[0.32em] text-default-400">

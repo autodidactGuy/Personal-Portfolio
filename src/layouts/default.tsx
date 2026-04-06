@@ -17,10 +17,14 @@ export default function DefaultLayout({
 	const animation = theme === "light" ? "lightAnimation" : "darkAnimation";
 	
 	return (
-		<div className="relative flex flex-col h-screen">
+		<div className="relative flex min-h-screen flex-col">
 			<Head />
-			<AdminBar />
-			{!shouldShowComingSoon ? <Navbar /> : null}
+			{!shouldShowComingSoon ? (
+				<div className="sticky top-0 z-50">
+					<AdminBar />
+					<Navbar />
+				</div>
+			) : null}
 			<main className={`px-6 flex-grow ${animation}`}>
 				{shouldShowComingSoon ? <ComingSoonScreen /> : children}
 			</main>
