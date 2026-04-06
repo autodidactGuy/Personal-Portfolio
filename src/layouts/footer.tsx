@@ -1,27 +1,49 @@
-import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";
+import { Card, CardBody, Chip } from "@nextui-org/react";
+import { HiOutlineCommandLine } from "react-icons/hi2";
+
+import { siteConfig } from "@/config/site";
+import { SocialLinks } from "@/components/social-links";
 
 export function Footer() {
-    return (
-        <footer className="container mx-auto max-w-7xl w-full flex justify-between items-center px-6 py-3 bg-background">
-            <div className="gap-3 max-w-fit hidden sm:flex">
-                <NextLink className="text-left" href="/">
-                    <p className="font-bold text-inherit ml-2 text-lg tracking-wide leading-3">{siteConfig.name}</p>
-                    <p className="text-inherit ml-2 text-sm">{siteConfig.title}</p> 
-                </NextLink>
+  return (
+    <footer className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+      <Card
+        isBlurred
+        className="mx-auto w-full max-w-6xl  bg-background/80 shadow-sm shadow-primary/5"
+      >
+        <CardBody className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <NextLink className="inline-block" href="/">
+                <p className="text-lg font-semibold tracking-tight text-foreground">{siteConfig.name}</p>
+                <p className="text-sm text-default-500">{siteConfig.title}</p>
+              </NextLink>
+              {/* <p className="max-w-xl text-sm leading-6 text-default-600">{siteConfig.description}</p> */}
             </div>
-            <div className="w-full sm:w-fit">
-                <p className="text-inherit ml-2 sm:text-right text-center">Crafted with &#128150; by <span className="font-bold">{siteConfig.name}</span></p>
-            </div>
-            {/* <Link
-                isExternal
-                className="flex items-center gap-1 text-current"
-                href={basePath}
-                title="Hassan Raza"
+
+            <SocialLinks />
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-default-200/70 pt-4 text-sm text-default-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+            </p>
+            <Chip
+              classNames={{
+                base: "border border-default-200/80 bg-default-100/60 text-foreground backdrop-blur-sm dark:bg-default-100/10",
+                content: "font-mono text-[13px] font-medium tracking-[0.01em] sm:text-sm",
+              }}
+              radius="full"
+              size="sm"
+              startContent={<HiOutlineCommandLine className="shrink-0 text-default-500" size={18} />}
+              variant="flat"
             >
-                <span className="text-default-600">&copy; {new Date().getFullYear()} - </span>
-                <p className="font-bold text-inherit ml-2">Hassan Raza</p>
-            </Link> */}
-        </footer>
-    );
+              $ build systems --for clarity --at scale
+            </Chip>
+          </div>
+        </CardBody>
+      </Card>
+    </footer>
+  );
 }

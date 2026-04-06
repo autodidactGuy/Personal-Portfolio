@@ -9,7 +9,8 @@ import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
-import type { ContentFrontmatter } from "@/types/content";
+import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
+import { toTitleCase } from "@/lib/string";
 
 type ProjectDetailProps = {
   project: {
@@ -27,7 +28,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
           <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
             <ContentCover
               coverImage={project.frontmatter.coverImage}
-              eyebrow="Project"
+              eyebrow={toTitleCase(PostContentTypeEnum.Project)}
               heightClassName="h-[210px] sm:h-[250px]"
               title={project.frontmatter.title}
             />

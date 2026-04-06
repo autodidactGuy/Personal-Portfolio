@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+function normalizeDateInput(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return value;
+}
+
 export const navigationItemSchema = z.object({
   label: z.string().min(1),
   href: z.string().min(1),
@@ -132,10 +140,26 @@ export const contentFrontmatterSchema = z.object({
   body: z.string().optional(),
 });
 
-export const postContentTypeSchema = z.enum(["article", "case-study", "news", "project"]);
+export enum PostContentTypeEnum {
+  Article = "article",
+  Note = "note",
+  CaseStudy = "case-study",
+  Tutorial = "tutorial",
+  Announcement = "announcement",
+  News = "news",
+  Project = "project",
+  Other = "other",
+}
+
+export const postContentTypeSchema = z.nativeEnum(PostContentTypeEnum);
+
+export const normalizedDateStringSchema = z.preprocess(
+  normalizeDateInput,
+  z.string().min(1)
+);
 
 export const postFrontmatterSchema = contentFrontmatterSchema.extend({
-  date: z.string().min(1),
+  date: normalizedDateStringSchema,
   contentType: postContentTypeSchema,
 });
 

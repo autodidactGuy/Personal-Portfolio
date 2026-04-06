@@ -1,7 +1,6 @@
 import type { GetStaticProps } from "next";
 import React from "react";
 
-import Link from "next/link";
 import { z } from "zod";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { InlineWidget } from "react-calendly";
@@ -17,7 +16,6 @@ import {
   Input,
   Textarea,
 } from "@nextui-org/react";
-import { button as buttonStyles } from "@nextui-org/theme";
 import { Toaster, toast } from "sonner";
 import { useTheme } from "next-themes";
 import { FaLinkedin } from "react-icons/fa6";
@@ -25,6 +23,7 @@ import { HiOutlineCalendarDays } from "react-icons/hi2";
 import { MdMail } from "react-icons/md";
 
 import { siteConfig } from "@/config/site";
+import { SocialLinkButton } from "@/components/social-link-button";
 import { useZodForm } from "@/hooks/useZodForm";
 import { getContactSettings } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
@@ -115,22 +114,17 @@ export default function Contact({ settings }: ContactPageProps) {
           <p className="max-w-xl text-default-600">{settings.description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a
-            className={buttonStyles({ radius: "full", variant: "bordered" })}
+          <SocialLinkButton
             href="mailto:hello@hassanraza.us"
-          >
-            <MdMail size={18} />
-            Email
-          </a>
-          <a
-            className={buttonStyles({ radius: "full", variant: "bordered" })}
+            icon={<MdMail size={18} />}
+            isExternal={false}
+            label="Email"
+          />
+          <SocialLinkButton
             href={siteConfig.links.linkedin}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <FaLinkedin size={18} />
-            LinkedIn
-          </a>
+            icon={<FaLinkedin size={18} />}
+            label="LinkedIn"
+          />
         </div>
       </CardHeader>
       <CardBody className="px-4 pb-5 pt-0 sm:px-8 sm:pb-8">

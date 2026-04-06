@@ -13,6 +13,7 @@ import {
   experienceListSchema,
   homeHeroSchema,
   homeStatsSchema,
+  PostContentTypeEnum,
   postFrontmatterSchema,
   proposedEndeavorSchema,
   recommendationsSchema,
@@ -145,7 +146,7 @@ export function getPosts() {
 }
 
 export function getProjects() {
-  return getPosts().filter((entry) => entry.frontmatter.contentType === "project");
+  return getPosts().filter((entry) => entry.frontmatter.contentType === PostContentTypeEnum.Project);
 }
 
 export function getCollectionSlugs(collection: ContentCollection) {
@@ -163,8 +164,8 @@ export function getPostBySlug(slug: string) {
 export function getProjectBySlug(slug: string) {
   const project = getPostBySlug(slug);
 
-  if (project.frontmatter.contentType !== "project") {
-    throw new Error(`Post "${slug}" is not a project`);
+  if (project.frontmatter.contentType !== PostContentTypeEnum.Project) {
+    throw new Error(`Post "${slug}" is not a ${PostContentTypeEnum.Project}`);
   }
 
   return {

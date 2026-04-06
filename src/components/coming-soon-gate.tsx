@@ -49,6 +49,8 @@ function hasUsableCmsToken(parsedValue: CmsStoredSession) {
   return token.trim().length >= 20;
 }
 
+const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV === "development";
+
 function readCmsSession(): CmsSession {
   if (typeof window === "undefined") {
     return {
@@ -101,7 +103,7 @@ export function useComingSoonGate() {
     (routePrefix) =>
       router.pathname.startsWith(routePrefix) || router.asPath.startsWith(routePrefix)
   );
-  const isComingSoonEnabled = siteConfig.comingSoonMode.enabled;
+  const isComingSoonEnabled = siteConfig.comingSoonMode.enabled && !IS_LOCAL_DEVELOPMENT;
   const shouldShowComingSoon = isComingSoonEnabled && !cmsSession.isLoggedIn && !isCmsRoute;
 
   return {

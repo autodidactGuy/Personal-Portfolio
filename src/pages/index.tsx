@@ -7,7 +7,8 @@ import { ProposedEndeavorCard } from "@/components/proposed-endeavor-card";
 import { RecommendationsSection } from "@/components/recommendations-section";
 import { getFeaturedRecommendations, getHomeHero, getHomeStats, getPosts, getProjects, getProposedEndeavor } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
-import type { ContentFrontmatter, HomeHero, HomeStats, PostFrontmatter, ProposedEndeavor, Recommendations } from "@/types/content";
+import { PostContentTypeEnum, type ContentFrontmatter, type HomeHero, type HomeStats, type PostFrontmatter, type ProposedEndeavor, type Recommendations } from "@/types/content";
+import { toTitleCase } from "@/lib/string";
 
 type HomePageProps = {
   hero: HomeHero;
@@ -48,7 +49,7 @@ export default function IndexPage({
             items={featuredProjects}
             getHref={(slug) => `/project/${slug}`}
             title="Featured Projects"
-            typeLabel="Project"
+            typeLabel={toTitleCase(PostContentTypeEnum.Project)}
           />
 
           <RecommendationsSection recommendations={recommendations} />
@@ -71,6 +72,10 @@ export default function IndexPage({
 export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
   const posts = getPosts();
   const projects = getProjects();
+  const featuredProjects = projects.filter((project) => project.frontmatter.featured).slice(0, 2);
+  const featuredPosts = posts
+    .filter((post) => post.frontmatter.featured && post.frontmatter.contentType !== PostContentTypeEnum.Project)
+    .slice(0, 4);
 
   return {
     props: {
@@ -78,8 +83,8 @@ export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
       stats: getHomeStats(),
       proposedEndeavor: getProposedEndeavor(),
       recommendations: getFeaturedRecommendations(),
-      featuredProjects: projects.filter((project) => project.frontmatter.featured).slice(0, 2),
-      featuredPosts: posts.slice(0, 2),
+      featuredProjects,
+      featuredPosts,
     },
   };
 };

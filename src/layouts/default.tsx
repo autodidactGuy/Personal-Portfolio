@@ -24,7 +24,7 @@ export default function DefaultLayout({
 			<main className={`px-6 flex-grow ${animation}`}>
 				{shouldShowComingSoon ? <ComingSoonScreen /> : children}
 			</main>
-			<Footer />
+			{!shouldShowComingSoon ? <Footer /> : null}
 		</div>
 	);
 }

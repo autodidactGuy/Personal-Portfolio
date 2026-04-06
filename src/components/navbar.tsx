@@ -20,11 +20,8 @@ import NextLink from "next/link";
 import clsx from "clsx";
 
 import { ThemeSwitch } from "@/components/theme-switch";
-import {
-	GithubIcon,
-	SearchIcon,
-} from "@/components/icons";
-import { FaLinkedin, FaXTwitter } from "react-icons/fa6";
+import { SearchIcon } from "@/components/icons";
+import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { MdMail } from "react-icons/md";
 
 export const Navbar = () => {
@@ -93,17 +90,9 @@ export const Navbar = () => {
 				</div>
 			</NavbarContent>
 
-      		<NavbarContent className="hidden sm:flex basis-1/5 sm:basis-full" justify="end">
+			<NavbarContent className="hidden sm:flex basis-1/5 sm:basis-full" justify="end">
 				<NavbarItem className="hidden lg:flex gap-2">
-					<Link isExternal href={siteConfig.links.linkedin}>
-						<FaLinkedin className="text-default-500" size={24}/>
-					</Link>
-					<Link isExternal href={siteConfig.links.github}>
-						<GithubIcon className="text-default-500" />
-					</Link>
-					<Link isExternal href={siteConfig.links.twitter}>
-						<FaXTwitter className="text-default-500" size={24}/>
-					</Link>
+					<SocialLinks />
 					<ThemeSwitch />
 				</NavbarItem>
 				{/* <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem> */}
@@ -120,15 +109,7 @@ export const Navbar = () => {
 			</NavbarContent>
 
 			<NavbarContent className="lg:hidden basis-1 pl-4" justify="end">
-				<Link isExternal href={siteConfig.links.linkedin}>
-					<FaLinkedin className="text-default-500" size={24}/>
-				</Link>
-				<Link isExternal href={siteConfig.links.github}>
-					<GithubIcon className="text-default-500" />
-				</Link>
-				<Link isExternal className="hidden xsm:block" href={siteConfig.links.twitter}>
-					<FaXTwitter className="text-default-500" size={24}/>
-				</Link>
+				<SocialLinksCompact />
 				<ThemeSwitch />
 				<NavbarMenuToggle />
       		</NavbarContent>

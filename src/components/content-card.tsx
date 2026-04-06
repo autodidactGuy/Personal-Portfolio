@@ -83,7 +83,7 @@ export function ContentCard({
               </span>
             </Tooltip>
           ) : null}
-          <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" />
+          {/* <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" /> */}
         </div>
       </CardHeader>
       <CardBody className="gap-4 pb-3 pt-3">

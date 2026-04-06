@@ -5,7 +5,8 @@ import { Chip } from "@nextui-org/react";
 import { ContentCard } from "@/components/content-card";
 import { getProjects } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
-import type { ContentFrontmatter } from "@/types/content";
+import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
+import { toTitleCase } from "@/lib/string";
 
 type ProjectsPageProps = {
   projects: Array<{
@@ -43,7 +44,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
               frontmatter={project.frontmatter}
               href={`/project/${project.slug}`}
               slug={project.slug}
-              typeLabel="Project"
+              typeLabel={toTitleCase(PostContentTypeEnum.Project)}
             />
           ))}
         </div>
