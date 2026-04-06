@@ -35,6 +35,14 @@ function withClearedOauthCookies(headers = new Headers()) {
   return headers;
 }
 
+function createRedirectResponse(location, headers = new Headers()) {
+  headers.set("Location", location);
+  return new Response(null, {
+    status: 302,
+    headers,
+  });
+}
+
 function getAllowedOrigins(env) {
   return String(env.ALLOWED_ORIGINS || env.ORIGIN || "")
     .split(",")
@@ -118,13 +126,10 @@ export default {
       githubUrl.searchParams.set("redirect_uri", callbackUrl);
       githubUrl.searchParams.set("state", state);
 
-      const response = Response.redirect(githubUrl.toString(), 302);
-      response.headers.append("Set-Cookie", serializeCookie("oauth_state", state, 600));
-      response.headers.append(
-        "Set-Cookie",
-        serializeCookie("oauth_origin", requestedOrigin, 600)
-      );
-      return response;
+      const headers = new Headers();
+      headers.append("Set-Cookie", serializeCookie("oauth_state", state, 600));
+      headers.append("Set-Cookie", serializeCookie("oauth_origin", requestedOrigin, 600));
+      return createRedirectResponse(githubUrl.toString(), headers);
     }
 
     if (url.pathname === "/callback") {
