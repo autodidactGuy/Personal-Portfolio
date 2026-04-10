@@ -153,4 +153,6 @@ yarn lint
 
 ## License
 
-This repository represents my personal portfolio and supporting implementation work. Please do not reuse the branding, written content, or personal identity assets without permission.
+This repository represents my personal portfolio and supporting implementation work. It is intentionally **not** distributed under an open-source license.
+
+Please do not reuse the code, branding, written content, personal identity assets, or design work without permission. See [LICENSE](./LICENSE) for the full terms.
