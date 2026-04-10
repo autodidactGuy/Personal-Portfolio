@@ -1,19 +1,19 @@
 import type { GetStaticProps } from "next";
 
 import { FeaturedContentSection } from "@/components/featured-content-section";
+import { FeaturedFocusCard } from "@/components/featured-focus-card";
 import { HomeHeroSection } from "@/components/home-hero-section";
 import { HomeStatsSection } from "@/components/home-stats-section";
-import { ProposedEndeavorCard } from "@/components/proposed-endeavor-card";
 import { RecommendationsSection } from "@/components/recommendations-section";
-import { getFeaturedRecommendations, getHomeHero, getHomeStats, getPosts, getProjects, getProposedEndeavor } from "@/lib/content";
+import { getFeaturedFocus, getFeaturedRecommendations, getHomeHero, getHomeStats, getPosts, getProjects } from "@/lib/content";
 import DefaultLayout from "@/layouts/default";
-import { PostContentTypeEnum, type ContentFrontmatter, type HomeHero, type HomeStats, type PostFrontmatter, type ProposedEndeavor, type Recommendations } from "@/types/content";
+import { PostContentTypeEnum, type ContentFrontmatter, type FeaturedFocus, type HomeHero, type HomeStats, type PostFrontmatter, type Recommendations } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
 
 type HomePageProps = {
   hero: HomeHero;
   stats: HomeStats;
-  proposedEndeavor: ProposedEndeavor;
+  featuredFocus: FeaturedFocus;
   recommendations: Recommendations;
   featuredProjects: Array<{
     slug: string;
@@ -28,7 +28,7 @@ type HomePageProps = {
 export default function IndexPage({
   hero,
   stats,
-  proposedEndeavor,
+  featuredFocus,
   recommendations,
   featuredProjects,
   featuredPosts,
@@ -40,7 +40,7 @@ export default function IndexPage({
 
         <HomeStatsSection stats={stats} />
 
-        <ProposedEndeavorCard proposedEndeavor={proposedEndeavor} />
+        <FeaturedFocusCard featuredFocus={featuredFocus} />
 
         <section className="grid gap-6 lg:grid-cols-2">
           <FeaturedContentSection
@@ -81,7 +81,7 @@ export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
     props: {
       hero: getHomeHero(),
       stats: getHomeStats(),
-      proposedEndeavor: getProposedEndeavor(),
+      featuredFocus: getFeaturedFocus(),
       recommendations: getFeaturedRecommendations(),
       featuredProjects,
       featuredPosts,

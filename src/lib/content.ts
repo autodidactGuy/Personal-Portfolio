@@ -10,12 +10,12 @@ import {
   contactSettingsSchema,
   contentFrontmatterSchema,
   educationListSchema,
+  featuredFocusSchema,
   experienceListSchema,
   homeHeroSchema,
   homeStatsSchema,
   PostContentTypeEnum,
   postFrontmatterSchema,
-  proposedEndeavorSchema,
   recommendationsSchema,
   siteSettingsSchema,
   type ContentCollection,
@@ -109,8 +109,8 @@ export function getHomeStats() {
   return getPageContent("home/stats.json", homeStatsSchema);
 }
 
-export function getProposedEndeavor() {
-  return getPageContent("home/niw.json", proposedEndeavorSchema);
+export function getFeaturedFocus() {
+  return getPageContent("home/featured-focus.json", featuredFocusSchema);
 }
 
 export function getRecommendations() {

@@ -57,9 +57,9 @@ collections:
             fields:
               - { label: "Label", name: "label", widget: "string" }
               - { label: "Value", name: "value", widget: "string" }
-      - name: "niw"
-        label: "Proposed Endeavor"
-        file: "content/home/niw.json"
+      - name: "featured-focus"
+        label: "Featured Focus"
+        file: "content/home/featured-focus.json"
         format: "json"
         fields:
           - { label: "Section Label", name: "sectionLabel", widget: "string" }

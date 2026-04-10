@@ -7,10 +7,10 @@ import {
   HiOutlineRocketLaunch,
 } from "react-icons/hi2";
 
-import type { ProposedEndeavor } from "@/types/content";
+import type { FeaturedFocus } from "@/types/content";
 
-type ProposedEndeavorCardProps = {
-  proposedEndeavor: ProposedEndeavor;
+type FeaturedFocusCardProps = {
+  featuredFocus: FeaturedFocus;
 };
 
 const pillarIcons: IconType[] = [
@@ -19,7 +19,7 @@ const pillarIcons: IconType[] = [
   HiOutlineRocketLaunch,
 ];
 
-export function ProposedEndeavorCard({ proposedEndeavor }: ProposedEndeavorCardProps) {
+export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
   return (
     <Card
       isBlurred
@@ -35,21 +35,21 @@ export function ProposedEndeavorCard({ proposedEndeavor }: ProposedEndeavorCardP
           size="sm"
           variant="flat"
         >
-          {proposedEndeavor.sectionLabel}
+          {featuredFocus.sectionLabel}
         </Chip>
         <div className="flex w-full flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl space-y-4">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              {proposedEndeavor.title}
+              {featuredFocus.title}
             </h2>
-            <p className="text-default-700">{proposedEndeavor.summary}</p>
+            <p className="text-default-700">{featuredFocus.summary}</p>
           </div>
           {/* <div className="hidden h-3 w-3 shrink-0 rounded-full bg-primary/75 shadow-[0_0_24px_rgba(0,114,245,0.35)] lg:block" /> */}
         </div>
       </CardHeader>
       <CardBody className="gap-6 px-6 pb-6 pt-0 sm:px-8 sm:pb-8">
         <div className="grid gap-3 md:grid-cols-3">
-          {proposedEndeavor.pillars.map((pillar, index) => {
+          {featuredFocus.pillars.map((pillar, index) => {
             const PillarIcon = pillarIcons[index % pillarIcons.length];
 
             return (
@@ -84,11 +84,11 @@ export function ProposedEndeavorCard({ proposedEndeavor }: ProposedEndeavorCardP
           <Button
             as={Link}
             color="primary"
-            href={proposedEndeavor.cta.href}
+            href={featuredFocus.cta.href}
             radius="full"
             variant="flat"
           >
-            {proposedEndeavor.cta.label}
+            {featuredFocus.cta.label}
           </Button>
         </div>
       </CardBody>

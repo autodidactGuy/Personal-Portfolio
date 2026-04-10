@@ -73,7 +73,7 @@ export const homeStatsSchema = z.object({
     .min(1),
 });
 
-export const proposedEndeavorSchema = z.object({
+export const featuredFocusSchema = z.object({
   sectionLabel: z.string().min(1),
   title: z.string().min(1),
   summary: z.string().min(1),
@@ -168,7 +168,7 @@ export type SiteSettings = z.infer<typeof siteSettingsSchema>;
 export type ContactSettings = z.infer<typeof contactSettingsSchema>;
 export type HomeHero = z.infer<typeof homeHeroSchema>;
 export type HomeStats = z.infer<typeof homeStatsSchema>;
-export type ProposedEndeavor = z.infer<typeof proposedEndeavorSchema>;
+export type FeaturedFocus = z.infer<typeof featuredFocusSchema>;
 export type Recommendations = z.infer<typeof recommendationsSchema>;
 export type AboutProfile = z.infer<typeof aboutProfileSchema>;
 export type ExperienceItem = z.infer<typeof experienceItemSchema>;

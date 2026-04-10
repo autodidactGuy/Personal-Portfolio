@@ -1,0 +1,14 @@
+{
+  "sectionLabel": "Featured Focus",
+  "title": "Pinned Focus",
+  "summary": "A highlighted stream of work centered on resilient systems, practical product thinking, and technical writing that makes complex work easier to understand.",
+  "pillars": [
+    "Design systems that stay maintainable as products and teams evolve.",
+    "Translate technical depth into outcomes, evidence, and usable narrative.",
+    "Publish work that shows engineering judgment, product sense, and execution quality."
+  ],
+  "cta": {
+    "label": "Read the Post",
+    "href": "/blog/niw-platform-story"
+  }
+}
