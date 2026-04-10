@@ -4,7 +4,12 @@ import { withBasePath } from "@/config/site";
 
 export default function AdminRedirectPage() {
   useEffect(() => {
-    window.location.replace(withBasePath("/cms-admin/"));
+    const adminPath =
+      process.env.NODE_ENV === "development"
+        ? withBasePath("/cms-admin/index.html")
+        : withBasePath("/cms-admin/");
+
+    window.location.replace(adminPath);
   }, []);
 
   return null;

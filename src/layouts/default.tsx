@@ -4,11 +4,14 @@ import { Head } from "./head";
 import { Footer } from "./footer";
 import { useTheme } from "next-themes";
 import { ComingSoonScreen, useComingSoonGate } from "@/components/coming-soon-gate";
+import type { SeoEntry } from "@/lib/seo";
 
 export default function DefaultLayout({
 	children,
+	seo,
 }: {
 	children: React.ReactNode;
+	seo?: SeoEntry;
 }) {
 
 	const { theme } = useTheme();
@@ -18,7 +21,7 @@ export default function DefaultLayout({
 	
 	return (
 		<div className="relative flex min-h-screen flex-col">
-			<Head />
+			<Head seo={seo} />
 			{!shouldShowComingSoon ? (
 				<div className="sticky top-0 z-50">
 					<AdminBar />

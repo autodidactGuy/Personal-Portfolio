@@ -26,6 +26,7 @@ import { siteConfig } from "@/config/site";
 import { SocialLinkButton } from "@/components/social-link-button";
 import { useZodForm } from "@/hooks/useZodForm";
 import { getContactSettings } from "@/lib/content";
+import { getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import type { ContactSettings } from "@/types/content";
 
@@ -283,7 +284,21 @@ export default function Contact({ settings }: ContactPageProps) {
   );
 
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: settings.title,
+        description: settings.description || siteConfig.description,
+        pathname: "/contact",
+        image: getSeoImage(siteConfig.avatar),
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          name: settings.title,
+          url: getSiteUrl("/contact"),
+          description: settings.description || siteConfig.description,
+        },
+      }}
+    >
       <section className="mx-auto max-w-6xl py-10 sm:py-14">
         <div className="mb-10 space-y-4">
           <Chip

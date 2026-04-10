@@ -6,7 +6,9 @@
     "clean": "rm -rf .next out",
     "dev": "next dev",
     "dev:clean": "yarn clean && next dev",
-    "build": "next build",
+    "seo:assets": "node scripts/generate-seo-assets.mjs",
+    "build:site": "next build",
+    "build": "yarn seo:assets && yarn build:site",
     "start": "next start",
     "lint": "next lint"
   },

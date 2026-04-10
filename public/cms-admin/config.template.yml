@@ -151,6 +151,7 @@ collections:
         file: "content/settings/site.json"
         format: "json"
         fields:
+          - { label: "Site URL", name: "siteUrl", widget: "string" }
           - { label: "Name", name: "name", widget: "string" }
           - { label: "Initials", name: "initials", widget: "string" }
           - { label: "Title", name: "title", widget: "string" }

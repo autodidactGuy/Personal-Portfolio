@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Button, Chip } from "@nextui-org/react";
 
 import { RecommendationCard } from "@/components/recommendation-card";
+import { siteConfig } from "@/config/site";
 import { getRecommendations } from "@/lib/content";
+import { getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import type { Recommendations } from "@/types/content";
 
@@ -13,8 +15,25 @@ type RecommendationsPageProps = {
 };
 
 export default function RecommendationsPage({ recommendations }: RecommendationsPageProps) {
+  const pageDescription =
+    "Endorsements and working reflections that speak to technical execution, systems thinking, and cross-functional collaboration.";
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: recommendations.title,
+        description: pageDescription,
+        pathname: "/recommendations",
+        image: getSeoImage(siteConfig.avatar),
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: recommendations.title,
+          url: getSiteUrl("/recommendations"),
+          description: pageDescription,
+        },
+      }}
+    >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
           <Chip

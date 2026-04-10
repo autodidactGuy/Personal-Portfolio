@@ -18,6 +18,7 @@ import { MdWork } from "react-icons/md";
 
 import { siteConfig, withBasePath } from "@/config/site";
 import { getAboutProfile, getEducation, getExperience } from "@/lib/content";
+import { getAbsoluteImageUrl, getPersonStructuredData, getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import type { AboutProfile, EducationItem, ExperienceItem } from "@/types/content";
 
@@ -103,8 +104,34 @@ function AboutEntryCard({
 }
 
 export default function About({ profile, experience, education }: AboutPageProps) {
+  const pageDescription = profile.summary || siteConfig.description;
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: "About",
+        description: pageDescription,
+        pathname: "/about",
+        image: getSeoImage(profile.photo),
+        type: "profile",
+        structuredData: [
+          getPersonStructuredData(),
+          {
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            name: `About ${siteConfig.name}`,
+            url: getSiteUrl("/about"),
+            description: pageDescription,
+            mainEntity: {
+              "@type": "Person",
+              name: siteConfig.name,
+              image: getAbsoluteImageUrl(profile.photo),
+              description: pageDescription,
+            },
+          },
+        ],
+      }}
+    >
       <section className="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-14 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <Card
           isBlurred

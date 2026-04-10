@@ -8,6 +8,8 @@ import { HiArrowLongLeft } from "react-icons/hi2";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";
+import { getAbsoluteImageUrl, getSeoImage, getSiteUrl } from "@/lib/seo";
+import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
@@ -21,8 +23,34 @@ type ProjectDetailProps = {
 };
 
 export default function ProjectDetailPage({ project, source }: ProjectDetailProps) {
+  const pageDescription = project.frontmatter.summary || siteConfig.description;
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: project.frontmatter.title,
+        description: pageDescription,
+        pathname: `/project/${project.slug}`,
+        canonicalPathname: `/project/${project.slug}`,
+        image: getSeoImage(project.frontmatter.coverImage),
+        type: "article",
+        tags: project.frontmatter.tags,
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "CreativeWork",
+          name: project.frontmatter.title,
+          description: pageDescription,
+          image: getAbsoluteImageUrl(project.frontmatter.coverImage),
+          url: getSiteUrl(`/project/${project.slug}`),
+          author: {
+            "@type": "Person",
+            name: siteConfig.name,
+            url: getSiteUrl("/about"),
+          },
+          keywords: project.frontmatter.tags.join(", "),
+        },
+      }}
+    >
       <article className="mx-auto max-w-4xl py-10">
         <Card isBlurred className="overflow-hidden border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
           <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">

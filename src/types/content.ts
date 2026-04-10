@@ -14,6 +14,7 @@ export const navigationItemSchema = z.object({
 });
 
 export const siteSettingsSchema = z.object({
+  siteUrl: z.string().url(),
   name: z.string().min(1),
   initials: z.string().min(1),
   title: z.string().min(1),

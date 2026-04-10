@@ -3,7 +3,9 @@ import type { GetStaticProps } from "next";
 import { Chip } from "@nextui-org/react";
 
 import { ContentCard } from "@/components/content-card";
+import { siteConfig } from "@/config/site";
 import { getProjects } from "@/lib/content";
+import { getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
@@ -16,8 +18,34 @@ type ProjectsPageProps = {
 };
 
 export default function ProjectsPage({ projects }: ProjectsPageProps) {
+  const pageDescription =
+    "Long-form project entries authored in MDX so the implementation story can evolve without touching UI code.";
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: "Projects",
+        description: pageDescription,
+        pathname: "/projects",
+        image: getSeoImage(projects[0]?.frontmatter.coverImage),
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: `${siteConfig.name} Projects`,
+          url: getSiteUrl("/projects"),
+          description: pageDescription,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: projects.map((project, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: getSiteUrl(`/project/${project.slug}`),
+              name: project.frontmatter.title,
+            })),
+          },
+        },
+      }}
+    >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
           <Chip

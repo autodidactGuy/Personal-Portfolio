@@ -3,9 +3,11 @@ import type { GetStaticProps } from "next";
 import { Chip } from "@nextui-org/react";
 
 import { ContentCard } from "@/components/content-card";
+import { siteConfig } from "@/config/site";
 import { getPosts } from "@/lib/content";
+import { getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
-import type { PostFrontmatter } from "@/types/content";
+import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
 
 type BlogIndexProps = {
   posts: Array<{
@@ -15,8 +17,47 @@ type BlogIndexProps = {
 };
 
 export default function BlogIndex({ posts }: BlogIndexProps) {
+  const pageDescription =
+    "Technical writing, architecture notes, and portfolio narratives managed through MDX and Decap CMS.";
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: "Blog",
+        description: pageDescription,
+        pathname: "/blog",
+        image: getSeoImage(posts[0]?.frontmatter.coverImage),
+        structuredData: [
+          {
+            "@context": "https://schema.org",
+            "@type": "Blog",
+            name: `${siteConfig.name} Blog`,
+            url: getSiteUrl("/blog"),
+            description: pageDescription,
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: `${siteConfig.name} Writing`,
+            url: getSiteUrl("/blog"),
+            description: pageDescription,
+            mainEntity: {
+              "@type": "ItemList",
+              itemListElement: posts.map((post, index) => ({
+                "@type": "ListItem",
+                position: index + 1,
+                url: getSiteUrl(
+                  post.frontmatter.contentType === PostContentTypeEnum.Project
+                    ? `/project/${post.slug}`
+                    : `/blog/${post.slug}`
+                ),
+                name: post.frontmatter.title,
+              })),
+            },
+          },
+        ],
+      }}
+    >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
           <Chip
@@ -42,7 +83,11 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
               key={post.slug}
               coverHeightClassName="h-44 transition-transform duration-500 group-hover:scale-[1.03]"
               frontmatter={post.frontmatter}
-              href={`/blog/${post.slug}`}
+              href={
+                post.frontmatter.contentType === PostContentTypeEnum.Project
+                  ? `/project/${post.slug}`
+                  : `/blog/${post.slug}`
+              }
               showMeta
               slug={post.slug}
             />

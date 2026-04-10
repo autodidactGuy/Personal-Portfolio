@@ -5,7 +5,9 @@ import { FeaturedFocusCard } from "@/components/featured-focus-card";
 import { HomeHeroSection } from "@/components/home-hero-section";
 import { HomeStatsSection } from "@/components/home-stats-section";
 import { RecommendationsSection } from "@/components/recommendations-section";
+import { siteConfig } from "@/config/site";
 import { getFeaturedFocus, getFeaturedRecommendations, getHomeHero, getHomeStats, getPosts, getProjects } from "@/lib/content";
+import { getPersonStructuredData, getSeoImage, getSiteUrl, getWebsiteStructuredData } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter, type FeaturedFocus, type HomeHero, type HomeStats, type PostFrontmatter, type Recommendations } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
@@ -33,8 +35,28 @@ export default function IndexPage({
   featuredProjects,
   featuredPosts,
 }: HomePageProps) {
+  const pageDescription = hero.supportingText || siteConfig.description;
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: `${siteConfig.title} | ${siteConfig.slogan}`,
+        description: pageDescription,
+        pathname: "/",
+        image: getSeoImage(hero.image),
+        structuredData: [
+          getWebsiteStructuredData(),
+          getPersonStructuredData(),
+          {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: `${siteConfig.name} Portfolio`,
+            url: getSiteUrl("/"),
+            description: pageDescription,
+          },
+        ],
+      }}
+    >
       <section className="mx-auto flex max-w-6xl flex-col gap-10 py-10 sm:py-24">
         <HomeHeroSection hero={hero} />
 

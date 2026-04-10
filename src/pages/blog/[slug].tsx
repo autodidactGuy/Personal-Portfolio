@@ -8,10 +8,11 @@ import { HiArrowLongLeft, HiOutlineCalendarDays } from "react-icons/hi2";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { compileMdx, getCollectionSlugs, getPostBySlug } from "@/lib/content";
+import { formatIsoDate, getAbsoluteImageUrl, getSeoImage, getSiteUrl } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
-import type { PostFrontmatter } from "@/types/content";
+import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
 
 type BlogPostPageProps = {
   post: {
@@ -22,8 +23,45 @@ type BlogPostPageProps = {
 };
 
 export default function BlogPostPage({ post, source }: BlogPostPageProps) {
+  const isProject = post.frontmatter.contentType === PostContentTypeEnum.Project;
+  const detailPath = isProject ? `/project/${post.slug}` : `/blog/${post.slug}`;
+  const pageDescription = post.frontmatter.summary || siteConfig.description;
+
   return (
-    <DefaultLayout>
+    <DefaultLayout
+      seo={{
+        title: post.frontmatter.title,
+        description: pageDescription,
+        pathname: `/blog/${post.slug}`,
+        canonicalPathname: detailPath,
+        image: getSeoImage(post.frontmatter.coverImage),
+        type: "article",
+        publishedTime: formatIsoDate(post.frontmatter.date),
+        tags: post.frontmatter.tags,
+        noindex: isProject,
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          headline: post.frontmatter.title,
+          description: pageDescription,
+          datePublished: formatIsoDate(post.frontmatter.date),
+          dateModified: formatIsoDate(post.frontmatter.date),
+          image: getAbsoluteImageUrl(post.frontmatter.coverImage),
+          author: {
+            "@type": "Person",
+            name: siteConfig.name,
+            url: getSiteUrl("/about"),
+          },
+          publisher: {
+            "@type": "Person",
+            name: siteConfig.name,
+            url: getSiteUrl("/"),
+          },
+          mainEntityOfPage: getSiteUrl(detailPath),
+          keywords: post.frontmatter.tags.join(", "),
+        },
+      }}
+    >
       <article className="mx-auto max-w-4xl py-10">
         <Card isBlurred className="overflow-hidden border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
           <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
