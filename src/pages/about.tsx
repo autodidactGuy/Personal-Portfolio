@@ -119,7 +119,7 @@ export default function About({ profile, experience, education }: AboutPageProps
   return (
     <DefaultLayout
       seo={{
-        title: `${profile.pageLabel} | ${siteConfig.name}`,
+        title: `${profile.pageLabel}`,
         description: pageDescription,
         pathname: "/about",
         image: getSeoImage(profile.photo, getGeneratedPageOgImage("about")),

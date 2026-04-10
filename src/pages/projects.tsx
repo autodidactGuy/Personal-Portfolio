@@ -24,7 +24,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
   return (
     <DefaultLayout
       seo={{
-        title: `Projects | ${siteConfig.name}`,
+        title: `Projects`,
         description: pageDescription,
         pathname: "/projects",
         image: getSeoImage(projects[0]?.frontmatter.coverImage, getGeneratedPageOgImage("projects")),

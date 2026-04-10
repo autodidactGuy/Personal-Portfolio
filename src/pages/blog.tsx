@@ -23,7 +23,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
   return (
     <DefaultLayout
       seo={{
-        title: `Blog | ${siteConfig.name}`,
+        title: `Blog`,
         description: pageDescription,
         pathname: "/blog",
         image: getSeoImage(posts[0]?.frontmatter.coverImage, getGeneratedPageOgImage("blog")),

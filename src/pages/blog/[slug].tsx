@@ -31,7 +31,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
   return (
     <DefaultLayout
       seo={{
-        title: `${post.frontmatter.title} | ${siteConfig.name}`,
+        title: `${post.frontmatter.title}`,
         description: pageDescription,
         pathname: `/blog/${post.slug}`,
         canonicalPathname: detailPath,

@@ -21,7 +21,7 @@ export default function RecommendationsPage({ recommendations }: Recommendations
   return (
     <DefaultLayout
       seo={{
-        title: `${recommendations.title} | ${siteConfig.name}`,
+        title: `${recommendations.title}`,
         description: pageDescription,
         pathname: "/recommendations",
         image: getSeoImage(siteConfig.avatar, getGeneratedPageOgImage("recommendations")),

@@ -40,7 +40,6 @@ export default function IndexPage({
   return (
     <DefaultLayout
       seo={{
-        title: `${siteConfig.name} | ${siteConfig.title} | ${siteConfig.slogan}`,
         description: pageDescription,
         pathname: "/",
         image: getSeoImage(hero.image, getGeneratedPageOgImage("home")),

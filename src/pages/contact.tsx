@@ -286,7 +286,7 @@ export default function Contact({ settings }: ContactPageProps) {
   return (
     <DefaultLayout
       seo={{
-        title: `${settings.title} | ${siteConfig.name}`,
+        title: `${settings.title}`,
         description: settings.description || siteConfig.description,
         pathname: "/contact",
         image: getSeoImage(siteConfig.avatar, getGeneratedPageOgImage("contact")),

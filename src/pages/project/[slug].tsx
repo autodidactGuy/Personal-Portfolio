@@ -29,7 +29,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
   return (
     <DefaultLayout
       seo={{
-        title: `${project.frontmatter.title} | ${siteConfig.name}`,
+        title: `${project.frontmatter.title}`,
         description: pageDescription,
         pathname: `/project/${project.slug}`,
         canonicalPathname: `/project/${project.slug}`,
