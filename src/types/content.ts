@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isContentIconId } from "@/config/content-icons";
+
 function normalizeDateInput(value: unknown) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value.toISOString().slice(0, 10);
@@ -28,6 +30,11 @@ export const siteSettingsSchema = z.object({
   }),
   navigation: z.object({
     primary: z.array(navigationItemSchema).min(1),
+    headerQuickLink: z.object({
+      label: z.string().min(1),
+      icon: z.string().refine(isContentIconId, "Invalid content icon id. Use pack:name format.").optional(),
+      href: z.string().min(1),
+    }),
   }),
   links: z.object({
     github: z.string().url(),

@@ -28,7 +28,12 @@
         "label": "Contact",
         "href": "/contact"
       }
-    ]
+    ],
+    "headerQuickLink": {
+      "label": "Contact",
+      "icon": "md:MdMail",
+      "href": "/contact"
+    }
   },
   "title": "Senior Software Engineer",
   "avatar": "/favicon.png",

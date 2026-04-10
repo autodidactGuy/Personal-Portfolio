@@ -6,6 +6,7 @@
     "clean": "rm -rf .next out",
     "dev": "next dev",
     "dev:clean": "yarn clean && next dev",
+    "icons:generate": "node scripts/generate-content-icons.mjs",
     "seo:assets": "node scripts/generate-seo-assets.mjs",
     "seo:og": "node scripts/generate-og-images.mjs",
     "seo:generate": "yarn seo:assets && yarn seo:og",

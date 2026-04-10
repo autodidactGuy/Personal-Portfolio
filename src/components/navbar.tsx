@@ -19,10 +19,10 @@ import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";
 import clsx from "clsx";
 
+import { ContentIcon } from "@/components/content-icon";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { SearchIcon } from "@/components/icons";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
-import { MdMail } from "react-icons/md";
 
 export const Navbar = () => {
 	const searchInput = (
@@ -96,15 +96,21 @@ export const Navbar = () => {
 					<SocialLinks />
 					<ThemeSwitch />
 				</NavbarItem>
-				{/* <NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem> */}
+				<NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
 				<NavbarItem className="hidden lg:flex">
 					<Button
 						as={Link}
 						className="text-sm font-normal text-default-600 bg-default-100"
-						href="/contact"
-						startContent={<MdMail className="text-default-500" size={20}/>}
+						href={siteConfig.navigation.headerQuickLink.href}
+						startContent={
+							<ContentIcon
+								className="text-default-500"
+								name={siteConfig.navigation.headerQuickLink.icon}
+								size={20}
+							/>
+						}
 						variant="flat">
-						Contact
+						{siteConfig.navigation.headerQuickLink.label}
 					</Button>
 				</NavbarItem>
 			</NavbarContent>
@@ -129,6 +135,14 @@ export const Navbar = () => {
 							</Link>
 						</NavbarMenuItem>
 					))}
+					<NavbarMenuItem key="header-quick-link">
+						<Link
+							color="foreground"
+							href={siteConfig.navigation.headerQuickLink.href}
+							size="lg">
+							{siteConfig.navigation.headerQuickLink.label}
+						</Link>
+				</NavbarMenuItem>
 				</div>
 			</NavbarMenu>
 		</NextUINavbar>
