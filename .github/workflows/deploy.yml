@@ -8,6 +8,7 @@ on:
       - "content/**"
       - "public/**"
       - "src/**"
+      - "scripts/**"
       - "next.config.mjs"
       - "package.json"
       - "yarn.lock"

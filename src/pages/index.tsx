@@ -7,7 +7,7 @@ import { HomeStatsSection } from "@/components/home-stats-section";
 import { RecommendationsSection } from "@/components/recommendations-section";
 import { siteConfig } from "@/config/site";
 import { getFeaturedFocus, getFeaturedRecommendations, getHomeHero, getHomeStats, getPosts, getProjects } from "@/lib/content";
-import { getPersonStructuredData, getSeoImage, getSiteUrl, getWebsiteStructuredData } from "@/lib/seo";
+import { getGeneratedPageOgImage, getPersonStructuredData, getSeoImage, getSiteUrl, getWebsiteStructuredData } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter, type FeaturedFocus, type HomeHero, type HomeStats, type PostFrontmatter, type Recommendations } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
@@ -40,10 +40,10 @@ export default function IndexPage({
   return (
     <DefaultLayout
       seo={{
-        title: `${siteConfig.title} | ${siteConfig.slogan}`,
+        title: `${siteConfig.name} | ${siteConfig.title} | ${siteConfig.slogan}`,
         description: pageDescription,
         pathname: "/",
-        image: getSeoImage(hero.image),
+        image: getSeoImage(hero.image, getGeneratedPageOgImage("home")),
         structuredData: [
           getWebsiteStructuredData(),
           getPersonStructuredData(),

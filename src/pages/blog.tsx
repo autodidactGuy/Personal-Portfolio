@@ -5,7 +5,7 @@ import { Chip } from "@nextui-org/react";
 import { ContentCard } from "@/components/content-card";
 import { siteConfig } from "@/config/site";
 import { getPosts } from "@/lib/content";
-import { getSeoImage, getSiteUrl } from "@/lib/seo";
+import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
 
@@ -23,10 +23,10 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
   return (
     <DefaultLayout
       seo={{
-        title: "Blog",
+        title: `Blog | ${siteConfig.name}`,
         description: pageDescription,
         pathname: "/blog",
-        image: getSeoImage(posts[0]?.frontmatter.coverImage),
+        image: getSeoImage(posts[0]?.frontmatter.coverImage, getGeneratedPageOgImage("blog")),
         structuredData: [
           {
             "@context": "https://schema.org",

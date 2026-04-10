@@ -8,6 +8,7 @@ export type SeoEntry = {
   pathname?: string;
   canonicalPathname?: string;
   image?: string;
+  fallbackImage?: string;
   type?: "website" | "article" | "profile";
   publishedTime?: string;
   tags?: string[];
@@ -48,8 +49,18 @@ export function getAbsoluteImageUrl(image?: string | null) {
   return `${getSiteOrigin()}${withBasePath(source)}`;
 }
 
-export function getSeoImage(image?: string | null) {
-  return image || DEFAULT_SOCIAL_IMAGE || siteConfig.avatar;
+export function getGeneratedPageOgImage(
+  page: "home" | "about" | "blog" | "projects" | "recommendations" | "contact"
+) {
+  return `/og/${page}.png`;
+}
+
+export function getGeneratedPostOgImage(slug: string, isProject = false) {
+  return isProject ? `/og/projects/${slug}.png` : `/og/posts/${slug}.png`;
+}
+
+export function getSeoImage(image?: string | null, fallbackImage?: string | null) {
+  return image || fallbackImage || DEFAULT_SOCIAL_IMAGE || siteConfig.avatar;
 }
 
 export function buildTitle(title?: string) {
@@ -63,7 +74,7 @@ export function buildTitle(title?: string) {
 export function buildSeo(entry: SeoEntry = {}) {
   const pathname = entry.pathname || "/";
   const description = entry.description || siteConfig.description;
-  const image = getSeoImage(entry.image);
+  const image = getSeoImage(entry.image, entry.fallbackImage);
 
   return {
     title: buildTitle(entry.title),

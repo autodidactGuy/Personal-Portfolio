@@ -6,7 +6,7 @@ import { Button, Chip } from "@nextui-org/react";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { siteConfig } from "@/config/site";
 import { getRecommendations } from "@/lib/content";
-import { getSeoImage, getSiteUrl } from "@/lib/seo";
+import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import type { Recommendations } from "@/types/content";
 
@@ -21,10 +21,10 @@ export default function RecommendationsPage({ recommendations }: Recommendations
   return (
     <DefaultLayout
       seo={{
-        title: recommendations.title,
+        title: `${recommendations.title} | ${siteConfig.name}`,
         description: pageDescription,
         pathname: "/recommendations",
-        image: getSeoImage(siteConfig.avatar),
+        image: getSeoImage(siteConfig.avatar, getGeneratedPageOgImage("recommendations")),
         structuredData: {
           "@context": "https://schema.org",
           "@type": "CollectionPage",

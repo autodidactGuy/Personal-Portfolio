@@ -8,7 +8,7 @@ import { HiArrowLongLeft, HiOutlineCalendarDays } from "react-icons/hi2";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { compileMdx, getCollectionSlugs, getPostBySlug } from "@/lib/content";
-import { formatIsoDate, getAbsoluteImageUrl, getSeoImage, getSiteUrl } from "@/lib/seo";
+import { formatIsoDate, getAbsoluteImageUrl, getGeneratedPostOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
@@ -26,15 +26,16 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
   const isProject = post.frontmatter.contentType === PostContentTypeEnum.Project;
   const detailPath = isProject ? `/project/${post.slug}` : `/blog/${post.slug}`;
   const pageDescription = post.frontmatter.summary || siteConfig.description;
+  const seoImage = getSeoImage(post.frontmatter.coverImage, getGeneratedPostOgImage(post.slug, isProject));
 
   return (
     <DefaultLayout
       seo={{
-        title: post.frontmatter.title,
+        title: `${post.frontmatter.title} | ${siteConfig.name}`,
         description: pageDescription,
         pathname: `/blog/${post.slug}`,
         canonicalPathname: detailPath,
-        image: getSeoImage(post.frontmatter.coverImage),
+        image: seoImage,
         type: "article",
         publishedTime: formatIsoDate(post.frontmatter.date),
         tags: post.frontmatter.tags,
@@ -46,7 +47,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
           description: pageDescription,
           datePublished: formatIsoDate(post.frontmatter.date),
           dateModified: formatIsoDate(post.frontmatter.date),
-          image: getAbsoluteImageUrl(post.frontmatter.coverImage),
+          image: getAbsoluteImageUrl(seoImage),
           author: {
             "@type": "Person",
             name: siteConfig.name,

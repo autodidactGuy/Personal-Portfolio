@@ -18,7 +18,7 @@ import { MdWork } from "react-icons/md";
 
 import { siteConfig, withBasePath } from "@/config/site";
 import { getAboutProfile, getEducation, getExperience } from "@/lib/content";
-import { getAbsoluteImageUrl, getPersonStructuredData, getSeoImage, getSiteUrl } from "@/lib/seo";
+import { getAbsoluteImageUrl, getGeneratedPageOgImage, getPersonStructuredData, getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import type { AboutProfile, EducationItem, ExperienceItem } from "@/types/content";
 
@@ -109,10 +109,10 @@ export default function About({ profile, experience, education }: AboutPageProps
   return (
     <DefaultLayout
       seo={{
-        title: "About",
+        title: `About | ${siteConfig.name}`,
         description: pageDescription,
         pathname: "/about",
-        image: getSeoImage(profile.photo),
+        image: getSeoImage(profile.photo, getGeneratedPageOgImage("about")),
         type: "profile",
         structuredData: [
           getPersonStructuredData(),

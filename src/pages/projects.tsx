@@ -5,7 +5,7 @@ import { Chip } from "@nextui-org/react";
 import { ContentCard } from "@/components/content-card";
 import { siteConfig } from "@/config/site";
 import { getProjects } from "@/lib/content";
-import { getSeoImage, getSiteUrl } from "@/lib/seo";
+import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
@@ -24,10 +24,10 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
   return (
     <DefaultLayout
       seo={{
-        title: "Projects",
+        title: `Projects | ${siteConfig.name}`,
         description: pageDescription,
         pathname: "/projects",
-        image: getSeoImage(projects[0]?.frontmatter.coverImage),
+        image: getSeoImage(projects[0]?.frontmatter.coverImage, getGeneratedPageOgImage("projects")),
         structuredData: {
           "@context": "https://schema.org",
           "@type": "CollectionPage",

@@ -7,6 +7,8 @@
     "dev": "next dev",
     "dev:clean": "yarn clean && next dev",
     "seo:assets": "node scripts/generate-seo-assets.mjs",
+    "seo:og": "node scripts/generate-og-images.mjs",
+    "seo:generate": "yarn seo:assets && yarn seo:og",
     "build:site": "next build",
     "build": "yarn seo:assets && yarn build:site",
     "start": "next start",
@@ -40,5 +42,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

@@ -8,7 +8,7 @@ import { HiArrowLongLeft } from "react-icons/hi2";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";
-import { getAbsoluteImageUrl, getSeoImage, getSiteUrl } from "@/lib/seo";
+import { getAbsoluteImageUrl, getGeneratedPostOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
@@ -24,15 +24,16 @@ type ProjectDetailProps = {
 
 export default function ProjectDetailPage({ project, source }: ProjectDetailProps) {
   const pageDescription = project.frontmatter.summary || siteConfig.description;
+  const seoImage = getSeoImage(project.frontmatter.coverImage, getGeneratedPostOgImage(project.slug, true));
 
   return (
     <DefaultLayout
       seo={{
-        title: project.frontmatter.title,
+        title: `${project.frontmatter.title} | ${siteConfig.name}`,
         description: pageDescription,
         pathname: `/project/${project.slug}`,
         canonicalPathname: `/project/${project.slug}`,
-        image: getSeoImage(project.frontmatter.coverImage),
+        image: seoImage,
         type: "article",
         tags: project.frontmatter.tags,
         structuredData: {
@@ -40,7 +41,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
           "@type": "CreativeWork",
           name: project.frontmatter.title,
           description: pageDescription,
-          image: getAbsoluteImageUrl(project.frontmatter.coverImage),
+          image: getAbsoluteImageUrl(seoImage),
           url: getSiteUrl(`/project/${project.slug}`),
           author: {
             "@type": "Person",
