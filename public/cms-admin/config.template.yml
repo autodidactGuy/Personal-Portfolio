@@ -11,13 +11,13 @@ backend:
   base_url: __BACKEND_BASE_URL__
   auth_endpoint: /auth
 
-media_folder: "public/images"
+media_folder: "/public/images"
 public_folder: "/images"
 
 collections:
   - name: "homepage"
     label: "Homepage"
-    media_folder: "public/images/home"
+    media_folder: "/public/images/home"
     public_folder: "/images/home"
     files:
       - name: "hero"
@@ -74,7 +74,7 @@ collections:
               - { label: "Href", name: "href", widget: "string" }
   - name: "recommendations"
     label: "Recommendations"
-    media_folder: "public/images/recommendations"
+    media_folder: "/public/images/recommendations"
     public_folder: "/images/recommendations"
     files:
       - name: "recommendation-list"
@@ -93,7 +93,7 @@ collections:
               - { label: "Featured", name: "featured", widget: "boolean", default: false }
   - name: "about"
     label: "About"
-    media_folder: "public/images/about"
+    media_folder: "/public/images/about"
     public_folder: "/images/about"
     files:
       - name: "profile"
@@ -143,7 +143,7 @@ collections:
               - { label: "Image", name: "image", widget: "image" }
   - name: "settings"
     label: "Settings"
-    media_folder: "public/images/settings"
+    media_folder: "/public/images/settings"
     public_folder: "/images/settings"
     files:
       - name: "site"
@@ -195,7 +195,7 @@ collections:
   - name: "posts"
     label: "Posts"
     folder: "content/posts"
-    media_folder: "public/images/posts"
+    media_folder: "/public/images/posts"
     public_folder: "/images/posts"
     create: true
     slug: "{{slug}}"
