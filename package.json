@@ -11,30 +11,30 @@
     "seo:generate": "yarn seo:assets && yarn seo:og",
     "build:site": "next build",
     "build": "yarn seo:assets && yarn build:site",
-    "start": "next start",
+    "start": "serve out",
     "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
     "@nextui-org/react": "^2.2.9",
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "19",
+    "@types/react-dom": "19",
     "animate.css": "^4.1.1",
     "autoprefixer": "^10.4.17",
     "clsx": "^2",
-    "eslint": "^8",
-    "eslint-config-next": "14.1.0",
+    "eslint": "9",
+    "eslint-config-next": "15",
     "framer-motion": "^11.0.3",
     "gray-matter": "^4.0.3",
     "intl-messageformat": "^10.5.0",
-    "next": "^14.1.0",
+    "next": "15",
     "next-mdx-remote": "^6.0.0",
     "next-themes": "^0.2.1",
     "postcss": "^8.4.33",
-    "react": "^18",
+    "react": "19",
     "react-calendly": "^4.3.0",
-    "react-dom": "^18",
+    "react-dom": "19",
     "react-hook-form": "^7.50.1",
     "react-icons": "^5.0.1",
     "sonner": "^1.4.0",
@@ -44,6 +44,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "serve": "^14.2.6",
     "sharp": "^0.34.5"
   }
 }

@@ -46,12 +46,14 @@ function Anchor(props: ComponentPropsWithoutRef<"a">) {
 }
 
 function MdxImage(props: ComponentPropsWithoutRef<"img">) {
+  const src = typeof props.src === "string" ? props.src : undefined;
+
   return (
     <img
       {...props}
       alt={props.alt || ""}
       className="mt-6 rounded-2xl border border-default-200"
-      src={withBasePath(props.src)}
+      src={withBasePath(src)}
     />
   );
 }

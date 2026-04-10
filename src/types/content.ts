@@ -97,10 +97,20 @@ export const recommendationsSchema = z.object({
 });
 
 export const aboutProfileSchema = z.object({
+  pageLabel: z.string().min(1),
+  pageTitle: z.string().min(1),
+  pageDescription: z.string().min(1),
+  aboutSectionTitle: z.string().min(1),
+  aboutSectionSubtitle: z.string().min(1),
+  summaryLabel: z.string().min(1),
   headline: z.string().min(1),
   summary: z.string().min(1),
   body: z.array(z.string().min(1)).min(1),
   photo: z.string().min(1),
+  experienceTitle: z.string().min(1),
+  experienceSubtitle: z.string().min(1),
+  educationTitle: z.string().min(1),
+  educationSubtitle: z.string().min(1),
 });
 
 export const experienceItemSchema = z.object({

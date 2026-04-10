@@ -101,10 +101,20 @@ collections:
         file: "content/about/profile.json"
         format: "json"
         fields:
+          - { label: "Page Label", name: "pageLabel", widget: "string" }
+          - { label: "Page Title", name: "pageTitle", widget: "string" }
+          - { label: "Page Description", name: "pageDescription", widget: "text" }
+          - { label: "About Section Title", name: "aboutSectionTitle", widget: "string" }
+          - { label: "About Section Subtitle", name: "aboutSectionSubtitle", widget: "text" }
+          - { label: "Summary Label", name: "summaryLabel", widget: "string" }
           - { label: "Headline", name: "headline", widget: "string" }
           - { label: "Summary", name: "summary", widget: "text" }
           - { label: "Body", name: "body", widget: "list" }
           - { label: "Photo", name: "photo", widget: "image" }
+          - { label: "Experience Title", name: "experienceTitle", widget: "string" }
+          - { label: "Experience Subtitle", name: "experienceSubtitle", widget: "text" }
+          - { label: "Education Title", name: "educationTitle", widget: "string" }
+          - { label: "Education Subtitle", name: "educationSubtitle", widget: "text" }
       - name: "experience"
         label: "Experience"
         file: "content/about/experience.json"
