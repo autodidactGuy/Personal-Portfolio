@@ -10,7 +10,7 @@ import {
   Chip,
   Divider,
   Image,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { BiSolidUserAccount } from "react-icons/bi";
 import { FaUserGraduate } from "react-icons/fa6";
 import { HiOutlineMapPin } from "react-icons/hi2";
@@ -48,13 +48,12 @@ function AboutEntryCard({
 }: AboutEntryCardProps) {
   return (
     <Card
-      isBlurred
-      className="border border-default-200/80 bg-background/80 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+      className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72"
     >
       <CardBody className="gap-5 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex shrink-0 justify-center sm:block">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm dark:bg-default-50/5">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm">
               <Image
                 as={NextImage}
                 alt={subtitle}
@@ -144,8 +143,7 @@ export default function About({ profile, experience, education }: AboutPageProps
     >
       <section className="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-14 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <Card
-          isBlurred
-          className="animate__animated animate__fadeInUp overflow-hidden border border-default-200/80 bg-background/80 shadow-sm shadow-primary/5"
+          className="animate__animated animate__fadeInUp overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72"
         >
           <CardBody className="gap-6 p-6 items-center text-center">
             <div className="relative overflow-hidden rounded-3xl border border-default-200/80 bg-default-100/40">
@@ -166,7 +164,7 @@ export default function About({ profile, experience, education }: AboutPageProps
                 <Chip
                   classNames={{
                     base: "border border-primary/20 bg-primary/10 text-primary",
-                    content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+                    content: "font-medium uppercase tracking-[0.10em] text-[11px]",
                   }}
                   radius="full"
                   size="sm"
@@ -192,17 +190,17 @@ export default function About({ profile, experience, education }: AboutPageProps
 
         <div className="space-y-5">
           <div className="space-y-4 px-5 sm:px-6">
-            <Chip
+            {/* <Chip
               classNames={{
                 base: "border border-primary/20 bg-primary/10 text-primary",
-                content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+                content: "font-medium uppercase tracking-[0.10em] text-[11px]",
               }}
               radius="full"
               size="sm"
               variant="flat"
             >
               {profile.pageLabel}
-            </Chip>
+            </Chip> */}
             <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               {profile.pageTitle}
             </h2>
@@ -213,7 +211,7 @@ export default function About({ profile, experience, education }: AboutPageProps
 
           <Accordion
             itemClasses={{
-              base: "border border-default-200/80 bg-background/80 shadow-sm",
+              base: "border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72",
               indicator: "text-primary",
               subtitle: "mt-2 text-default-500",
               title: "text-xl font-semibold tracking-tight",
@@ -236,7 +234,7 @@ export default function About({ profile, experience, education }: AboutPageProps
               title={profile.aboutSectionTitle}
             >
               <div className="space-y-5">
-                <div className="relative overflow-hidden rounded-3xl border border-default-200/70 bg-background/85 p-5 shadow-sm shadow-primary/5">
+                <div className="relative overflow-hidden rounded-3xl border border-default-200/70 bg-content1/85 p-5 shadow-sm shadow-primary/5 dark:bg-content1/72">
                   <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary/80 via-primary/40 to-transparent" />
                   <div className="relative pl-1">
                     <div className="mb-3 flex items-center gap-3 text-primary">

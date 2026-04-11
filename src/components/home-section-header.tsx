@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@nextui-org/react";
+import { Button } from "@heroui/react";
 
 type HomeSectionHeaderProps = {
   title: string;

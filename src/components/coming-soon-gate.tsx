@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import NextImage from "next/image";
-import { Image } from "@nextui-org/react";
+import { Image } from "@heroui/react";
 import { siteConfig, withBasePath } from "@/config/site";
 
 export const CMS_USER_STORAGE_KEYS = ["netlify-cms-user", "decap-cms-user"];

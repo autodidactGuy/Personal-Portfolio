@@ -1,20 +1,45 @@
 import { AppProps } from 'next/app';
-import { NextUIProvider } from '@nextui-org/react'
+import { useEffect } from "react";
+import { HeroUIProvider } from '@heroui/react'
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { useTheme } from "next-themes";
 import { fontSans, fontMono } from "@/config/fonts";
 import { useRouter } from 'next/router';
 import "@/styles/globals.css";
 import 'animate.css';
 
+function ThemeDomSync() {
+  const { resolvedTheme, theme } = useTheme();
+
+  useEffect(() => {
+    const activeTheme = resolvedTheme || theme;
+
+    if (!activeTheme) {
+      return;
+    }
+
+    document.documentElement.setAttribute("data-theme", activeTheme);
+  }, [resolvedTheme, theme]);
+
+  return null;
+}
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
 	return (
-		<NextUIProvider navigate={router.push}>
-			<NextThemesProvider defaultTheme="dark">
-				<Component {...pageProps} />
+    <HeroUIProvider navigate={router.push}>
+			<NextThemesProvider
+        attribute="class"
+        defaultTheme="dark"
+        disableTransitionOnChange
+      >
+        <ThemeDomSync />
+        <div className="min-h-screen bg-background text-foreground">
+				  <Component {...pageProps} />
+        </div>
 			</NextThemesProvider>
-		</NextUIProvider>
+    </HeroUIProvider>
 	);
 }
 

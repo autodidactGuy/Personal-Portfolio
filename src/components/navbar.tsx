@@ -11,9 +11,10 @@ import {
 	NavbarItem,
 	NavbarMenuItem,
 	Avatar,
-} from "@nextui-org/react";
+} from "@heroui/react";
+import { useEffect, useState } from "react";
 
-import { link as linkStyles } from "@nextui-org/theme";
+import { link as linkStyles } from "@heroui/theme";
 
 import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";
@@ -25,6 +26,21 @@ import { SearchIcon } from "@/components/icons";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 
 export const Navbar = () => {
+	const [isScrolled, setIsScrolled] = useState(false);
+
+	useEffect(() => {
+		const handleScroll = () => {
+			setIsScrolled(window.scrollY > 12);
+		};
+
+		handleScroll();
+		window.addEventListener("scroll", handleScroll, { passive: true });
+
+		return () => {
+			window.removeEventListener("scroll", handleScroll);
+		};
+	}, []);
+
 	const searchInput = (
 		<Input
 			aria-label="Search"
@@ -50,7 +66,12 @@ export const Navbar = () => {
 			maxWidth="xl"
 			position="static"
 			classNames={{
-				base: "z-40",
+				base: clsx(
+					"z-40 border-b border-default-200/60 transition-colors duration-300",
+					isScrolled
+						? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+						: "bg-background"
+				),
 				item: [
 				"flex",
 				"relative",
@@ -135,14 +156,15 @@ export const Navbar = () => {
 							</Link>
 						</NavbarMenuItem>
 					))}
-					<NavbarMenuItem key="header-quick-link">
-						<Link
-							color="foreground"
-							href={siteConfig.navigation.headerQuickLink.href}
-							size="lg">
-							{siteConfig.navigation.headerQuickLink.label}
-						</Link>
-				</NavbarMenuItem>
+					{siteConfig.navigation.headerQuickLink?.href !== '/contact' && (
+						<NavbarMenuItem key="header-quick-link">
+							<Link
+								color="foreground"
+								href={siteConfig.navigation.headerQuickLink.href}
+								size="lg">
+								{siteConfig.navigation.headerQuickLink.label}
+							</Link>
+					</NavbarMenuItem>)}
 				</div>
 			</NavbarMenu>
 		</NextUINavbar>

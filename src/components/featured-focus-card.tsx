@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
 import type { IconType } from "react-icons";
 import {
   HiOutlineChartBarSquare,
@@ -22,14 +22,13 @@ const pillarIcons: IconType[] = [
 export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
   return (
     <Card
-      isBlurred
-      className="border border-default-200/80 bg-background/75 shadow-sm transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
+      className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72"
     >
       <CardHeader className="flex flex-col items-start gap-4 px-6 py-6 sm:px-8 sm:py-8">
         <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
-            content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+            content: "font-medium uppercase tracking-[0.10em] text-[11px]",
           }}
           radius="full"
           size="sm"
@@ -47,22 +46,17 @@ export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
           {/* <div className="hidden h-3 w-3 shrink-0 rounded-full bg-primary/75 shadow-[0_0_24px_rgba(0,114,245,0.35)] lg:block" /> */}
         </div>
       </CardHeader>
-      <CardBody className="gap-6 px-6 pb-6 pt-0 sm:px-8 sm:pb-8">
-        <div className="grid gap-3 md:grid-cols-3">
+      <CardBody className="gap-6 overflow-visible px-6 pb-6 pt-0 sm:px-8 sm:pb-8">
+        <div className="grid gap-3 pt-1 md:grid-cols-3">
           {featuredFocus.pillars.map((pillar, index) => {
             const PillarIcon = pillarIcons[index % pillarIcons.length];
 
             return (
             <Card
               key={pillar}
-              isBlurred
-              className="group h-full overflow-hidden border border-default-200/70 bg-background/70 shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+              className="group h-full overflow-hidden border border-default-200/70 bg-content1/90 shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/78"
             >
               <CardBody className="relative gap-4 p-5">
-                <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(0,114,245,0.08),_transparent_40%)] dark:bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.1),_transparent_40%)]" />
-                  <div className="absolute inset-x-5 top-5 h-px bg-black/6 dark:bg-white/7" />
-                </div>
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
                     <PillarIcon size={16} />

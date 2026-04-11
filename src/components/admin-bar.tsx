@@ -7,7 +7,7 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-} from "@nextui-org/react";
+} from "@heroui/react";
 
 import { CMS_USER_STORAGE_KEYS, useComingSoonGate } from "@/components/coming-soon-gate";
 import { siteConfig, withBasePath } from "@/config/site";

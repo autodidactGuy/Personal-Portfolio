@@ -13,11 +13,11 @@ export default function DefaultLayout({
 	children: React.ReactNode;
 	seo?: SeoEntry;
 }) {
-
-	const { theme } = useTheme();
+	const { resolvedTheme, theme } = useTheme();
 	const { shouldShowComingSoon } = useComingSoonGate();
 
-	const animation = theme === "light" ? "lightAnimation" : "darkAnimation";
+	const activeTheme = resolvedTheme || theme || "dark";
+	const animation = activeTheme === "light" ? "lightAnimation" : "darkAnimation";
 	
 	return (
 		<div className="relative flex min-h-screen flex-col">

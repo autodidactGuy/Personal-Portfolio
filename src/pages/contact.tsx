@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
 import React from "react";
 
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { InlineWidget } from "react-calendly";
 import {
@@ -15,7 +15,7 @@ import {
   Divider,
   Input,
   Textarea,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { Toaster, toast } from "sonner";
 import { useTheme } from "next-themes";
 import { FaLinkedin } from "react-icons/fa6";
@@ -99,22 +99,30 @@ export default function Contact({ settings }: ContactPageProps) {
     primaryColor: "0072f5",
   };
 
+  const formFieldClassNames = {
+    base: "group",
+    inputWrapper:
+      "border border-default-200/80 bg-content1/90 transition-colors dark:border-default-100/14 dark:bg-[#13233c] dark:data-[hover=true]:bg-[#162946] dark:group-data-[focus=true]:border-primary/45 dark:group-data-[focus=true]:bg-[#162946]",
+    input: "text-foreground placeholder:text-default-400",
+    label: "text-default-500 dark:text-default-400",
+    errorMessage: "text-danger",
+  } as const;
+
   const contactForm = (
     <Card
-      isBlurred
-      className="border border-default-200/80 bg-background/80 shadow-sm shadow-primary/5"
+      className="border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72"
     >
       <CardHeader className="flex flex-col items-start gap-4 px-4 py-5 sm:px-8 sm:py-6">
         <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
-            content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+            content: "font-medium uppercase tracking-[0.10em] text-[11px]",
           }}
           radius="full"
           size="sm"
           variant="flat"
         >
-          Contact
+          {settings.title}
         </Chip>
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">{settings.formHeading}</h2>
@@ -145,6 +153,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
+                  classNames={formFieldClassNames}
                   errorMessage={getErrorMessage(errors.name?.message)}
                   isInvalid={!!errors.name}
                   label="Name"
@@ -160,6 +169,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
+                  classNames={formFieldClassNames}
                   errorMessage={getErrorMessage(errors.email?.message)}
                   isInvalid={!!errors.email}
                   label="Email"
@@ -178,6 +188,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
+                  classNames={formFieldClassNames}
                   errorMessage={getErrorMessage(errors.phone?.message)}
                   isInvalid={!!errors.phone}
                   label="Phone"
@@ -194,6 +205,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
+                  classNames={formFieldClassNames}
                   errorMessage={getErrorMessage(errors.subject?.message)}
                   isInvalid={!!errors.subject}
                   label="Subject"
@@ -211,6 +223,7 @@ export default function Contact({ settings }: ContactPageProps) {
             render={({ field }) => (
               <Textarea
                 {...field}
+                classNames={formFieldClassNames}
                 errorMessage={getErrorMessage(errors.message?.message)}
                 isInvalid={!!errors.message}
                 label="Message"
@@ -239,14 +252,13 @@ export default function Contact({ settings }: ContactPageProps) {
 
   const scheduleWidget = (
     <Card
-      isBlurred
-      className="overflow-hidden border border-default-200/80 bg-background/80 shadow-sm shadow-primary/5"
+      className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72"
     >
-      <CardHeader className="flex flex-col items-start gap-4 px-4 py-5 sm:px-8 sm:py-6">
+      <CardHeader className="flex flex-col items-start gap-4 px-4 pt-5 sm:px-8 sm:pt-6">
         <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
-            content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+            content: "font-medium uppercase tracking-[0.10em] text-[11px]",
           }}
           radius="full"
           size="sm"
@@ -256,21 +268,21 @@ export default function Contact({ settings }: ContactPageProps) {
         </Chip>
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">{settings.scheduleHeading}</h2>
-          <p className="max-w-xl text-default-600">
+          {/* <p className="max-w-xl text-default-600">
             Pick a time that works. The embed is styled to sit more naturally inside the portfolio in both light and dark themes.
-          </p>
+          </p> */}
         </div>
       </CardHeader>
       <CardBody className="px-0 pb-0 pt-0">
-        <div className="px-4 sm:px-8">
+        {/* <div className="px-4 sm:px-8">
           <Divider className="opacity-60" />
-        </div>
-        <div className="p-2 sm:p-5">
+        </div> */}
+        <div className="p-2 sm:p-5 pt-0 sm:pt-0">
           <div className="overflow-hidden rounded-[1.35rem] border border-default-200/80 bg-default-50/60 shadow-inner dark:bg-default-100/5 sm:rounded-3xl">
-            <div className="flex items-center gap-2 border-b border-default-200/70 px-3 py-3 text-sm text-default-500 sm:px-4">
+            {/* <div className="flex items-center gap-2 border-b border-default-200/70 px-3 py-3 text-sm text-default-500 sm:px-4">
               <HiOutlineCalendarDays className="text-primary" size={16} />
-              <span>Calendly scheduler</span>
-            </div>
+              <span>{settings.scheduleHeading}</span>
+            </div> */}
             <InlineWidget
               className="calendly-embed"
               iframeTitle="Schedule a call with Hassan Raza"
@@ -310,13 +322,13 @@ export default function Contact({ settings }: ContactPageProps) {
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
             }}
             radius="full"
             size="sm"
             variant="flat"
           >
-            Contact
+            {settings.title}
           </Chip>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{settings.title}</h1>
           <p className="max-w-2xl text-default-700">{settings.description}</p>

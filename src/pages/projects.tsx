@@ -1,6 +1,6 @@
 import type { GetStaticProps } from "next";
 
-import { Chip } from "@nextui-org/react";
+import { Chip } from "@heroui/react";
 
 import { ContentCard } from "@/components/content-card";
 import { siteConfig } from "@/config/site";
@@ -51,7 +51,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
             }}
             radius="full"
             size="sm"

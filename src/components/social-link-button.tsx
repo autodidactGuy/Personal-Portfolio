@@ -1,5 +1,5 @@
-import { Link } from "@nextui-org/react";
-import { button as buttonStyles } from "@nextui-org/theme";
+import { Link } from "@heroui/react";
+import { button as buttonStyles } from "@heroui/theme";
 import type { ReactNode } from "react";
 
 type SocialLinkButtonProps = {

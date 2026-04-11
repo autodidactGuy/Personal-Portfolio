@@ -1,4 +1,4 @@
-import { Link } from "@nextui-org/react";
+import { Link } from "@heroui/react";
 import { FaLinkedin, FaXTwitter } from "react-icons/fa6";
 
 import { siteConfig } from "@/config/site";
