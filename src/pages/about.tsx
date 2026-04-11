@@ -38,6 +38,18 @@ type AboutEntryCardProps = {
   badge?: string;
 };
 
+type ExperienceEntryCardProps = {
+  title: string;
+  company: string;
+  companyComments?: string;
+  location: string;
+  duration: string;
+  image: string;
+  highlight: string;
+  details: string[];
+  tech: string[];
+};
+
 function AboutEntryCard({
   title,
   subtitle,
@@ -100,6 +112,117 @@ function AboutEntryCard({
   );
 }
 
+function ExperienceEntryCard({
+  title,
+  company,
+  companyComments,
+  location,
+  duration,
+  image,
+  highlight,
+  details,
+  tech,
+}: ExperienceEntryCardProps) {
+  return (
+    <Card className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72">
+      <CardBody className="gap-5 p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="flex shrink-0 justify-center sm:block">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm">
+              <Image
+                as={NextImage}
+                alt={company}
+                className="aspect-square h-12 w-12 object-contain"
+                height={48}
+                radius="none"
+                src={withBasePath(image)}
+                width={48}
+              />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1 space-y-4 text-center sm:text-left">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <p className="text-xl font-semibold tracking-tight text-foreground">{title}</p>
+                {companyComments ? (
+                  <Chip
+                    classNames={{
+                      base: "border border-primary/20 bg-primary/10 text-primary",
+                      content: "font-medium text-[11px]",
+                    }}
+                    radius="full"
+                    size="sm"
+                    variant="flat"
+                  >
+                    {companyComments}
+                  </Chip>
+                ) : null}
+              </div>
+              <div className="space-y-1 text-[15px] font-medium sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:space-y-0">
+                <p className="text-primary">{company}</p>
+                <span className="hidden text-default-300 sm:inline">•</span>
+                <span className="inline-flex items-center justify-center gap-1 text-default-500 sm:justify-start">
+                  <HiOutlineMapPin size={13} />
+                  {location}
+                </span>
+              </div>
+              <p className="text-sm text-default-500">{duration}</p>
+            </div>
+          </div>
+        </div>
+        <div className="w-full">
+            <Accordion
+              className="w-full"
+              itemClasses={{
+                base: "border border-default-200/70 bg-content1/90 shadow-none dark:bg-content1/78",
+                content: "px-4 pb-4 pt-0 sm:px-4 sm:pb-4",
+                indicator: "text-primary",
+                subtitle: "m-0 text-sm leading-6 text-default-600",
+                title: "text-sm font-semibold text-foreground",
+                titleWrapper: "min-h-0 gap-0",
+                trigger: "px-4 py-3.5 sm:px-4 sm:py-3",
+              }}
+              selectionMode="multiple"
+              variant="splitted"
+            >
+              <AccordionItem
+                key={`${company}-${title}-details`}
+                subtitle={<span className="hidden lg:block">{highlight}</span>}
+                title={
+                  <>
+                    <span className="lg:hidden">View details</span>
+                    {/* <span className="hidden lg:inline">Details</span> */}
+                  </>
+                }
+              >
+                <div className="space-y-4">
+                  <p className="text-sm leading-6 text-default-600 lg:hidden">{highlight}</p>
+                  <ul className="space-y-2 text-sm leading-6 text-default-700">
+                    {details.map((detail) => (
+                      <li key={detail} className="flex gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
+                        <span>{detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {tech.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {tech.map((item) => (
+                        <Chip key={item} radius="full" size="sm" variant="flat">
+                          {item}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </AccordionItem>
+            </Accordion>
+          </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 function AboutAccordionIcon({
   children,
 }: {
@@ -111,10 +234,6 @@ function AboutAccordionIcon({
     </div>
   );
 }
-//TODO: Refactor to use ContentCard for experience and education entries and add support for custom icons in content schema
-//TODO: Add animation to cards for better effect
-//TODO: Add support for tooltips on badges to provide more context on what they represent
-//TODO: Add highlights of the experience/education entries in the content schema and display them prominently in the card design
 export default function About({ profile, experience, education }: AboutPageProps) {
   const pageDescription = profile.summary || siteConfig.description;
 
@@ -272,13 +391,16 @@ export default function About({ profile, experience, education }: AboutPageProps
             >
               <div className="space-y-4">
                 {experience.map((item) => (
-                  <AboutEntryCard
+                  <ExperienceEntryCard
                     key={`${item.company}-${item.title}`}
-                    badge={item.companyComments || undefined}
-                    detail={`${item.from} - ${item.to}`}
+                    company={item.company}
+                    companyComments={item.companyComments || undefined}
+                    details={item.details}
+                    duration={`${item.from} - ${item.to}`}
+                    highlight={item.highlight}
                     image={item.image}
-                    meta={item.location}
-                    subtitle={item.company}
+                    location={item.location}
+                    tech={item.tech}
                     title={item.title}
                   />
                 ))}
@@ -300,7 +422,7 @@ export default function About({ profile, experience, education }: AboutPageProps
                 {education.map((item) => (
                   <AboutEntryCard
                     key={`${item.institute}-${item.degree}`}
-                    badge={`GPA ${item.result}`}
+                    badge={item.result}
                     detail={`${item.from} - ${item.to}`}
                     image={item.image}
                     meta={item.location}

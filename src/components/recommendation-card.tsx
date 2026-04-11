@@ -24,7 +24,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
           size="sm"
           variant="flat"
         >
-          Recommendation
+          {(recommendation.relationship || "Teammate & Collaborator").toUpperCase()}
         </Chip>
         <div className="rounded-full bg-primary/10 p-2 text-primary">
           <HiMiniChatBubbleBottomCenterText size={16} />
@@ -33,7 +33,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
       <CardBody className="gap-4 pt-4">
         <blockquote className="relative border-l-2 border-primary/20 pl-4 text-default-700">
           <span className="absolute -left-1 top-0 text-4xl leading-none text-primary/20">&ldquo;</span>
-          <p className="relative text-[15px] leading-7">{recommendation.quote}</p>
+          <p className="relative text-[15px] leading-7 italic">{recommendation.quote}</p>
         </blockquote>
         <div>
           <p className="font-semibold">{recommendation.name}</p>

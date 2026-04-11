@@ -7,7 +7,29 @@
       "location": "Los Gatos, California, USA",
       "from": "Apr, 2024",
       "to": "Present",
-      "highlight": "$1B+ platform • Payments • AI Systems",
+      "highlight": "Built and scaled fintech systems processing $1B+ annually across payments, data pipelines, and AI-driven analytics",
+      "details": [
+        "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds",
+        "Built large-scale data ingestion and migration pipelines for external platforms, handled over 10M+ records with validation and deduplication",
+        "Developed AI-driven analytics features enabling natural language queries over multi-tenant financial datasets with strict safety guardrails",
+        "Architected event-driven systems using queues and background workers to ensure reliability, retries, and observability",
+        "Improved system scalability and maintainability through modular architecture and clear service boundaries"
+      ],
+      "tech": [
+        "Node.js",
+        "TypeScript",
+        "NestJS",
+        "MongoDB",
+        "Redis",
+        "BullMQ",
+        "AWS ECS",
+        "AWS S3",
+        "AWS DynamoDB",
+        "AWS CloudWatch",
+        "Docker",
+        "Event-Driven Architecture",
+        "Payments (Adyen)"
+      ],
       "image": "/experience/overflow.png"
     },
     {
@@ -17,7 +39,24 @@
       "location": "Dallas, Texas, USA",
       "from": "Jan, 2024",
       "to": "Apr, 2024",
-      "highlight": "Gen AI systems for data labeling and annotation",
+      "highlight": "Improved LLM reliability through structured evaluation, edge-case analysis, and feedback-driven workflows",
+      "details": [
+        "Evaluated AI-generated code and system outputs to identify correctness issues, inconsistencies, and edge cases",
+        "Provided structured feedback to improve model performance, reliability, and response quality",
+        "Worked on workflows connecting human evaluation with model improvement cycles",
+        "Refined prompts and evaluation criteria to reduce ambiguity and improve output consistency",
+        "Collaborated in fast-paced environments focused on improving real-world AI system behavior"
+      ],
+      "tech": [
+        "Python",
+        "TypeScript",
+        "Java",
+        "LLMs",
+        "Prompt Engineering",
+        "Model Evaluation",
+        "Data Annotation Workflows",
+        "AI Quality Analysis"
+      ],
       "image": "/experience/scale-ai.png"
     },
     {
@@ -27,7 +66,31 @@
       "location": "Seattle, Washington, USA",
       "from": "May, 2023",
       "to": "Jan, 2024",
-      "highlight": "Distributed systems for global hiring platform",
+      "highlight": "Built distributed backend systems supporting a global hiring platform serving 1.5M+ users",
+      "details": [
+        "Developed scalable backend services for Amazon’s hiring platform impacting over 1.5 million hourly workers",
+        "Built and maintained core infrastructure using Java, Node.js, and AWS services",
+        "Improved system reliability and availability through monitoring, logging, and fault-tolerant design",
+        "Contributed to CI/CD pipelines and deployment automation ensuring stable and frequent releases",
+        "Collaborated across teams to deliver high-impact features in a large-scale distributed environment"
+      ],
+      "tech": [
+        "Java",
+        "Node.js",
+        "AWS EC2",
+        "AWS Lambda",
+        "AWS S3",
+        "AWS SQS",
+        "AWS Kinesis",
+        "AWS DynamoDB",
+        "AWS CloudWatch",
+        "AWS CloudFormation",
+        "Distributed Systems",
+        "REST APIs",
+        "CI/CD",
+        "CloudWatch",
+        "Microservices"
+      ],
       "image": "/experience/amazon.svg"
     },
     {
@@ -37,7 +100,31 @@
       "location": "Lahore, Pakistan",
       "from": "Oct, 2018",
       "to": "Jul, 2022",
-      "highlight": "ERP, marketplace, and SaaS systems",
+      "highlight": "Led development of ERP, marketplace, and SaaS platforms with focus on scalability and system design",
+      "details": [
+        "Designed and developed full-stack applications including ERP systems and marketplace platforms",
+        "Built scalable backend services using Java, Spring Boot, and Node.js",
+        "Implemented secure authentication and authorization systems",
+        "Deployed and managed cloud infrastructure on AWS ensuring high availability",
+        "Mentored junior developers and contributed to architectural decisions across projects"
+      ],
+      "tech": [
+        "Java",
+        "Spring Boot",
+        "Node.js",
+        "React",
+        "PostgreSQL",
+        "MongoDB",
+        "MySQL",
+        "AWS S3",
+        "AWS EC2",
+        "AWS RDS",
+        "AWS Route53",
+        "AWS CloudWatch",
+        "AWS CloudFormation",
+        "REST APIs",
+        "Authentication Systems"
+      ],
       "image": "/experience/tgx.png"
     },
     {
@@ -47,7 +134,23 @@
       "location": "Lahore, Pakistan",
       "from": "Aug, 2016",
       "to": "Sep, 2018",
-      "highlight": "Web systems and internal platforms",
+      "highlight": "Developed and maintained web platforms and internal systems with focus on performance and usability",
+      "details": [
+        "Built and maintained company websites using PHP, WordPress, HTML, CSS, and JavaScript",
+        "Contributed to internal HR platform development using PHP and Laravel",
+        "Improved website performance and optimized user experience",
+        "Collaborated with cross-functional teams on design, development, and testing",
+        "Handled bug fixes, maintenance, and system enhancements"
+      ],
+      "tech": [
+        "PHP",
+        "Laravel",
+        "WordPress",
+        "JavaScript",
+        "HTML",
+        "CSS",
+        "MySQL"
+      ],
       "image": "/experience/metologix.png"
     }
   ]

@@ -95,8 +95,10 @@ export const recommendationsSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1),
+        relationship: z.string().default("Teammate & Collaborator"),
         role: z.string().min(1),
         quote: z.string().min(1),
+        highlight: z.string().default(""),
         featured: z.boolean().default(false),
       })
     )
@@ -127,6 +129,9 @@ export const experienceItemSchema = z.object({
   location: z.string().min(1),
   from: z.string().min(1),
   to: z.string().min(1),
+  highlight: z.string().min(1),
+  details: z.array(z.string().min(1)).default([]),
+  tech: z.array(z.string().min(1)).default([]),
   image: z.string().min(1),
 });
 
@@ -136,7 +141,7 @@ export const educationItemSchema = z.object({
   location: z.string().min(1),
   from: z.string().min(1),
   to: z.string().min(1),
-  result: z.string().min(1),
+  result: z.string().default(""),
   image: z.string().min(1),
 });
 

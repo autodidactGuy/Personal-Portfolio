@@ -110,10 +110,10 @@ export default function Contact({ settings }: ContactPageProps) {
 
   const contactForm = (
     <Card
-      className="border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72"
+      className="mb-5 border-none bg-transparent shadow-none lg:border lg:border-default-200/80 lg:bg-content1/85 lg:shadow-sm lg:shadow-primary/5 lg:dark:bg-content1/72"
     >
-      <CardHeader className="flex flex-col items-start gap-4 px-4 py-5 sm:px-8 sm:py-6">
-        <Chip
+      <CardHeader className="hidden flex-col items-start gap-4 px-4 py-5 lg:px-8 lg:py-6 lg:flex">
+        {/* <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
             content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -123,26 +123,13 @@ export default function Contact({ settings }: ContactPageProps) {
           variant="flat"
         >
           {settings.title}
-        </Chip>
+        </Chip> */}
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight">{settings.formHeading}</h2>
-          <p className="max-w-xl text-default-600">{settings.description}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <SocialLinkButton
-            href="mailto:hello@hassanraza.us"
-            icon={<MdMail size={18} />}
-            isExternal={false}
-            label="Email"
-          />
-          <SocialLinkButton
-            href={siteConfig.links.linkedin}
-            icon={<FaLinkedin size={18} />}
-            label="LinkedIn"
-          />
+          <h2 className=" text-2xl font-semibold tracking-tight ">{settings.formHeading}</h2>
+          {/* <p className="max-w-xl text-default-600">{settings.description}</p> */}
         </div>
       </CardHeader>
-      <CardBody className="px-4 pb-5 pt-0 sm:px-8 sm:pb-8">
+      <CardBody className="px-4 pb-5 pt-0 lg:px-8 lg:pb-8">
         <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-4" noValidate>
           <Toaster position="bottom-left" richColors theme={toastTheme} />
 
@@ -252,10 +239,10 @@ export default function Contact({ settings }: ContactPageProps) {
 
   const scheduleWidget = (
     <Card
-      className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72"
+      className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72 mb-5"
     >
-      <CardHeader className="flex flex-col items-start gap-4 px-4 pt-5 sm:px-8 sm:pt-6">
-        <Chip
+      <CardHeader className="hidden flex-col items-start gap-4 px-4 pt-5 sm:px-8 sm:pt-6 lg:flex">
+        {/* <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
             content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -265,7 +252,7 @@ export default function Contact({ settings }: ContactPageProps) {
           variant="flat"
         >
           Schedule
-        </Chip>
+        </Chip> */}
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight">{settings.scheduleHeading}</h2>
           {/* <p className="max-w-xl text-default-600">
@@ -277,8 +264,8 @@ export default function Contact({ settings }: ContactPageProps) {
         {/* <div className="px-4 sm:px-8">
           <Divider className="opacity-60" />
         </div> */}
-        <div className="p-2 sm:p-5 pt-0 sm:pt-0">
-          <div className="overflow-hidden rounded-[1.35rem] border border-default-200/80 bg-default-50/60 shadow-inner dark:bg-default-100/5 sm:rounded-3xl">
+        <div className="p-0 lg:p-5">
+          <div className="overflow-hidden rounded-none border-0 bg-default-50/60 shadow-inner dark:bg-default-100/5 lg:rounded-3xl lg:border lg:border-default-200/80">
             {/* <div className="flex items-center gap-2 border-b border-default-200/70 px-3 py-3 text-sm text-default-500 sm:px-4">
               <HiOutlineCalendarDays className="text-primary" size={16} />
               <span>{settings.scheduleHeading}</span>
@@ -332,6 +319,19 @@ export default function Contact({ settings }: ContactPageProps) {
           </Chip> */}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{settings.title}</h1>
           <p className="max-w-2xl text-default-700">{settings.description}</p>
+          <div className="flex flex-wrap gap-2">
+          <SocialLinkButton
+            href="mailto:hello@hassanraza.us"
+            icon={<MdMail size={18} />}
+            isExternal={false}
+            label="Email"
+          />
+          <SocialLinkButton
+            href={siteConfig.links.linkedin}
+            icon={<FaLinkedin size={18} />}
+            label="LinkedIn"
+          />
+        </div>
         </div>
 
         <section className="hidden gap-8 lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -353,17 +353,17 @@ export default function Contact({ settings }: ContactPageProps) {
           >
             <AccordionItem
               key="contact"
-              aria-label="Contact Me"
-              subtitle="Send a message directly"
-              title="Contact"
+              aria-label={settings.formHeading}
+              // subtitle="Send a message directly"
+              title={settings.formHeading}
             >
               {contactForm}
             </AccordionItem>
             <AccordionItem
               key="schedule"
-              aria-label="Schedule a Call"
-              subtitle="Book a short intro call"
-              title="Schedule a Call"
+              aria-label={settings.scheduleHeading}
+              // subtitle="Book a short intro call"
+              title={settings.scheduleHeading}
             >
               {scheduleWidget}
             </AccordionItem>

@@ -19,7 +19,7 @@ type ProjectsPageProps = {
 
 export default function ProjectsPage({ projects }: ProjectsPageProps) {
   const pageDescription =
-    "Long-form project entries authored in MDX so the implementation story can evolve without touching UI code.";
+    "Case studies of systems I've built—covering payments, data pipelines, and distributed architectures at scale.";
 
   return (
     <DefaultLayout

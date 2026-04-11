@@ -1,7 +1,7 @@
 {
   "sectionLabel": "Featured Focus",
-  "title": "Systems I Build",
-  "summary": "I design and build systems that move money, process data at scale, and enable intelligent decision making across modern financial platforms.",
+  "title": "Systems Behind Money, Data, and Decisions",
+  "summary": "I design systems that move money, process data at scale, and enable intelligent decision-making across modern financial platforms.",
   "pillars": [
     "High-throughput payment and financial processing systems.",
     "Scalable data pipelines and distributed job orchestration.",

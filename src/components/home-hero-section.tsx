@@ -29,10 +29,6 @@ function renderHighlightedHeadline(headline: string, highlightedText: string) {
     </>
   );
 }
-//TODO: Refactor to use ContentCard for CTAs and add support for custom icons in content schema
-//TODO: Add animation to image and text separately for better effect
-//TODO: Add support for tooltips on CTAs to provide more context on what they link to
-//TODO: need datatype as well
 export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
   return (
     <div className="animate__animated animate__fadeInUp grid items-center gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">

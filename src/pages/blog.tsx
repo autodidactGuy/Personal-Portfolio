@@ -18,7 +18,7 @@ type BlogIndexProps = {
 
 export default function BlogIndex({ posts }: BlogIndexProps) {
   const pageDescription =
-    "Technical writing, architecture notes, and portfolio narratives managed through MDX and Decap CMS.";
+    "Notes on system design, distributed systems, and building real-world software at scale.";
 
   return (
     <DefaultLayout

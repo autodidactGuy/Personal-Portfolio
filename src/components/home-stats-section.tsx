@@ -6,6 +6,10 @@ type HomeStatsSectionProps = {
   stats: HomeStats;
 };
 
+function isEvenCard(index: number) {
+  return index % 2 === 0;
+}
+
 export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
   return (
     <section className="space-y-4">
@@ -33,13 +37,47 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
             style={{ animationDelay: `${index * 120}ms`, animationFillMode: "both" }}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute bottom-4 right-4 flex items-end gap-1.5 opacity-95">
+              {isEvenCard(index) ? (
+                <div className="absolute bottom-4 right-4 flex items-end gap-1.5 opacity-95">
                   <div className="h-4 w-2 rounded-full bg-primary/45 dark:bg-sky-300/70" />
                   <div className="h-8 w-2 rounded-full bg-primary/55 dark:bg-blue-300/78" />
                   <div className="h-12 w-2 rounded-full bg-primary/65 dark:bg-primary/85" />
                   <div className="h-7 w-2 rounded-full bg-primary/50 dark:bg-cyan-300/74" />
                   <div className="h-14 w-2 rounded-full bg-primary/75 dark:bg-primary/88" />
-              </div>
+                </div>
+              ) : (
+                <div className="absolute bottom-4 right-4 opacity-95">
+                  <svg
+                    aria-hidden="true"
+                    className="h-16 w-20"
+                    viewBox="0 0 80 64"
+                  >
+                    <path
+                      d="M8 52H70"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeOpacity="0.22"
+                      strokeWidth="2"
+                      className="text-primary"
+                    />
+                    <path
+                      d="M10 44L24 38L36 42L49 26L61 30L72 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="3"
+                      className="text-primary dark:text-sky-300"
+                    />
+                    <circle cx="24" cy="38" r="3" className="fill-primary/70 dark:fill-sky-300" />
+                    <circle cx="36" cy="42" r="3" className="fill-primary/55 dark:fill-blue-300" />
+                    <circle cx="49" cy="26" r="3" className="fill-primary/75 dark:fill-cyan-300" />
+                    <circle cx="61" cy="30" r="3" className="fill-primary/60 dark:fill-indigo-300" />
+                    <circle cx="72" cy="12" r="3.5" className="fill-primary dark:fill-primary" />
+                  </svg>
+                </div>
+              )}
             </div>
             <CardHeader className="items-start justify-between pb-0 pt-5">
               <span className="relative z-10 text-[10px] font-semibold uppercase tracking-[0.32em] text-default-400">
