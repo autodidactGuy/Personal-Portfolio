@@ -37,7 +37,7 @@ export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
           {featuredFocus.sectionLabel}
         </Chip>
         <div className="flex w-full flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl space-y-4">
+          <div className="space-y-4">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               {featuredFocus.title}
             </h2>

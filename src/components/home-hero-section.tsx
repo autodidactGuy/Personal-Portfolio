@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Image } from "@heroui/react";
 import { button as buttonStyles } from "@heroui/theme";
 import { FaLinkedin } from "react-icons/fa6";
-import { IoDocument } from "react-icons/io5";
+import { IoDocument, IoList, IoNewspaper } from "react-icons/io5";
 import { MdMail } from "react-icons/md";
 
 import { siteConfig, withBasePath } from "@/config/site";
@@ -29,7 +29,10 @@ function renderHighlightedHeadline(headline: string, highlightedText: string) {
     </>
   );
 }
-
+//TODO: Refactor to use ContentCard for CTAs and add support for custom icons in content schema
+//TODO: Add animation to image and text separately for better effect
+//TODO: Add support for tooltips on CTAs to provide more context on what they link to
+//TODO: need datatype as well
 export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
   return (
     <div className="animate__animated animate__fadeInUp grid items-center gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
@@ -64,14 +67,14 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
             rel={hero.primaryCta.external ? "noreferrer" : undefined}
             target={hero.primaryCta.external ? "_blank" : undefined}
           >
-            <IoDocument size={20} />
+            <IoNewspaper size={20} />
             {hero.primaryCta.label}
           </a>
           <Link
             className={buttonStyles({ radius: "full", variant: "bordered" })}
             href={hero.secondaryCta.href}
           >
-            <MdMail size={20} />
+            <IoDocument size={20} />
             {hero.secondaryCta.label}
           </Link>
         </div>

@@ -60,7 +60,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
     >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
-          <Chip
+          {/* <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
               content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -70,7 +70,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
             variant="flat"
           >
             Writing
-          </Chip>
+          </Chip> */}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Blog</h1>
           <p className="mt-3 max-w-2xl text-default-700">
             Technical writing, architecture notes, and portfolio narratives managed through MDX and Decap CMS.

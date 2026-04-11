@@ -1,0 +1,86 @@
+---
+title: "Designing Data Migration Pipelines That Don’t Break at Scale"
+summary: "Building resilient pipelines to process large datasets with correctness, observability, and recoverability."
+date: "2024-12-13"
+contentType: "article"
+featured: true
+published: true
+tags:
+  - data-engineering
+  - backend
+  - systems-design
+  - pipelines
+---
+
+## Context
+
+Data migration sounds simple until it isn’t.
+
+When dealing with large datasets, even small inconsistencies can lead to incorrect records, duplication, or partial failures that are difficult to recover from.
+
+## The Problem
+
+Typical migration challenges include:
+
+- inconsistent source data  
+- partial failures mid-processing  
+- duplicate records  
+- lack of visibility into progress  
+
+At scale, these issues compound quickly.
+
+## Approach
+
+### 1. Break Work Into Small Units
+
+Instead of processing large datasets in one pass:
+
+- split into smaller jobs  
+- track progress per unit  
+- allow retries at a granular level  
+
+### 2. Parent-Child Job Model
+
+Use a structured execution model:
+
+- parent job tracks overall progress  
+- child jobs process smaller chunks  
+
+This enables:
+- parallel execution  
+- controlled retries  
+- finalization after completion  
+
+### 3. Idempotency by Design
+
+Every operation should be safe to run multiple times:
+
+- use unique identifiers  
+- enforce deduplication  
+- avoid side effects without checks  
+
+### 4. Observability
+
+Track:
+
+- processed records  
+- failed records  
+- retry attempts  
+
+This makes debugging and recovery practical.
+
+## Tradeoffs
+
+- increased system complexity  
+- more infrastructure required for orchestration  
+- additional overhead for tracking state  
+
+## Why This Matters
+
+Data migration is not just about moving data—it is about preserving correctness.
+
+Systems that handle migration poorly introduce long-term data integrity issues.
+
+## Closing Thoughts
+
+A reliable migration system is one that can fail safely, recover predictably, and maintain correctness under load.

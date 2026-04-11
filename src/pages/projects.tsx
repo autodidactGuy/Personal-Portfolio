@@ -48,7 +48,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
     >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
-          <Chip
+          {/* <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
               content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -58,7 +58,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
             variant="flat"
           >
             Portfolio Work
-          </Chip>
+          </Chip> */}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Projects</h1>
           <p className="mt-3 max-w-2xl text-default-700">
             Long-form project entries authored in MDX so the implementation story can evolve without touching UI code.

@@ -2,22 +2,92 @@
   "title": "Recommendations",
   "items": [
     {
-      "name": "Alex Morgan",
-      "role": "Engineering Manager, Platform Systems",
-      "quote": "Hassan brings a rare balance of systems thinking, execution, and communication. He can move from architecture to delivery without losing the product story.",
+      "name": "Feng Wei",
+      "role": "Senior Engineering Manager, Amazon Inc",
+      "relationship": "Direct Manager",
+      "quote": "Hassan takes full ownership of projects end-to-end and consistently delivers well-thought-out, long-term solutions. His ability to ramp up quickly and understand both product and AWS systems made him a highly reliable engineer on the team.",
+      "highlight": "Ownership and fast ramp-up in AWS systems",
       "featured": true
     },
     {
-      "name": "Donald Trump",
-      "role": "Staff Product Engineer, Cloud Applications",
-      "quote": "He consistently turns complex technical work into artifacts others can trust, reuse, and understand. That combination makes him especially effective on platform and cross-functional initiatives.",
+      "name": "Peter Chen",
+      "role": "Sr. Software Development Engineer, Amazon Inc",
+      "relationship": "Senior Teammate",
+      "quote": "Hassan demonstrated strong technical depth and a self-driven mindset. His understanding of AWS improved team efficiency and helped accelerate delivery timelines. He was a key contributor across multiple initiatives.",
+      "highlight": "AWS expertise and impact on team efficiency",
       "featured": true
     },
     {
-      "name": "Daniel Kim",
-      "role": "Senior Software Engineer, Developer Experience",
-      "quote": "Hassan has a strong instinct for building maintainable foundations. He improves both the system and the clarity around the system, which is a huge multiplier for teams.",
+      "name": "Vishal Kumar",
+      "role": "Senior Android Engineer, Walmart Labs",
+      "relationship": "Academic Peer",
+      "quote": "Hassan has experience across a wide range of technologies including backend, frontend, and cloud systems. He is a strong problem solver, quick to learn, and consistently delivers results.",
+      "highlight": "Broad technical depth across systems",
       "featured": true
+    },
+    {
+      "name": "Danyal Javed",
+      "role": "Software Engineer, Deliotte",
+      "relationship": "Teammate (Competition)",
+      "quote": "Hassan demonstrated exceptional dedication and productivity under tight timelines. His ability to deliver high-quality work in demanding conditions stood out clearly.",
+      "highlight": "High-performance execution under tight deadlines",
+      "featured": false
+    },
+    {
+      "name": "Talha Tahir",
+      "role": "Technical Leader, Co-Founder & CTO at Horizam Private Limited",
+      "relationship": "Teammate",
+      "quote": "Hassan is an exceptional problem solver who quickly adapts to new technologies. His ability to learn and execute has been consistently impressive over the years.",
+      "highlight": "Fast learner with strong execution",
+      "featured": false
+    },
+    {
+      "name": "Zahid Ali",
+      "role": "Principal Android Engineer",
+      "relationship": "Teammate",
+      "quote": "Hassan consistently delivered simple and effective solutions to complex problems. His technical insight and problem-solving ability made him a strong contributor across multiple projects.",
+      "highlight": "Strong problem-solving in complex systems",
+      "featured": false
+    },
+    {
+      "name": "Muhammad Ali",
+      "role": "UX Engineer",
+      "relationship": "Cross-functional collaborator",
+      "quote": "Hassan combines strong technical ability with clear communication. He can explain complex systems to both technical and non-technical stakeholders, which makes collaboration significantly more effective.",
+      "highlight": "Explains complex systems clearly",
+      "featured": false
+    },
+    {
+      "name": "Umar Mushtaq",
+      "role": "Software Engineer",
+      "relationship": "Reported to Hassan",
+      "quote": "Hassan is a reliable leader who ensures work is delivered on time while maintaining high standards. He brings structure and consistency, even during high-pressure situations.",
+      "highlight": "Leadership and execution under pressure",
+      "featured": false
+    },
+    {
+      "name": "Tosief Ahmad",
+      "role": "Software Engineer",
+      "relationship": "Reported to Hassan",
+      "quote": "Hassan demonstrated strong technical expertise and the ability to manage systems effectively. He proactively identifies and resolves issues before they escalate.",
+      "highlight": "Proactive problem-solving and system ownership",
+      "featured": false
+    },
+    {
+      "name": "Hamza Khan",
+      "role": "Full Stack Developer",
+      "relationship": "Teammate",
+      "quote": "Hassan consistently contributed to team success by maintaining high productivity and helping the team stay focused during demanding periods. His time management and execution were key strengths.",
+      "highlight": "Execution and stability during high-pressure work",
+      "featured": false
+    },
+    {
+      "name": "M. Noman Akram",
+      "role": "SQA Engineer",
+      "relationship": "Teammate",
+      "quote": "Hassan's problem-solving ability and leadership qualities made him a strong influence on the team. His professional work ethic set a high standard for others.",
+      "highlight": "Leadership and strong professional discipline",
+      "featured": false
     }
   ]
 }

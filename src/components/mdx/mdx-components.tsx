@@ -15,11 +15,19 @@ function PreformattedCode(props: ComponentPropsWithoutRef<"pre">) {
 }
 
 function InlineCode(props: ComponentPropsWithoutRef<"code">) {
-  return <code {...props} className="rounded-md bg-default-100 px-1.5 py-0.5 text-sm" />;
+  return <code {...props} className="rounded-md bg-default-100 px-1.5 py-0.5 text-sm my-3" />;
+}
+
+function HRDivider(props: ComponentPropsWithoutRef<"hr">) {
+  return <hr {...props} className="my-3 border-default-200" />;
 }
 
 function Heading(props: ComponentPropsWithoutRef<"h2">) {
-  return <h2 {...props} className="mt-10 text-2xl font-semibold tracking-tight" />;
+  return <h2 {...props} className="mt-2 text-2xl font-semibold tracking-tight" />;
+}
+
+function HeadingH3(props: ComponentPropsWithoutRef<"h3">) {
+  return <h3 {...props} className="mt-2 text-lg font-semibold tracking-tight" />;
 }
 
 function Paragraph(props: ComponentPropsWithoutRef<"p">) {
@@ -62,6 +70,8 @@ export const mdxComponents = {
   a: Anchor,
   code: InlineCode,
   h2: Heading,
+  h3: HeadingH3,
+  hr: HRDivider,
   img: MdxImage,
   p: Paragraph,
   pre: PreformattedCode,

@@ -44,10 +44,10 @@
     "resume": "/HassanRaza-Resume.pdf",
     "calendly": "https://calendly.com/autodidactGuy/15min"
   },
-  "description": "Experienced software engineer building cloud-native platforms, strong product foundations, and thoughtful technical narratives across software, data, and AI.",
-  "slogan": "Tech Artisan: Excellence Reimagined",
+  "description": "Engineer building scalable financial infrastructure and AI-driven data systems for nonprofits. Currently designing systems supporting ~1000 organizations and processing over $1B annually across payments, data pipelines, and analytics.",
+  "slogan": "Designing systems that move money, data, and decisions at scale.",
   "comingSoonMode": {
-    "enabled": true,
+    "enabled": false,
     "headline": "Coming Soon",
     "description": "A refreshed experience is on the way."
   }

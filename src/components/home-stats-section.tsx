@@ -52,7 +52,7 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
                 {item.value}
               </p>
               <div className="relative z-10 h-px w-12 bg-gradient-to-r from-primary/70 via-primary/40 to-transparent transition-all duration-300 group-hover:w-20" />
-              <p className="relative z-10 max-w-[12ch] text-xs font-medium uppercase tracking-[0.22em] text-default-500">
+              <p className="relative z-10 max-w-[25ch] text-xs font-medium uppercase tracking-[0.10em] text-default-500">
                 {item.label}
               </p>
             </CardBody>

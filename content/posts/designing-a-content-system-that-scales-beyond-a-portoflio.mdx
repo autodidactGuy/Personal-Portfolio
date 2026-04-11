@@ -1,0 +1,56 @@
+---
+title: "Designing a Content System That Scales Beyond a Portfolio"
+summary: "Building a Git-based CMS architecture using static generation, structured content, and a clean separation between content and UI."
+date: "2026-03-10"
+contentType: "project"
+featured: true
+published: true
+tags:
+  - architecture
+  - nextjs
+  - cms
+  - systems-design
+  - decap-cms
+coverImage: '/decap.jpg'
+---
+
+## Context
+
+Most personal websites start with hardcoded content directly inside components. This works initially, but quickly becomes difficult to maintain as the site grows.
+
+Updating content requires code changes, deployments, and careful coordination between structure and presentation. Over time, even simple updates become unnecessarily complex.
+
+This problem is not unique to portfolios. It appears in any system where content needs to evolve independently from application logic.
+
+## The Problem
+
+Traditional approaches often introduce friction:
+
+- Content tightly coupled with UI components  
+- No clear structure for managing different content types  
+- Difficult to scale into blogs, case studies, or structured narratives  
+- Lack of flexibility for non-developer editing  
+
+The result is a system that works early but slows down iteration over time.
+
+## Design Goals
+
+The system was designed with a few clear goals:
+
+- **Separation of content and presentation**  
+- **Scalability across multiple content types** (blog, case studies, pages)  
+- **Static generation for performance and simplicity**  
+- **Git-based workflows for version control and traceability**  
+
+## System Architecture
+
+The core idea is simple: treat content as a first-class system.
+
+## Content Layer
+
+All content is stored in structured files:
+
+- JSON for UI-driven sections (hero, stats)
+- MDX for rich content (articles, case studies)
+
+Example structure:

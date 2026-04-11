@@ -97,7 +97,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
               ))}
             </div>
           </CardHeader>
-          <CardBody className="px-6 pb-8 pt-2 sm:px-8">
+          <CardBody className="px-6 pb-8 pt-0 sm:px-8">
             <MDXRenderer source={source} />
           </CardBody>
         </Card>

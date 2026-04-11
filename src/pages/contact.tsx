@@ -319,7 +319,7 @@ export default function Contact({ settings }: ContactPageProps) {
     >
       <section className="mx-auto max-w-6xl py-10 sm:py-14">
         <div className="mb-10 space-y-4">
-          <Chip
+          {/* <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
               content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -329,7 +329,7 @@ export default function Contact({ settings }: ContactPageProps) {
             variant="flat"
           >
             {settings.title}
-          </Chip>
+          </Chip> */}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{settings.title}</h1>
           <p className="max-w-2xl text-default-700">{settings.description}</p>
         </div>

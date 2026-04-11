@@ -36,7 +36,7 @@ export default function RecommendationsPage({ recommendations }: Recommendations
     >
       <section className="mx-auto max-w-5xl py-10">
         <div className="mb-10 space-y-4">
-          <Chip
+          {/* <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
               content: "font-medium uppercase tracking-[0.10em] text-[11px]",
@@ -46,7 +46,7 @@ export default function RecommendationsPage({ recommendations }: Recommendations
             variant="flat"
           >
             {recommendations.title}
-          </Chip>
+          </Chip> */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-3">
               <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{recommendations.title}</h1>

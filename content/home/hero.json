@@ -1,17 +1,17 @@
 {
-  "eyebrow": "Cloud, product, and storytelling",
-  "headline": "Crafting the next wave of tech with cloud and software innovation.",
-  "highlightedText": "next wave of tech",
-  "supportingText": "I build reliable platforms, explain complex systems clearly, and turn ambitious ideas into software that ships.",
+  "eyebrow": "Financial Infrastructure • Distributed Systems • AI-Driven Systems",
+  "headline": "Designing systems that move money, data, and decisions at scale",
+  "highlightedText": "money, data, and decisions",
+  "supportingText": "From high-volume payment processing to AI-driven analytics, I build systems that power modern financial platforms for nonprofits, handling millions of records and enabling smarter, data-driven operations.",
   "image": "/favicon.png",
   "primaryCta": {
-    "label": "Resume",
-    "href": "/HassanRaza-Resume.pdf",
-    "external": true
+    "label": "View Case Studies",
+    "href": "/projects",
+    "external": false
   },
   "secondaryCta": {
-    "label": "Contact",
-    "href": "/contact",
-    "external": false
+    "label": "View Resume",
+    "href": "/HassanRaza-Resume.pdf",
+    "external": true
   }
 }

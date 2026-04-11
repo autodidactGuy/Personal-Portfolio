@@ -111,7 +111,10 @@ function AboutAccordionIcon({
     </div>
   );
 }
-
+//TODO: Refactor to use ContentCard for experience and education entries and add support for custom icons in content schema
+//TODO: Add animation to cards for better effect
+//TODO: Add support for tooltips on badges to provide more context on what they represent
+//TODO: Add highlights of the experience/education entries in the content schema and display them prominently in the card design
 export default function About({ profile, experience, education }: AboutPageProps) {
   const pageDescription = profile.summary || siteConfig.description;
 

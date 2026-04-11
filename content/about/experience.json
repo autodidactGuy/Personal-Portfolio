@@ -1,12 +1,33 @@
 {
   "items": [
     {
+      "title": "Senior Software Engineer",
+      "company": "Overflow App Inc",
+      "companyComments": "",
+      "location": "Los Gatos, California, USA",
+      "from": "Apr, 2024",
+      "to": "Present",
+      "highlight": "$1B+ platform • Payments • AI Systems",
+      "image": "/experience/overflow.png"
+    },
+    {
+      "title": "Software Engineer - Gen AI",
+      "company": "Scale AI Inc",
+      "companyComments": "Contract via HireArt Inc",
+      "location": "Dallas, Texas, USA",
+      "from": "Jan, 2024",
+      "to": "Apr, 2024",
+      "highlight": "Gen AI systems for data labeling and annotation",
+      "image": "/experience/scale-ai.png"
+    },
+    {
       "title": "Software Development Engineer II",
-      "company": "Amazon Inc",
-      "companyComments": "Contracted via Insight Global",
-      "location": "Seattle, Washington",
-      "from": "05 / 2023",
-      "to": "01 / 2024",
+      "company": "Amazon.com Inc",
+      "companyComments": "Contract via Insight Global",
+      "location": "Seattle, Washington, USA",
+      "from": "May, 2023",
+      "to": "Jan, 2024",
+      "highlight": "Distributed systems for global hiring platform",
       "image": "/experience/amazon.svg"
     },
     {
@@ -14,17 +35,19 @@
       "company": "ThinkGeniux Private Limited",
       "companyComments": "",
       "location": "Lahore, Pakistan",
-      "from": "10 / 2018",
-      "to": "07 / 2022",
+      "from": "Oct, 2018",
+      "to": "Jul, 2022",
+      "highlight": "ERP, marketplace, and SaaS systems",
       "image": "/experience/tgx.png"
     },
     {
-      "title": "Web App Developer",
+      "title": "Web Application Developer",
       "company": "Metologix Private Limited",
       "companyComments": "",
       "location": "Lahore, Pakistan",
-      "from": "08 / 2016",
-      "to": "09 / 2018",
+      "from": "Aug, 2016",
+      "to": "Sep, 2018",
+      "highlight": "Web systems and internal platforms",
       "image": "/experience/metologix.png"
     }
   ]

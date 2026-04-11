@@ -1,19 +1,19 @@
 {
   "pageLabel": "About",
-  "pageTitle": "Product-minded engineering with systems depth",
-  "pageDescription": "The focus here is not only what I have built, but how I think about scale, communication, and durable software design across teams and products.",
+  "pageTitle": "Engineering financial systems and data platforms at scale",
+  "pageDescription": "I build distributed systems, financial infrastructure, and AI-driven data platforms that operate under real-world constraints and high-volume workloads.",
   "aboutSectionTitle": "About Me",
-  "aboutSectionSubtitle": "Background, perspective, and the kind of engineering problems I enjoy solving.",
-  "summaryLabel": "Perspective",
-  "headline": "A good human being building durable software",
-  "summary": "Experienced software engineer with a broad product and platform background spanning Java, TypeScript, React, Node.js, Spring Boot, AWS, and distributed systems. I care about building software that scales in both architecture and clarity.",
+  "aboutSectionSubtitle": "Background, experience, and the systems I focus on building.",
+  "summaryLabel": "Overview",
+  "headline": "Designing systems that handle financial transactions, data pipelines, and AI workloads at scale",
+  "summary": "Senior software engineer with 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms. My work centers on designing backend systems that process high-volume transactions, power data pipelines, and support real-world financial operations at scale.",
   "body": [
-    "My recent work has focused on cloud systems, platform thinking, and delivery in fast-moving environments where architecture and execution both matter. I enjoy creating systems that can evolve over time rather than collapsing under their own complexity.",
-    "Beyond implementation, I invest in writing, technical storytelling, and explaining difficult ideas well. That mix is especially valuable for portfolio content, case studies, and proposed endeavor narratives where substance and communication need to reinforce each other."
+    "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
+    "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
   ],
   "photo": "/images/about/1758251849133.jpeg",
   "experienceTitle": "Experience",
-  "experienceSubtitle": "Roles across product, platform, and delivery-focused teams.",
+  "experienceSubtitle": "Roles focused on distributed systems, financial infrastructure, and scalable platforms.",
   "educationTitle": "Education",
-  "educationSubtitle": "Academic foundation in computer science with strong outcomes."
+  "educationSubtitle": "Academic foundation in computer science and systems design."
 }

@@ -1,10 +1,10 @@
 {
-  "title": "What this portfolio emphasizes",
+  "title": "Financial Systems at Scale",
   "badgeLabel": "Snapshot",
   "items": [
-    { "label": "Years Building", "value": "7+" },
-    { "label": "Cloud-First Products", "value": "12" },
-    { "label": "Published Stories", "value": "4" },
-    { "label": "Case Studies", "value": "3" }
+    { "label": "Annual Transaction Volume", "value": "$1B+" },
+    { "label": "Organizations Supported", "value": "1,000+" },
+    { "label": "Transactions Processed", "value": "15M+" },
+    { "label": "Records Migrated", "value": "5M+" }
   ]
 }

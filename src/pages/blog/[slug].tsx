@@ -81,7 +81,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
               coverImage={post.frontmatter.coverImage}
               eyebrow={toTitleCase(post.frontmatter.contentType || "post")}
               heightClassName="h-[210px] sm:h-[250px]"
-              subtitle={post.frontmatter.contentType}
+              // subtitle={post.frontmatter.contentType}
               title={post.frontmatter.title}
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
@@ -120,7 +120,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
               ))}
             </div>
           </CardHeader>
-          <CardBody className="px-6 pb-8 pt-2 sm:px-8">
+          <CardBody className="px-6 pb-8 pt-0 sm:px-8">
             <MDXRenderer source={source} />
           </CardBody>
         </Card>

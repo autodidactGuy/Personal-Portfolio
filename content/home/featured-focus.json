@@ -1,14 +1,14 @@
 {
   "sectionLabel": "Featured Focus",
-  "title": "Pinned Focus",
-  "summary": "A highlighted stream of work centered on resilient systems, practical product thinking, and technical writing that makes complex work easier to understand.",
+  "title": "Systems I Build",
+  "summary": "I design and build systems that move money, process data at scale, and enable intelligent decision making across modern financial platforms.",
   "pillars": [
-    "Design systems that stay maintainable as products and teams evolve.",
-    "Translate technical depth into outcomes, evidence, and usable narrative.",
-    "Publish work that shows engineering judgment, product sense, and execution quality."
+    "High-throughput payment and financial processing systems.",
+    "Scalable data pipelines and distributed job orchestration.",
+    "AI-driven data access and analytics with strong isolation guarantees."
   ],
   "cta": {
-    "label": "Read the Post",
-    "href": "/blog/niw-platform-story"
+    "label": "Explore Case Studies",
+    "href": "/projects"
   }
 }
