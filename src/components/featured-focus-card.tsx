@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
 import type { IconType } from "react-icons";
 import {
   HiOutlineChartBarSquare,

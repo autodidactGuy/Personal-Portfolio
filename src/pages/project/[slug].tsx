@@ -2,7 +2,7 @@ import type { GetStaticPaths, GetStaticProps } from "next";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 import Link from "next/link";
-import { Button, Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
 import { HiArrowLongLeft } from "react-icons/hi2";
 
 import { ContentCover } from "@/components/content-cover";

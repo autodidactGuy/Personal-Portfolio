@@ -1,4 +1,4 @@
-import { Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
 import { HiMiniChatBubbleBottomCenterText } from "react-icons/hi2";
 
 import type { Recommendations } from "@/types/content";

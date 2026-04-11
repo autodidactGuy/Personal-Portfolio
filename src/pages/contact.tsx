@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
 import React from "react";
 
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { InlineWidget } from "react-calendly";
 import {
@@ -15,7 +15,7 @@ import {
   Divider,
   Input,
   Textarea,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { Toaster, toast } from "sonner";
 import { useTheme } from "next-themes";
 import { FaLinkedin } from "react-icons/fa6";

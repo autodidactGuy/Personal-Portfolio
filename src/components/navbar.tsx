@@ -11,9 +11,9 @@ import {
 	NavbarItem,
 	NavbarMenuItem,
 	Avatar,
-} from "@nextui-org/react";
+} from "@heroui/react";
 
-import { link as linkStyles } from "@nextui-org/theme";
+import { link as linkStyles } from "@heroui/theme";
 
 import { basePath, siteConfig } from "@/config/site";
 import NextLink from "next/link";

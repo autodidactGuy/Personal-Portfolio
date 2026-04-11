@@ -1,12 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../../tailwind.config.ts";
+@import "tailwindcss";
 
 html {
   --cursor-color: #333
 }
 
-html.dark-mode {
+html.dark,
+html[data-theme="dark"] {
   --cursor-color: #fff
 }
 

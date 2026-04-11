@@ -1,4 +1,4 @@
-import { Card, CardBody, CardHeader, Chip } from "@nextui-org/react";
+import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
 
 import type { HomeStats } from "@/types/content";
 

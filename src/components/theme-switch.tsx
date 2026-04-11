@@ -1,6 +1,6 @@
 import { FC, useState, useEffect } from "react";
 import { VisuallyHidden } from "@react-aria/visually-hidden";
-import { SwitchProps, useSwitch } from "@nextui-org/react";
+import { SwitchProps, useSwitch } from "@heroui/react";
 import { useTheme } from "next-themes";
 import clsx from "clsx";
 
@@ -17,10 +17,11 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
-	const { theme, setTheme } = useTheme();
+	const { resolvedTheme, theme, setTheme } = useTheme();
+  const activeTheme = resolvedTheme || theme || "dark";
 
 	const onChange = () => {
-		theme === "light" ? setTheme("dark") : setTheme("light");
+		activeTheme === "light" ? setTheme("dark") : setTheme("light");
 	};
 
 	const {
@@ -31,13 +32,13 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 		getInputProps,
 		getWrapperProps,
 	} = useSwitch({
-		isSelected: theme === "light",
+		isSelected: activeTheme === "light",
 		onChange,
 	});
 
   useEffect(() => {
     setIsMounted(true);
-  }, [isMounted]);
+  }, []);
 
   // Prevent Hydration Mismatch
   if (!isMounted) return <div className="w-6 h-6" />;

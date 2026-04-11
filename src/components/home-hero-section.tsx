@@ -1,7 +1,7 @@
 import NextImage from "next/image";
 import Link from "next/link";
-import { Image } from "@nextui-org/react";
-import { button as buttonStyles } from "@nextui-org/theme";
+import { Image } from "@heroui/react";
+import { button as buttonStyles } from "@heroui/theme";
 import { FaLinkedin } from "react-icons/fa6";
 import { IoDocument } from "react-icons/io5";
 import { MdMail } from "react-icons/md";

@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
 
 import Link from "next/link";
-import { Button, Chip } from "@nextui-org/react";
+import { Button, Chip } from "@heroui/react";
 
 import { RecommendationCard } from "@/components/recommendation-card";
 import { siteConfig } from "@/config/site";

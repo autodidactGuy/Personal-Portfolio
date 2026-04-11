@@ -10,7 +10,7 @@ import {
   Chip,
   Divider,
   Image,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { BiSolidUserAccount } from "react-icons/bi";
 import { FaUserGraduate } from "react-icons/fa6";
 import { HiOutlineMapPin } from "react-icons/hi2";
@@ -54,7 +54,7 @@ function AboutEntryCard({
       <CardBody className="gap-5 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex shrink-0 justify-center sm:block">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm dark:bg-default-50/5">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-default-50/70 p-3 shadow-sm dark:bg-default-100/20">
               <Image
                 as={NextImage}
                 alt={subtitle}

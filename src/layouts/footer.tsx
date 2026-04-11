@@ -1,5 +1,5 @@
 import NextLink from "next/link";
-import { Card, CardBody, Chip } from "@nextui-org/react";
+import { Card, CardBody, Chip } from "@heroui/react";
 import { HiOutlineCommandLine } from "react-icons/hi2";
 
 import { siteConfig } from "@/config/site";

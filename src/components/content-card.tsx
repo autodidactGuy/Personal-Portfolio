@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Card, CardBody, CardHeader, Chip, Tooltip } from "@nextui-org/react";
+import { Button, Card, CardBody, CardHeader, Chip, Tooltip } from "@heroui/react";
 import { HiOutlineCalendarDays, HiStar } from "react-icons/hi2";
 
 import { ContentCover } from "@/components/content-cover";

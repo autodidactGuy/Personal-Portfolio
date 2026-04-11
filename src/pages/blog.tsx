@@ -1,6 +1,6 @@
 import type { GetStaticProps } from "next";
 
-import { Chip } from "@nextui-org/react";
+import { Chip } from "@heroui/react";
 
 import { ContentCard } from "@/components/content-card";
 import { siteConfig } from "@/config/site";
