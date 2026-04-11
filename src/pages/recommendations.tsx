@@ -39,13 +39,13 @@ export default function RecommendationsPage({ recommendations }: Recommendations
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
             }}
             radius="full"
             size="sm"
             variant="flat"
           >
-            Recommendations
+            {recommendations.title}
           </Chip>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-3">
@@ -54,9 +54,9 @@ export default function RecommendationsPage({ recommendations }: Recommendations
                 Endorsements and working reflections that speak to technical execution, systems thinking, and cross-functional collaboration.
               </p>
             </div>
-            <Button as={Link} color="primary" href="/" radius="full" size="sm" variant="light">
+            {/* <Button as={Link} color="primary" href="/" radius="full" size="sm" variant="light">
               Back to home
-            </Button>
+            </Button> */}
           </div>
         </div>
 

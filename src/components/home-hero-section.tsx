@@ -45,7 +45,7 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
         />
       </div>
       <div className="text-center lg:text-left">
-        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-primary">{hero.eyebrow}</p>
+        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.10em] text-primary">{hero.eyebrow}</p>
         <div className="space-y-2">{renderHighlightedHeadline(hero.headline, hero.highlightedText)}</div>
         <h4 className={subtitle({ class: "mt-4 max-w-3xl" })}>{hero.supportingText}</h4>
         <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">

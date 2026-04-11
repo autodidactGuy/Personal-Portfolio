@@ -10,13 +10,13 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+        <p className="text-sm font-semibold uppercase tracking-[0.10em] text-primary">
           {stats.title}
         </p>
         <Chip
           classNames={{
             base: "border border-primary/20 bg-primary/10 text-primary",
-            content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+            content: "font-medium uppercase tracking-[0.10em] text-[11px]",
           }}
           radius="full"
           size="sm"
@@ -29,23 +29,16 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
         {stats.items.map((item, index) => (
           <Card
             key={item.label}
-            isBlurred
-            className="animate__animated animate__fadeInUp group overflow-hidden border border-default-200/70 bg-background/75 shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
+            className="animate__animated animate__fadeInUp group overflow-hidden border border-default-200/70 bg-content1/85 shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72"
             style={{ animationDelay: `${index * 120}ms`, animationFillMode: "both" }}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(0,114,245,0.08),_transparent_44%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.12),_transparent_44%)]" />
-              <div className="absolute inset-x-5 top-5 h-px bg-black/6 dark:bg-white/7" />
-              <div className="absolute inset-x-5 top-9 h-px bg-black/4 dark:bg-white/5" />
-              <div className="absolute bottom-4 right-4 h-20 w-24 overflow-hidden rounded-2xl border border-black/5 bg-black/[0.025] dark:border-white/8 dark:bg-white/[0.03]">
-                <div className="absolute inset-x-3 bottom-4 h-px bg-black/8 dark:bg-white/10" />
-                <div className="absolute bottom-4 left-3 flex items-end gap-1.5 opacity-70 dark:opacity-60">
-                  <div className="h-4 w-2 rounded-full bg-primary/25" />
-                  <div className="h-8 w-2 rounded-full bg-primary/35" />
-                  <div className="h-12 w-2 rounded-full bg-primary/45" />
-                  <div className="h-7 w-2 rounded-full bg-primary/30" />
-                  <div className="h-14 w-2 rounded-full bg-primary/55" />
-                </div>
+              <div className="absolute bottom-4 right-4 flex items-end gap-1.5 opacity-95">
+                  <div className="h-4 w-2 rounded-full bg-primary/45 dark:bg-sky-300/70" />
+                  <div className="h-8 w-2 rounded-full bg-primary/55 dark:bg-blue-300/78" />
+                  <div className="h-12 w-2 rounded-full bg-primary/65 dark:bg-primary/85" />
+                  <div className="h-7 w-2 rounded-full bg-primary/50 dark:bg-cyan-300/74" />
+                  <div className="h-14 w-2 rounded-full bg-primary/75 dark:bg-primary/88" />
               </div>
             </div>
             <CardHeader className="items-start justify-between pb-0 pt-5">

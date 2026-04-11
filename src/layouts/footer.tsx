@@ -1,5 +1,5 @@
 import NextLink from "next/link";
-import { Card, CardBody, Chip } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import { HiOutlineCommandLine } from "react-icons/hi2";
 
 import { siteConfig } from "@/config/site";
@@ -8,11 +8,8 @@ import { SocialLinks } from "@/components/social-links";
 export function Footer() {
   return (
     <footer className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
-      <Card
-        isBlurred
-        className="mx-auto w-full max-w-6xl  bg-background/80 shadow-sm shadow-primary/5"
-      >
-        <CardBody className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="mx-auto w-full max-w-7xl rounded-3xl bg-background px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
               <NextLink className="inline-block" href="/">
@@ -25,13 +22,13 @@ export function Footer() {
             <SocialLinks />
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-default-200/70 pt-4 text-sm text-default-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 pt-4 text-sm text-default-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
               &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
             </p>
             <Chip
               classNames={{
-                base: "border border-default-200/80 bg-default-100/60 text-foreground backdrop-blur-sm dark:bg-default-100/10",
+                base: "border border-default-200/70 bg-content1/35 text-foreground backdrop-blur-sm",
                 content: "font-mono text-[13px] font-medium tracking-[0.01em] sm:text-sm",
               }}
               radius="full"
@@ -42,8 +39,8 @@ export function Footer() {
               $ build systems --for clarity --at scale
             </Chip>
           </div>
-        </CardBody>
-      </Card>
+        </div>
+      </div>
     </footer>
   );
 }

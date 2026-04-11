@@ -48,10 +48,9 @@ export function ContentCard({
   return (
     <Card
       key={slug}
-      isBlurred
-      className="group h-full overflow-hidden border border-default-200/80 bg-background/75 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
+      className="group h-full overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72"
     >
-      <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
+      <div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
         <ContentCover
           coverImage={frontmatter.coverImage}
           eyebrow={displayTypeLabel}
@@ -68,7 +67,7 @@ export function ContentCard({
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
             }}
             radius="full"
             size="sm"
@@ -103,7 +102,7 @@ export function ContentCard({
                   {siteConfig.githubHandle ? (
                     <>
                       <span className="h-1 w-1 rounded-full bg-default-300/90" />
-                      <span>By @{siteConfig.githubHandle}</span>
+                      <span>@{siteConfig.githubHandle}</span>
                     </>
                   ) : null}
               </div>

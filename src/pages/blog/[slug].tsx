@@ -13,6 +13,7 @@ import { toTitleCase } from "@/lib/string";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
+import { HiArrowSmLeft } from "react-icons/hi";
 
 type BlogPostPageProps = {
   post: {
@@ -64,8 +65,18 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
       }}
     >
       <article className="mx-auto max-w-4xl py-10">
-        <Card isBlurred className="overflow-hidden border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
-          <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
+        <Button
+            as={Link}
+            color="primary"
+            href="/blog"
+            radius="full"
+            size="sm"
+            className="mb-5"
+            startContent={<HiArrowSmLeft size={18} />}
+            variant="flat"
+          >Back to Blog</Button>
+        <Card className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72">
+          <div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
             <ContentCover
               coverImage={post.frontmatter.coverImage}
               eyebrow={toTitleCase(post.frontmatter.contentType || "post")}
@@ -76,17 +87,6 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
           </div>
           <CardHeader className="flex flex-col items-start gap-5 px-6 py-6 sm:px-8 sm:py-8">
-            <Button
-              as={Link}
-              color="primary"
-              href="/blog"
-              radius="full"
-              size="sm"
-              startContent={<HiArrowLongLeft size={18} />}
-              variant="flat"
-            >
-              Back to Blog
-            </Button>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-default-200/60 bg-default-100/25 px-2.5 py-1 text-xs font-medium text-default-500">
                 <HiOutlineCalendarDays className="text-primary/75" size={13} />
@@ -100,7 +100,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
                 {siteConfig.githubHandle ? (
                   <>
                     <span className="h-1 w-1 rounded-full bg-default-300/90" />
-                    <span>By @{siteConfig.githubHandle}</span>
+                    <span>@{siteConfig.githubHandle}</span>
                   </>
                 ) : null}
               </div>

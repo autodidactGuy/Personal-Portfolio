@@ -12,8 +12,7 @@ type RecommendationCardProps = {
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   return (
     <Card
-      isBlurred
-      className="border border-default-200/80 bg-background/75 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
+      className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72"
     >
       <CardHeader className="items-center justify-between gap-3 pb-0">
         <Chip

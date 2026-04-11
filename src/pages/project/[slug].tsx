@@ -3,7 +3,6 @@ import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 import Link from "next/link";
 import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
-import { HiArrowLongLeft } from "react-icons/hi2";
 
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
@@ -13,6 +12,7 @@ import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { PostContentTypeEnum, type ContentFrontmatter } from "@/types/content";
 import { toTitleCase } from "@/lib/string";
+import { HiArrowSmLeft } from "react-icons/hi";
 
 type ProjectDetailProps = {
   project: {
@@ -53,8 +53,18 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
       }}
     >
       <article className="mx-auto max-w-4xl py-10">
-        <Card isBlurred className="overflow-hidden border border-default-200/80 bg-background/75 shadow-sm shadow-primary/5">
-          <div className="relative overflow-hidden border-b border-default-200/70 bg-default-100/30">
+        <Button
+            as={Link}
+            color="primary"
+            href="/projects"
+            radius="full"
+            size="sm"
+            className="mb-5"
+            startContent={<HiArrowSmLeft size={18} />}
+            variant="flat"
+          >Back to Projects</Button>
+        <Card className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72">
+          <div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
             <ContentCover
               coverImage={project.frontmatter.coverImage}
               eyebrow={toTitleCase(PostContentTypeEnum.Project)}
@@ -64,18 +74,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
           </div>
           <CardHeader className="flex flex-col items-start gap-5 px-6 py-6 sm:px-8 sm:py-8">
-            <Button
-              as={Link}
-              color="primary"
-              href="/projects"
-              radius="full"
-              size="sm"
-              startContent={<HiArrowLongLeft size={18} />}
-              variant="flat"
-            >
-              Back to Projects
-            </Button>
-            <Chip
+            {/* <Chip
               classNames={{
                 base: "border border-primary/20 bg-primary/10 text-primary",
                 content: "font-medium uppercase tracking-[0.18em] text-[11px]",
@@ -85,7 +84,7 @@ export default function ProjectDetailPage({ project, source }: ProjectDetailProp
               variant="flat"
             >
               Project
-            </Chip>
+            </Chip> */}
             <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
               {project.frontmatter.title}
             </h1>

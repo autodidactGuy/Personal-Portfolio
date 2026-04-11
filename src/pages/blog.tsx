@@ -63,7 +63,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
           <Chip
             classNames={{
               base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.18em] text-[11px]",
+              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
             }}
             radius="full"
             size="sm"
