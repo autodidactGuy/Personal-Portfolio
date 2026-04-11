@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
 import React from "react";
 
-import { z } from "zod";
+import { z } from "zod/v3";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { InlineWidget } from "react-calendly";
 import {
@@ -45,10 +45,16 @@ type ContactPageProps = {
   settings: ContactSettings;
 };
 
+type ContactFormValues = z.infer<typeof contactFormSchema>;
+
 function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+function getErrorMessage(message: unknown) {
+  return typeof message === "string" ? message : undefined;
 }
 
 export default function Contact({ settings }: ContactPageProps) {
@@ -62,7 +68,7 @@ export default function Contact({ settings }: ContactPageProps) {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useZodForm({
+  } = useZodForm<ContactFormValues>({
     schema: contactFormSchema,
     defaultValues: {
       name: "",
@@ -73,7 +79,7 @@ export default function Contact({ settings }: ContactPageProps) {
     },
   });
 
-  const onSubmit: SubmitHandler<z.infer<typeof contactFormSchema>> = async (data) => {
+  const onSubmit: SubmitHandler<ContactFormValues> = async (data) => {
     try {
       await wait(400);
       console.log(data);
@@ -139,7 +145,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  errorMessage={errors.name?.message}
+                  errorMessage={getErrorMessage(errors.name?.message)}
                   isInvalid={!!errors.name}
                   label="Name"
                   radius="lg"
@@ -154,7 +160,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  errorMessage={errors.email?.message}
+                  errorMessage={getErrorMessage(errors.email?.message)}
                   isInvalid={!!errors.email}
                   label="Email"
                   radius="lg"
@@ -172,7 +178,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  errorMessage={errors.phone?.message}
+                  errorMessage={getErrorMessage(errors.phone?.message)}
                   isInvalid={!!errors.phone}
                   label="Phone"
                   radius="lg"
@@ -188,7 +194,7 @@ export default function Contact({ settings }: ContactPageProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  errorMessage={errors.subject?.message}
+                  errorMessage={getErrorMessage(errors.subject?.message)}
                   isInvalid={!!errors.subject}
                   label="Subject"
                   radius="lg"
@@ -205,7 +211,7 @@ export default function Contact({ settings }: ContactPageProps) {
             render={({ field }) => (
               <Textarea
                 {...field}
-                errorMessage={errors.message?.message}
+                errorMessage={getErrorMessage(errors.message?.message)}
                 isInvalid={!!errors.message}
                 label="Message"
                 minRows={6}
