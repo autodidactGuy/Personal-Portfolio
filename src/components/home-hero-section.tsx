@@ -50,9 +50,9 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 				<div className="space-y-2">
 					{renderHighlightedHeadline(hero.headline, hero.highlightedText)}
 				</div>
-				<h4 className={subtitle({ class: "mt-4 max-w-3xl" })}>
+				<p className={subtitle({ class: "mt-4 max-w-3xl" })}>
 					{hero.supportingText}
-				</h4>
+				</p>
 				<div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
 					<a
 						className={buttonStyles({

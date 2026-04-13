@@ -1,3 +1,4 @@
+import NextImage from "next/image";
 import Link from "next/link";
 import type { ComponentPropsWithoutRef } from "react";
 import { withBasePath } from "@/lib/base-path";
@@ -73,15 +74,30 @@ function Anchor(props: ComponentPropsWithoutRef<"a">) {
 
 function MdxImage(props: ComponentPropsWithoutRef<"img">) {
 	const src = typeof props.src === "string" ? props.src : undefined;
+	const width =
+		typeof props.width === "number" ? props.width : Number(props.width) || 1600;
+	const height =
+		typeof props.height === "number"
+			? props.height
+			: Number(props.height) || 900;
+	const className = [
+		"mt-6 h-auto max-w-full rounded-2xl border border-default-200",
+		props.className,
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	return (
-		// biome-ignore lint/performance/noImgElement: MDX content images use source-defined dimensions and should preserve their natural aspect ratio.
-		<img
+		<NextImage
 			alt={props.alt || ""}
-			className="mt-6 h-auto max-w-full rounded-2xl border border-default-200"
-			decoding="async"
+			className={className}
+			height={height}
 			loading="lazy"
+			sizes="(max-width: 768px) 100vw, 768px"
 			src={withBasePath(src)}
+			style={{ height: "auto", width: "100%" }}
+			unoptimized
+			width={width}
 		/>
 	);
 }

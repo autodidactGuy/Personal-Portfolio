@@ -138,6 +138,7 @@ export default function Contact({ settings }: ContactPageProps) {
 							render={({ field }) => (
 								<Input
 									{...field}
+									aria-label="Name"
 									classNames={formFieldClassNames}
 									errorMessage={getErrorMessage(errors.name?.message)}
 									isInvalid={!!errors.name}
@@ -154,6 +155,7 @@ export default function Contact({ settings }: ContactPageProps) {
 							render={({ field }) => (
 								<Input
 									{...field}
+									aria-label="Email"
 									classNames={formFieldClassNames}
 									errorMessage={getErrorMessage(errors.email?.message)}
 									isInvalid={!!errors.email}
@@ -173,6 +175,7 @@ export default function Contact({ settings }: ContactPageProps) {
 							render={({ field }) => (
 								<Input
 									{...field}
+									aria-label="Phone"
 									classNames={formFieldClassNames}
 									errorMessage={getErrorMessage(errors.phone?.message)}
 									isInvalid={!!errors.phone}
@@ -190,6 +193,7 @@ export default function Contact({ settings }: ContactPageProps) {
 							render={({ field }) => (
 								<Input
 									{...field}
+									aria-label="Subject"
 									classNames={formFieldClassNames}
 									errorMessage={getErrorMessage(errors.subject?.message)}
 									isInvalid={!!errors.subject}
@@ -208,6 +212,7 @@ export default function Contact({ settings }: ContactPageProps) {
 						render={({ field }) => (
 							<Textarea
 								{...field}
+								aria-label="Message"
 								classNames={formFieldClassNames}
 								errorMessage={getErrorMessage(errors.message?.message)}
 								isInvalid={!!errors.message}

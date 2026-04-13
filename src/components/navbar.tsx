@@ -95,22 +95,20 @@ export const Navbar = () => {
 						<p className="font-bold text-inherit ml-2">{siteConfig.name}</p>
 					</NextLink>
 				</NavbarBrand>
-				<div className="hidden lg:flex gap-4 justify-start ml-2">
-					{siteConfig.navItems.map((item) => (
-						<NavbarItem key={item.href}>
-							<NextLink
-								className={clsx(
-									linkStyles({ color: "foreground" }),
-									"data-[active=true]:text-primary data-[active=true]:font-medium",
-								)}
-								color="foreground"
-								href={item.href}
-							>
-								{item.label}
-							</NextLink>
-						</NavbarItem>
-					))}
-				</div>
+				{siteConfig.navItems.map((item) => (
+					<NavbarItem key={item.href} className="hidden lg:flex">
+						<NextLink
+							className={clsx(
+								linkStyles({ color: "foreground" }),
+								"data-[active=true]:text-primary data-[active=true]:font-medium",
+							)}
+							color="foreground"
+							href={item.href}
+						>
+							{item.label}
+						</NextLink>
+					</NavbarItem>
+				))}
 			</NavbarContent>
 
 			<NavbarContent
@@ -142,27 +140,25 @@ export const Navbar = () => {
 			</NavbarContent>
 
 			<NavbarMenu>
-				{searchInput}
-				<div className="mx-4 mt-2 flex flex-col gap-2">
-					{siteConfig.navMenuItems.map((item) => (
-						<NavbarMenuItem key={`${item.href}`}>
-							<Link color="foreground" href={item.href} size="lg">
-								{item.label}
-							</Link>
-						</NavbarMenuItem>
-					))}
-					{siteConfig.navigation.headerQuickLink?.href !== "/contact" && (
-						<NavbarMenuItem key="header-quick-link">
-							<Link
-								color="foreground"
-								href={siteConfig.navigation.headerQuickLink.href}
-								size="lg"
-							>
-								{siteConfig.navigation.headerQuickLink.label}
-							</Link>
-						</NavbarMenuItem>
-					)}
-				</div>
+				<NavbarMenuItem key="menu-search">{searchInput}</NavbarMenuItem>
+				{siteConfig.navMenuItems.map((item) => (
+					<NavbarMenuItem key={item.href}>
+						<Link color="foreground" href={item.href} size="lg">
+							{item.label}
+						</Link>
+					</NavbarMenuItem>
+				))}
+				{siteConfig.navigation.headerQuickLink?.href !== "/contact" && (
+					<NavbarMenuItem key="header-quick-link">
+						<Link
+							color="foreground"
+							href={siteConfig.navigation.headerQuickLink.href}
+							size="lg"
+						>
+							{siteConfig.navigation.headerQuickLink.label}
+						</Link>
+					</NavbarMenuItem>
+				)}
 			</NavbarMenu>
 		</NextUINavbar>
 	);
