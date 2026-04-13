@@ -13,17 +13,29 @@ export function SocialLinks({
 	iconSize = 24,
 }: SocialLinksProps) {
 	return (
-		<div className={`flex items-center gap-2 ${className}`.trim()}>
+		<nav
+			aria-label="Social links"
+			className={`flex items-center gap-2 ${className}`.trim()}
+		>
 			<Link aria-label="LinkedIn" isExternal href={siteConfig.links.linkedin}>
-				<FaLinkedin className="text-default-500" size={iconSize} />
+				<FaLinkedin
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
 			<Link aria-label="GitHub" isExternal href={siteConfig.links.github}>
-				<GithubIcon className="text-default-500" size={iconSize} />
+				<GithubIcon
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
 			<Link aria-label="X" isExternal href={siteConfig.links.twitter}>
-				<FaXTwitter className="text-default-500" size={iconSize} />
+				<FaXTwitter
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
-		</div>
+		</nav>
 	);
 }
 
@@ -31,10 +43,16 @@ export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 	return (
 		<>
 			<Link aria-label="LinkedIn" isExternal href={siteConfig.links.linkedin}>
-				<FaLinkedin className="text-default-500" size={iconSize} />
+				<FaLinkedin
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
 			<Link aria-label="GitHub" isExternal href={siteConfig.links.github}>
-				<GithubIcon className="text-default-500" size={iconSize} />
+				<GithubIcon
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
 			<Link
 				aria-label="X"
@@ -42,7 +60,10 @@ export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 				className="hidden xsm:block"
 				href={siteConfig.links.twitter}
 			>
-				<FaXTwitter className="text-default-500" size={iconSize} />
+				<FaXTwitter
+					className="text-default-600 dark:text-default-400"
+					size={iconSize}
+				/>
 			</Link>
 		</>
 	);

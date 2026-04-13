@@ -1,0 +1,287 @@
+{
+  "name": "Hassan Raza",
+  "title": "Senior Software Engineer",
+  "headline": "Designing systems that move money, data, and decisions at scale",
+  "summary": "Senior software engineer with 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms. My work centers on designing backend systems that process high-volume transactions, power data pipelines, and support real-world financial operations at scale.",
+  "about": {
+    "label": "About",
+    "title": "Building Financial Systems at Scale",
+    "description": "I build distributed systems, financial infrastructure, and AI-driven data platforms that operate under real-world constraints and high-volume workloads.",
+    "headline": "Designing systems that handle financial transactions, data pipelines, and AI workloads at scale",
+    "summary": "Senior software engineer with 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms. My work centers on designing backend systems that process high-volume transactions, power data pipelines, and support real-world financial operations at scale.",
+    "body": [
+      "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
+      "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
+    ]
+  },
+  "interests": [
+    "Financial Infrastructure",
+    "Distributed Systems",
+    "AI-Driven Systems"
+  ],
+  "skills": [
+    "Node.js",
+    "TypeScript",
+    "NestJS",
+    "MongoDB",
+    "Redis",
+    "BullMQ",
+    "AWS ECS",
+    "AWS S3",
+    "AWS DynamoDB",
+    "AWS CloudWatch",
+    "Docker",
+    "Event-Driven Architecture",
+    "Payments (Adyen)",
+    "Python",
+    "Java",
+    "LLMs",
+    "Prompt Engineering",
+    "Model Evaluation",
+    "Data Annotation Workflows",
+    "AI Quality Analysis",
+    "AWS EC2",
+    "AWS Lambda",
+    "AWS SQS",
+    "AWS Kinesis",
+    "AWS CloudFormation",
+    "Distributed Systems",
+    "REST APIs",
+    "CI/CD",
+    "CloudWatch",
+    "Microservices",
+    "Spring Boot",
+    "React",
+    "PostgreSQL",
+    "MySQL",
+    "AWS RDS",
+    "AWS Route53",
+    "Authentication Systems",
+    "PHP",
+    "Laravel",
+    "WordPress",
+    "JavaScript",
+    "HTML",
+    "CSS"
+  ],
+  "links": {
+    "site": "https://hassanraza.us",
+    "github": "https://github.com/autodidactGuy",
+    "linkedin": "https://linkedin.com/in/autodidactGuy",
+    "twitter": "https://x.com/autodidactGuy",
+    "resume": "https://hassanraza.us/HassanRaza-Resume.pdf",
+    "calendly": "https://calendly.com/autodidactGuy/15min"
+  },
+  "contact": {
+    "title": "Let's talk about systems, scale, and impact",
+    "description": "If you're working on financial infrastructure, data systems, or AI-driven platforms or exploring collaboration, roles, or ideas in this space, feel free to reach out.",
+    "formHeading": "Send a Message",
+    "scheduleHeading": "Schedule a Call",
+    "quickLink": {
+      "label": "Contact",
+      "href": "https://hassanraza.us/contact"
+    }
+  },
+  "experience": [
+    {
+      "title": "Senior Software Engineer",
+      "company": "Overflow App Inc",
+      "location": "Los Gatos, California, USA",
+      "from": "Apr, 2024",
+      "to": "Present",
+      "highlight": "Built and scaled fintech systems processing $1B+ annually across payments, data pipelines, and AI-driven analytics",
+      "details": [
+        "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds",
+        "Built large-scale data ingestion and migration pipelines for external platforms, handled over 10M+ records with validation and deduplication",
+        "Developed AI-driven analytics features enabling natural language queries over multi-tenant financial datasets with strict safety guardrails",
+        "Architected event-driven systems using queues and background workers to ensure reliability, retries, and observability",
+        "Improved system scalability and maintainability through modular architecture and clear service boundaries"
+      ],
+      "tech": [
+        "Node.js",
+        "TypeScript",
+        "NestJS",
+        "MongoDB",
+        "Redis",
+        "BullMQ",
+        "AWS ECS",
+        "AWS S3",
+        "AWS DynamoDB",
+        "AWS CloudWatch",
+        "Docker",
+        "Event-Driven Architecture",
+        "Payments (Adyen)"
+      ],
+      "image": "https://hassanraza.us/experience/overflow.png"
+    },
+    {
+      "title": "Software Engineer - Gen AI",
+      "company": "Scale AI Inc",
+      "companyComments": "Contract via HireArt Inc",
+      "location": "Dallas, Texas, USA",
+      "from": "Jan, 2024",
+      "to": "Apr, 2024",
+      "highlight": "Improved LLM reliability through structured evaluation, edge-case analysis, and feedback-driven workflows",
+      "details": [
+        "Evaluated AI-generated code and system outputs to identify correctness issues, inconsistencies, and edge cases",
+        "Provided structured feedback to improve model performance, reliability, and response quality",
+        "Worked on workflows connecting human evaluation with model improvement cycles",
+        "Refined prompts and evaluation criteria to reduce ambiguity and improve output consistency",
+        "Collaborated in fast-paced environments focused on improving real-world AI system behavior"
+      ],
+      "tech": [
+        "Python",
+        "TypeScript",
+        "Java",
+        "LLMs",
+        "Prompt Engineering",
+        "Model Evaluation",
+        "Data Annotation Workflows",
+        "AI Quality Analysis"
+      ],
+      "image": "https://hassanraza.us/experience/scale-ai.png"
+    },
+    {
+      "title": "Software Development Engineer II",
+      "company": "Amazon.com Inc",
+      "companyComments": "Contract via Insight Global",
+      "location": "Seattle, Washington, USA",
+      "from": "May, 2023",
+      "to": "Jan, 2024",
+      "highlight": "Built distributed backend systems supporting a global hiring platform serving 1.5M+ users",
+      "details": [
+        "Developed scalable backend services for Amazon’s hiring platform impacting over 1.5 million hourly workers",
+        "Built and maintained core infrastructure using Java, Node.js, and AWS services",
+        "Improved system reliability and availability through monitoring, logging, and fault-tolerant design",
+        "Contributed to CI/CD pipelines and deployment automation ensuring stable and frequent releases",
+        "Collaborated across teams to deliver high-impact features in a large-scale distributed environment"
+      ],
+      "tech": [
+        "Java",
+        "Node.js",
+        "AWS EC2",
+        "AWS Lambda",
+        "AWS S3",
+        "AWS SQS",
+        "AWS Kinesis",
+        "AWS DynamoDB",
+        "AWS CloudWatch",
+        "AWS CloudFormation",
+        "Distributed Systems",
+        "REST APIs",
+        "CI/CD",
+        "CloudWatch",
+        "Microservices"
+      ],
+      "image": "https://hassanraza.us/experience/amazon.svg"
+    },
+    {
+      "title": "Full Stack Developer",
+      "company": "ThinkGeniux Private Limited",
+      "location": "Lahore, Pakistan",
+      "from": "Oct, 2018",
+      "to": "Jul, 2022",
+      "highlight": "Led development of ERP, marketplace, and SaaS platforms with focus on scalability and system design",
+      "details": [
+        "Designed and developed full-stack applications including ERP systems and marketplace platforms",
+        "Built scalable backend services using Java, Spring Boot, and Node.js",
+        "Implemented secure authentication and authorization systems",
+        "Deployed and managed cloud infrastructure on AWS ensuring high availability",
+        "Mentored junior developers and contributed to architectural decisions across projects"
+      ],
+      "tech": [
+        "Java",
+        "Spring Boot",
+        "Node.js",
+        "React",
+        "PostgreSQL",
+        "MongoDB",
+        "MySQL",
+        "AWS S3",
+        "AWS EC2",
+        "AWS RDS",
+        "AWS Route53",
+        "AWS CloudWatch",
+        "AWS CloudFormation",
+        "REST APIs",
+        "Authentication Systems"
+      ],
+      "image": "https://hassanraza.us/experience/tgx.png"
+    },
+    {
+      "title": "Web Application Developer",
+      "company": "Metologix Private Limited",
+      "location": "Lahore, Pakistan",
+      "from": "Aug, 2016",
+      "to": "Sep, 2018",
+      "highlight": "Developed and maintained web platforms and internal systems with focus on performance and usability",
+      "details": [
+        "Built and maintained company websites using PHP, WordPress, HTML, CSS, and JavaScript",
+        "Contributed to internal HR platform development using PHP and Laravel",
+        "Improved website performance and optimized user experience",
+        "Collaborated with cross-functional teams on design, development, and testing",
+        "Handled bug fixes, maintenance, and system enhancements"
+      ],
+      "tech": [
+        "PHP",
+        "Laravel",
+        "WordPress",
+        "JavaScript",
+        "HTML",
+        "CSS",
+        "MySQL"
+      ],
+      "image": "https://hassanraza.us/experience/metologix.png"
+    }
+  ],
+  "education": [
+    {
+      "degree": "Master of Science in Computer Science",
+      "institute": "Maharishi International University",
+      "location": "Fairfield, Iowa, USA",
+      "from": "Aug, 2022",
+      "to": "Apr, 2024",
+      "image": "https://hassanraza.us/education/miu.png"
+    },
+    {
+      "degree": "Bachelor of Science in Computer Science",
+      "institute": "The University of Lahore",
+      "location": "Lahore, Pakistan",
+      "from": "Sep, 2015",
+      "to": "Mar, 2019",
+      "image": "https://hassanraza.us/education/uol.png"
+    }
+  ],
+  "projects": [
+    {
+      "slug": "building-financial-infrastructure-for-modern-nonprofits",
+      "title": "Building Financial Infrastructure for Modern Nonprofits",
+      "summary": "Designing systems that enable scalable, reliable, and intelligent financial operations for nonprofit organizations.",
+      "tags": [
+        "fintech",
+        "distributed-systems",
+        "data-platforms",
+        "ai"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/project/building-financial-infrastructure-for-modern-nonprofits",
+      "date": "2026-02-17"
+    },
+    {
+      "slug": "etl-data-migration-at-scale",
+      "title": "Designing Data Migration Pipelines That Don’t Break at Scale",
+      "summary": "Building resilient pipelines to process large datasets with correctness, observability, and recoverability.",
+      "tags": [
+        "data-engineering",
+        "backend",
+        "systems-design",
+        "pipelines"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/project/etl-data-migration-at-scale",
+      "date": "2024-12-13"
+    }
+  ]
+}

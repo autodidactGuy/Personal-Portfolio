@@ -183,7 +183,7 @@ export enum PostContentTypeEnum {
 	Other = "other",
 }
 
-export const postContentTypeSchema = z.nativeEnum(PostContentTypeEnum);
+export const postContentTypeSchema = z.enum(PostContentTypeEnum);
 
 export const normalizedDateStringSchema = z.preprocess(
 	normalizeDateInput,
@@ -217,4 +217,89 @@ export type ContentEntry<TFrontmatter> = {
 	slug: string;
 	frontmatter: TFrontmatter;
 	content: string;
+};
+
+export type ResumeApiResponse = {
+	name: string;
+	title: string;
+	headline: string;
+	summary: string;
+	about: {
+		label: string;
+		title: string;
+		description: string;
+		headline: string;
+		summary: string;
+		body: string[];
+	};
+	interests: string[];
+	skills: string[];
+	links: {
+		site: string;
+		github: string;
+		linkedin: string;
+		twitter: string;
+		resume: string;
+		calendly: string;
+	};
+	contact: {
+		title: string;
+		description: string;
+		formHeading: string;
+		scheduleHeading: string;
+		quickLink: {
+			label: string;
+			href: string;
+		};
+	};
+	experience: Array<{
+		title: string;
+		company: string;
+		companyComments?: string;
+		location: string;
+		from: string;
+		to: string;
+		highlight: string;
+		details: string[];
+		tech: string[];
+		image: string;
+	}>;
+	education: Array<{
+		degree: string;
+		institute: string;
+		location: string;
+		from: string;
+		to: string;
+		result?: string;
+		image: string;
+	}>;
+	projects: Array<{
+		slug: string;
+		title: string;
+		summary: string;
+		tags: string[];
+		featured: boolean;
+		coverImage: string;
+		url: string;
+		date?: string;
+	}>;
+};
+
+export type SearchIndexEntry = {
+	id: string;
+	type:
+		| "about"
+		| "experience"
+		| "education"
+		| "project"
+		| "case-study"
+		| "article"
+		| "recommendation";
+	typeLabel: string;
+	title: string;
+	summary: string;
+	href: string;
+	meta?: string;
+	keywords: string[];
+	searchText: string;
 };

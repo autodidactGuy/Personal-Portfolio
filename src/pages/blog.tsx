@@ -3,9 +3,9 @@ import type { GetStaticProps } from "next";
 import { ContentCard } from "@/components/content-card";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
-import { getPosts } from "@/lib/content";
+import { getBlogPosts } from "@/lib/content";
 import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
-import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
+import type { PostFrontmatter } from "@/types/content";
 
 type BlogIndexProps = {
 	posts: Array<{
@@ -16,7 +16,7 @@ type BlogIndexProps = {
 
 export default function BlogIndex({ posts }: BlogIndexProps) {
 	const pageDescription =
-		"Notes on system design, distributed systems, and building real-world software at scale.";
+		"Notes on system design, distributed systems, and lessons from building real-world software at scale.";
 
 	return (
 		<DefaultLayout
@@ -44,11 +44,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
 							itemListElement: posts.map((post, index) => ({
 								"@type": "ListItem",
 								position: index + 1,
-								url: getSiteUrl(
-									post.frontmatter.contentType === PostContentTypeEnum.Project
-										? `/project/${post.slug}`
-										: `/blog/${post.slug}`,
-								),
+								url: getSiteUrl(`/blog/${post.slug}`),
 								name: post.frontmatter.title,
 							})),
 						},
@@ -72,10 +68,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
 					<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
 						Blog
 					</h1>
-					<p className="mt-3 max-w-2xl text-default-700">
-						Technical writing, architecture notes, and portfolio narratives
-						managed through MDX and Decap CMS.
-					</p>
+					<p className="mt-3 text-default-700">{pageDescription}</p>
 				</div>
 
 				<div className="grid gap-5 md:grid-cols-2 xl:gap-6">
@@ -84,11 +77,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
 							key={post.slug}
 							coverHeightClassName="h-44 transition-transform duration-500 group-hover:scale-[1.03]"
 							frontmatter={post.frontmatter}
-							href={
-								post.frontmatter.contentType === PostContentTypeEnum.Project
-									? `/project/${post.slug}`
-									: `/blog/${post.slug}`
-							}
+							href={`/blog/${post.slug}`}
 							showMeta
 							slug={post.slug}
 						/>
@@ -102,7 +91,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
 export const getStaticProps: GetStaticProps<BlogIndexProps> = async () => {
 	return {
 		props: {
-			posts: getPosts(),
+			posts: getBlogPosts(),
 		},
 	};
 };

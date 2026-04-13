@@ -54,10 +54,7 @@ export default function RecommendationsPage({
 							<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
 								{recommendations.title}
 							</h1>
-							<p className="max-w-2xl text-default-700">
-								Endorsements and working reflections that speak to technical
-								execution, systems thinking, and cross-functional collaboration.
-							</p>
+							<p className="max-w-2xl text-default-700">{pageDescription}</p>
 						</div>
 						{/* <Button as={Link} color="primary" href="/" radius="full" size="sm" variant="light">
               Back to home

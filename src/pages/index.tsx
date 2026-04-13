@@ -8,11 +8,11 @@ import { RecommendationsSection } from "@/components/recommendations-section";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import {
+	getBlogPosts,
 	getFeaturedFocus,
 	getFeaturedRecommendations,
 	getHomeHero,
 	getHomeStats,
-	getPosts,
 	getProjects,
 } from "@/lib/content";
 import {
@@ -112,17 +112,13 @@ export default function IndexPage({
 }
 
 export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
-	const posts = getPosts();
+	const posts = getBlogPosts();
 	const projects = getProjects();
 	const featuredProjects = projects
 		.filter((project) => project.frontmatter.featured)
 		.slice(0, 2);
 	const featuredPosts = posts
-		.filter(
-			(post) =>
-				post.frontmatter.featured &&
-				post.frontmatter.contentType !== PostContentTypeEnum.Project,
-		)
+		.filter((post) => post.frontmatter.featured)
 		.slice(0, 4);
 
 	return {

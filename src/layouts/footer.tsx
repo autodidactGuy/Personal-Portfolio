@@ -15,7 +15,9 @@ export function Footer() {
 								<p className="text-lg font-semibold tracking-tight text-foreground">
 									{siteConfig.name}
 								</p>
-								<p className="text-sm text-default-500">{siteConfig.title}</p>
+								<p className="text-sm text-default-600 dark:text-default-400">
+									{siteConfig.title}
+								</p>
 							</NextLink>
 							{/* <p className="max-w-xl text-sm leading-6 text-default-600">{siteConfig.description}</p> */}
 						</div>
@@ -23,7 +25,7 @@ export function Footer() {
 						<SocialLinks />
 					</div>
 
-					<div className="flex flex-col gap-3 pt-4 text-sm text-default-500 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex flex-col gap-3 pt-4 text-sm text-default-600 dark:text-default-400 sm:flex-row sm:items-center sm:justify-between">
 						<p>
 							&copy; {new Date().getFullYear()} {siteConfig.name}. All rights
 							reserved.

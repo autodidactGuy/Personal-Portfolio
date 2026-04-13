@@ -1,4 +1,3 @@
-import { useTheme } from "next-themes";
 import { AdminBar } from "@/components/admin-bar";
 import {
 	ComingSoonScreen,
@@ -16,12 +15,7 @@ export default function DefaultLayout({
 	children: React.ReactNode;
 	seo?: SeoEntry;
 }) {
-	const { resolvedTheme, theme } = useTheme();
 	const { shouldShowComingSoon } = useComingSoonGate();
-
-	const activeTheme = resolvedTheme || theme || "dark";
-	const animation =
-		activeTheme === "light" ? "lightAnimation" : "darkAnimation";
 
 	return (
 		<div className="relative flex min-h-screen flex-col">
@@ -32,7 +26,7 @@ export default function DefaultLayout({
 					<Navbar />
 				</div>
 			) : null}
-			<main className={`px-6 flex-grow ${animation}`}>
+			<main className="page-shell-theme flex-grow px-6">
 				{shouldShowComingSoon ? <ComingSoonScreen /> : children}
 			</main>
 			{!shouldShowComingSoon ? <Footer /> : null}

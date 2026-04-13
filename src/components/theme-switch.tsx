@@ -46,6 +46,7 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 	return (
 		<Component
 			{...getBaseProps({
+				"aria-label": "Toggle theme",
 				className: clsx(
 					"px-px transition-opacity hover:opacity-80 cursor-pointer",
 					className,
@@ -54,7 +55,7 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 			})}
 		>
 			<VisuallyHidden>
-				<input {...getInputProps()} />
+				<input {...getInputProps({ "aria-label": "Toggle theme" })} />
 			</VisuallyHidden>
 			<div
 				{...getWrapperProps()}

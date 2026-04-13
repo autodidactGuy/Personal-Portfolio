@@ -9,7 +9,7 @@ import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
-import { compileMdx, getCollectionSlugs, getPostBySlug } from "@/lib/content";
+import { compileMdx, getBlogBySlug, getBlogPosts } from "@/lib/content";
 import {
 	formatIsoDate,
 	getAbsoluteImageUrl,
@@ -144,7 +144,7 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 
 export const getStaticPaths: GetStaticPaths = async () => {
 	return {
-		paths: getCollectionSlugs("posts").map((slug) => ({
+		paths: getBlogPosts().map(({ slug }) => ({
 			params: { slug },
 		})),
 		fallback: false,
@@ -155,7 +155,7 @@ export const getStaticProps: GetStaticProps<BlogPostPageProps> = async ({
 	params,
 }) => {
 	const slug = String(params?.slug);
-	const post = getPostBySlug(slug);
+	const post = getBlogBySlug(slug);
 
 	return {
 		props: {

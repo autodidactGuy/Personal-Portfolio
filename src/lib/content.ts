@@ -9,7 +9,6 @@ import {
 	type ContentCollection,
 	type ContentEntry,
 	contactSettingsSchema,
-	contentFrontmatterSchema,
 	educationListSchema,
 	experienceListSchema,
 	featuredFocusSchema,
@@ -18,6 +17,7 @@ import {
 	PostContentTypeEnum,
 	postFrontmatterSchema,
 	recommendationsSchema,
+	type SearchIndexEntry,
 	siteSettingsSchema,
 } from "@/types/content";
 
@@ -93,6 +93,13 @@ function byPublishedDateDesc<T extends { date?: string }>(
 	return bDate - aDate;
 }
 
+function isProjectLikeContentType(contentType: PostContentTypeEnum) {
+	return (
+		contentType === PostContentTypeEnum.Project ||
+		contentType === PostContentTypeEnum.CaseStudy
+	);
+}
+
 export function getPageContent<TSchema extends z.ZodTypeAny>(
 	relativePath: string,
 	schema: TSchema,
@@ -154,9 +161,15 @@ export function getPosts() {
 		.sort(byPublishedDateDesc);
 }
 
-export function getProjects() {
+export function getBlogPosts() {
 	return getPosts().filter(
-		(entry) => entry.frontmatter.contentType === PostContentTypeEnum.Project,
+		(entry) => !isProjectLikeContentType(entry.frontmatter.contentType),
+	);
+}
+
+export function getProjects() {
+	return getPosts().filter((entry) =>
+		isProjectLikeContentType(entry.frontmatter.contentType),
 	);
 }
 
@@ -175,14 +188,25 @@ export function getPostBySlug(slug: string) {
 export function getProjectBySlug(slug: string) {
 	const project = getPostBySlug(slug);
 
-	if (project.frontmatter.contentType !== PostContentTypeEnum.Project) {
-		throw new Error(`Post "${slug}" is not a ${PostContentTypeEnum.Project}`);
+	if (!isProjectLikeContentType(project.frontmatter.contentType)) {
+		throw new Error(
+			`Post "${slug}" is not a ${PostContentTypeEnum.Project} or ${PostContentTypeEnum.CaseStudy}`,
+		);
 	}
 
-	return {
-		...project,
-		frontmatter: contentFrontmatterSchema.parse(project.frontmatter),
-	};
+	return project;
+}
+
+export function getBlogBySlug(slug: string) {
+	const blog = getPostBySlug(slug);
+
+	if (isProjectLikeContentType(blog.frontmatter.contentType)) {
+		throw new Error(
+			`Post "${slug}" is not a blog post (it is a ${blog.frontmatter.contentType})`,
+		);
+	}
+
+	return blog;
 }
 
 export async function compileMdx(source: string) {
@@ -191,4 +215,141 @@ export async function compileMdx(source: string) {
 			development: process.env.NODE_ENV === "development",
 		},
 	});
+}
+
+export function getSearchIndex(): SearchIndexEntry[] {
+	const profile = getAboutProfile();
+	const experience = getExperience();
+	const education = getEducation();
+	const recommendations = getRecommendations();
+	const posts = getPosts();
+
+	const aboutEntry: SearchIndexEntry = {
+		id: "about-overview",
+		type: "about",
+		typeLabel: "About",
+		title: profile.pageTitle,
+		summary: profile.summary,
+		href: "/about",
+		meta: profile.aboutSectionTitle,
+		keywords: [],
+		searchText: [
+			profile.pageLabel,
+			profile.pageTitle,
+			profile.pageDescription,
+			profile.aboutSectionTitle,
+			profile.aboutSectionSubtitle,
+			profile.summaryLabel,
+			profile.headline,
+			profile.summary,
+			...profile.body,
+		].join(" "),
+	};
+
+	const experienceEntries: SearchIndexEntry[] = experience.map(
+		(item, index) => ({
+			id: `experience-${index}-${item.company}-${item.title}`,
+			type: "experience",
+			typeLabel: "Experience",
+			title: `${item.title} at ${item.company}`,
+			summary: item.highlight,
+			href: "/about",
+			meta: `${item.from} - ${item.to} • ${item.location}`,
+			keywords: [item.company, ...item.tech],
+			searchText: [
+				item.title,
+				item.company,
+				item.companyComments,
+				item.location,
+				item.from,
+				item.to,
+				item.highlight,
+				...item.details,
+				...item.tech,
+			].join(" "),
+		}),
+	);
+
+	const educationEntries: SearchIndexEntry[] = education.map((item, index) => ({
+		id: `education-${index}-${item.institute}-${item.degree}`,
+		type: "education",
+		typeLabel: "Education",
+		title: item.degree,
+		summary: item.institute,
+		href: "/about",
+		meta: `${item.from} - ${item.to} • ${item.location}`,
+		keywords: [item.institute],
+		searchText: [
+			item.degree,
+			item.institute,
+			item.location,
+			item.from,
+			item.to,
+			item.result,
+		].join(" "),
+	}));
+
+	const recommendationEntries: SearchIndexEntry[] = recommendations.items.map(
+		(item, index) => ({
+			id: `recommendation-${index}-${item.name}`,
+			type: "recommendation",
+			typeLabel: "Recommendation",
+			title: item.name,
+			summary: item.highlight || item.quote,
+			href: "/recommendations",
+			meta: item.role,
+			keywords: [item.relationship],
+			searchText: [
+				item.name,
+				item.role,
+				item.relationship,
+				item.highlight,
+				item.quote,
+			].join(" "),
+		}),
+	);
+
+	const postEntries: SearchIndexEntry[] = posts.map((entry) => {
+		const isProjectLike =
+			entry.frontmatter.contentType === PostContentTypeEnum.Project ||
+			entry.frontmatter.contentType === PostContentTypeEnum.CaseStudy;
+		const type: SearchIndexEntry["type"] =
+			entry.frontmatter.contentType === PostContentTypeEnum.Project
+				? "project"
+				: entry.frontmatter.contentType === PostContentTypeEnum.CaseStudy
+					? "case-study"
+					: "article";
+
+		return {
+			id: `${entry.frontmatter.contentType}-${entry.slug}`,
+			type,
+			typeLabel:
+				entry.frontmatter.contentType === PostContentTypeEnum.CaseStudy
+					? "Case Study"
+					: entry.frontmatter.contentType === PostContentTypeEnum.Project
+						? "Project"
+						: "Article",
+			title: entry.frontmatter.title,
+			summary: entry.frontmatter.summary,
+			href: isProjectLike ? `/project/${entry.slug}` : `/blog/${entry.slug}`,
+			meta: entry.frontmatter.date,
+			keywords: entry.frontmatter.tags,
+			searchText: [
+				entry.frontmatter.title,
+				entry.frontmatter.summary,
+				entry.frontmatter.contentType,
+				entry.frontmatter.date,
+				...entry.frontmatter.tags,
+				entry.content,
+			].join(" "),
+		};
+	});
+
+	return [
+		aboutEntry,
+		...experienceEntries,
+		...educationEntries,
+		...postEntries,
+		...recommendationEntries,
+	];
 }

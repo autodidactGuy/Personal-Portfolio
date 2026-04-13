@@ -6,18 +6,18 @@ import DefaultLayout from "@/layouts/default";
 import { getProjects } from "@/lib/content";
 import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
-import { type ContentFrontmatter, PostContentTypeEnum } from "@/types/content";
+import type { PostFrontmatter } from "@/types/content";
 
 type ProjectsPageProps = {
 	projects: Array<{
 		slug: string;
-		frontmatter: ContentFrontmatter;
+		frontmatter: PostFrontmatter;
 	}>;
 };
 
 export default function ProjectsPage({ projects }: ProjectsPageProps) {
 	const pageDescription =
-		"Case studies of systems I've built—covering payments, data pipelines, and distributed architectures at scale.";
+		"Systems I've built, explained through real-world case studies.";
 
 	return (
 		<DefaultLayout
@@ -60,10 +60,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
 					<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
 						Projects
 					</h1>
-					<p className="mt-3 max-w-2xl text-default-700">
-						Long-form project entries authored in MDX so the implementation
-						story can evolve without touching UI code.
-					</p>
+					<p className="mt-3 text-default-700">{pageDescription}</p>
 				</div>
 				<div className="grid gap-5 md:grid-cols-2 xl:gap-6">
 					{projects.map((project) => (
@@ -73,7 +70,7 @@ export default function ProjectsPage({ projects }: ProjectsPageProps) {
 							frontmatter={project.frontmatter}
 							href={`/project/${project.slug}`}
 							slug={project.slug}
-							typeLabel={toTitleCase(PostContentTypeEnum.Project)}
+							typeLabel={toTitleCase(project.frontmatter.contentType)}
 						/>
 					))}
 				</div>

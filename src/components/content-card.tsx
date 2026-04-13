@@ -43,6 +43,16 @@ function getTypeLabel(frontmatter: ContentCardFrontmatter, typeLabel?: string) {
 	return "Content";
 }
 
+function getCtaLabel(displayTypeLabel: string) {
+	const normalizedLabel = displayTypeLabel.toLowerCase();
+
+	if (normalizedLabel === "project" || normalizedLabel === "case study") {
+		return `View ${normalizedLabel}`;
+	}
+
+	return `Read ${normalizedLabel}`;
+}
+
 export function ContentCard({
 	slug,
 	frontmatter,
@@ -53,6 +63,7 @@ export function ContentCard({
 }: ContentCardProps) {
 	const displayTypeLabel = getTypeLabel(frontmatter, typeLabel);
 	const shouldShowMeta = showMeta && isPostFrontmatter(frontmatter);
+	const ctaLabel = getCtaLabel(displayTypeLabel);
 
 	return (
 		<Card
@@ -131,13 +142,14 @@ export function ContentCard({
 					</div>
 					<Button
 						as={Link}
+						aria-label={`${ctaLabel}: ${frontmatter.title}`}
 						className="w-fit font-medium transition-transform duration-300 group-hover:translate-x-0.5"
 						color="primary"
 						href={href}
 						radius="full"
 						variant="flat"
 					>
-						Read more
+						{ctaLabel}
 					</Button>
 				</div>
 			</CardBody>

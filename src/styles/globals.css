@@ -5,8 +5,7 @@ html {
   --cursor-color: #333
 }
 
-html.dark,
-html[data-theme="dark"] {
+html.dark {
   --cursor-color: #fff
 }
 
@@ -14,24 +13,24 @@ body{
   overflow-x: hidden;
 }
 
-.darkAnimation {
-  background: radial-gradient(
-    circle,
-    rgba(23, 126, 200, 0.3) 0%,
-    rgba(40, 59, 181, 0.12) 60%
-  );
-  background-size: 120% 250%;
-  animation: gradient 20s ease infinite;
-  backdrop-filter: blur(8px);
-}
-
-.lightAnimation {
+.page-shell-theme {
   background: radial-gradient(
     circle,
     rgba(23, 126, 200, 0.09) 0%,
     rgba(40, 59, 181, 0.06) 60%
   );
   background-size: 150% 150%;
+  animation: gradient 20s ease infinite;
+  backdrop-filter: blur(8px);
+}
+
+.dark .page-shell-theme {
+  background: radial-gradient(
+    circle,
+    rgba(23, 126, 200, 0.3) 0%,
+    rgba(40, 59, 181, 0.12) 60%
+  );
+  background-size: 120% 250%;
   animation: gradient 20s ease infinite;
   backdrop-filter: blur(8px);
 }

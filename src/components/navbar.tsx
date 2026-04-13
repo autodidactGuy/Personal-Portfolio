@@ -15,6 +15,7 @@ import {
 import { link as linkStyles } from "@heroui/theme";
 import clsx from "clsx";
 import NextLink from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { MdMail } from "react-icons/md";
 import { SearchIcon } from "@/components/icons";
@@ -22,8 +23,12 @@ import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { basePath, siteConfig } from "@/config/site";
 
+const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
+
 export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const router = useRouter();
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -38,23 +43,50 @@ export const Navbar = () => {
 		};
 	}, []);
 
-	const searchInput = (
-		<Input
-			aria-label="Search"
-			classNames={{
-				inputWrapper: "bg-default-100",
-				input: "text-sm",
-			}}
-			endContent={
-				<Kbd className="hidden lg:inline-block" keys={["enter"]}></Kbd>
-			}
-			labelPlacement="outside"
-			placeholder="Search..."
-			startContent={
-				<SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-			}
-			type="search"
-		/>
+	useEffect(() => {
+		const nextValue = typeof router.query.q === "string" ? router.query.q : "";
+		setSearchQuery(nextValue);
+	}, [router.query.q]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		const handleSearchSync = (event: Event) => {
+			const customEvent = event as CustomEvent<string>;
+			setSearchQuery(customEvent.detail || "");
+		};
+
+		window.addEventListener(SEARCH_SYNC_EVENT, handleSearchSync);
+
+		return () => {
+			window.removeEventListener(SEARCH_SYNC_EVENT, handleSearchSync);
+		};
+	}, []);
+
+	const renderSearchInput = (inputClassName?: string) => (
+		<form action="/search" className={inputClassName} method="get">
+			<Input
+				aria-label="Search"
+				classNames={{
+					inputWrapper: "bg-default-100",
+					input: "text-sm",
+				}}
+				endContent={
+					<Kbd className="hidden lg:inline-block" keys={["enter"]}></Kbd>
+				}
+				labelPlacement="outside"
+				name="q"
+				placeholder="Search..."
+				startContent={
+					<SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
+				}
+				type="search"
+				value={searchQuery}
+				onValueChange={setSearchQuery}
+			/>
+		</form>
 	);
 
 	return (
@@ -84,7 +116,11 @@ export const Navbar = () => {
 				],
 			}}
 		>
-			<NavbarContent className="basis-1/5 sm:basis-full" justify="start">
+			<NavbarContent
+				as="div"
+				className="basis-1/5 sm:basis-full"
+				justify="start"
+			>
 				<NavbarBrand className="gap-3 max-w-fit">
 					<NextLink className="flex justify-start items-center gap-1" href="/">
 						<Avatar
@@ -112,6 +148,7 @@ export const Navbar = () => {
 			</NavbarContent>
 
 			<NavbarContent
+				as="div"
 				className="hidden sm:flex basis-1/5 sm:basis-full"
 				justify="end"
 			>
@@ -119,7 +156,9 @@ export const Navbar = () => {
 					<SocialLinks />
 					<ThemeSwitch />
 				</NavbarItem>
-				<NavbarItem className="hidden lg:flex">{searchInput}</NavbarItem>
+				<NavbarItem className="hidden lg:flex">
+					{renderSearchInput("w-full")}
+				</NavbarItem>
 				<NavbarItem className="hidden lg:flex">
 					<Button
 						as={Link}
@@ -133,14 +172,16 @@ export const Navbar = () => {
 				</NavbarItem>
 			</NavbarContent>
 
-			<NavbarContent className="lg:hidden basis-1 pl-4" justify="end">
+			<NavbarContent as="div" className="lg:hidden basis-1 pl-4" justify="end">
 				<SocialLinksCompact />
 				<ThemeSwitch />
 				<NavbarMenuToggle />
 			</NavbarContent>
 
 			<NavbarMenu>
-				<NavbarMenuItem key="menu-search">{searchInput}</NavbarMenuItem>
+				<NavbarMenuItem key="menu-search">
+					{renderSearchInput("w-full")}
+				</NavbarMenuItem>
 				{siteConfig.navMenuItems.map((item) => (
 					<NavbarMenuItem key={item.href}>
 						<Link color="foreground" href={item.href} size="lg">

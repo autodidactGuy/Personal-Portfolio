@@ -16,12 +16,12 @@ import {
 	getSiteUrl,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
-import { type ContentFrontmatter, PostContentTypeEnum } from "@/types/content";
+import type { PostFrontmatter } from "@/types/content";
 
 type ProjectDetailProps = {
 	project: {
 		slug: string;
-		frontmatter: ContentFrontmatter;
+		frontmatter: PostFrontmatter;
 	};
 	source: MDXRemoteSerializeResult;
 };
@@ -79,7 +79,7 @@ export default function ProjectDetailPage({
 					<div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
 						<ContentCover
 							coverImage={project.frontmatter.coverImage}
-							eyebrow={toTitleCase(PostContentTypeEnum.Project)}
+							eyebrow={toTitleCase(project.frontmatter.contentType)}
 							heightClassName="h-[210px] sm:h-[250px]"
 							title={project.frontmatter.title}
 						/>
