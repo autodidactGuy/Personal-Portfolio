@@ -1,45 +1,44 @@
-import { AppProps } from 'next/app';
+import { HeroUIProvider } from "@heroui/react";
+import type { AppProps } from "next/app";
+import { useRouter } from "next/router";
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { useEffect } from "react";
-import { HeroUIProvider } from '@heroui/react'
-import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { useTheme } from "next-themes";
-import { fontSans, fontMono } from "@/config/fonts";
-import { useRouter } from 'next/router';
+import { fontMono, fontSans } from "@/config/fonts";
 import "@/styles/globals.css";
-import 'animate.css';
+import "animate.css";
 
 function ThemeDomSync() {
-  const { resolvedTheme, theme } = useTheme();
+	const { resolvedTheme, theme } = useTheme();
 
-  useEffect(() => {
-    const activeTheme = resolvedTheme || theme;
+	useEffect(() => {
+		const activeTheme = resolvedTheme || theme;
 
-    if (!activeTheme) {
-      return;
-    }
+		if (!activeTheme) {
+			return;
+		}
 
-    document.documentElement.setAttribute("data-theme", activeTheme);
-  }, [resolvedTheme, theme]);
+		document.documentElement.setAttribute("data-theme", activeTheme);
+	}, [resolvedTheme, theme]);
 
-  return null;
+	return null;
 }
 
 export default function App({ Component, pageProps }: AppProps) {
-  const router = useRouter();
+	const router = useRouter();
 
 	return (
-    <HeroUIProvider navigate={router.push}>
+		<HeroUIProvider navigate={router.push}>
 			<NextThemesProvider
-        attribute="class"
-        defaultTheme="dark"
-        disableTransitionOnChange
-      >
-        <ThemeDomSync />
-        <div className="min-h-screen bg-background text-foreground">
-				  <Component {...pageProps} />
-        </div>
+				attribute="class"
+				defaultTheme="dark"
+				disableTransitionOnChange
+			>
+				<ThemeDomSync />
+				<div className="min-h-screen bg-background text-foreground">
+					<Component {...pageProps} />
+				</div>
 			</NextThemesProvider>
-    </HeroUIProvider>
+		</HeroUIProvider>
 	);
 }
 

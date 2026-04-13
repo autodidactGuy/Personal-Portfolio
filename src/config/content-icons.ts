@@ -1,49 +1,64 @@
-import contentIconsMetadata from "@/generated/content-icons.json";
+const contentIconPackIds = [
+	"ai",
+	"bi",
+	"bs",
+	"cg",
+	"ci",
+	"di",
+	"fa",
+	"fa6",
+	"fc",
+	"fi",
+	"gi",
+	"go",
+	"gr",
+	"hi",
+	"hi2",
+	"im",
+	"io",
+	"io5",
+	"lia",
+	"lu",
+	"md",
+	"pi",
+	"ri",
+	"rx",
+	"si",
+	"sl",
+	"tb",
+	"tfi",
+	"ti",
+	"vsc",
+	"wi",
+] as const;
 
-type ContentIconMetadataFile = {
-  generatedAt: string;
-  packs: string[];
-  icons: Array<{
-    id: string;
-    pack: string;
-    name: string;
-    label: string;
-  }>;
-};
+type ContentIconPackId = (typeof contentIconPackIds)[number];
 
-const metadata = contentIconsMetadata as ContentIconMetadataFile;
-
-export const contentIconMetadata = metadata.icons;
-export const contentIconPackIds = metadata.packs;
 export type ContentIconId = `${string}:${string}`;
+export { contentIconPackIds };
 
-const contentIconMetadataMap = new Map(
-  contentIconMetadata.map((icon) => [icon.id, icon])
-);
-
-export function getContentIconMetadata(iconId?: string | null) {
-  if (!iconId) {
-    return null;
-  }
-
-  return contentIconMetadataMap.get(iconId) ?? null;
+function isContentIconPackId(value: string): value is ContentIconPackId {
+	return contentIconPackIds.includes(value as ContentIconPackId);
 }
 
 export function isContentIconId(value: string): value is ContentIconId {
-  return contentIconMetadataMap.has(value);
+	const [pack, name, ...rest] = value.split(":");
+
+	return Boolean(
+		pack && name && rest.length === 0 && isContentIconPackId(pack),
+	);
 }
 
 export function parseContentIconId(iconId?: string | null) {
-  const metadataEntry = getContentIconMetadata(iconId);
+	if (!iconId || !isContentIconId(iconId)) {
+		return null;
+	}
 
-  if (!metadataEntry) {
-    return null;
-  }
+	const [pack, name] = iconId.split(":");
 
-  return {
-    iconId: metadataEntry.id as ContentIconId,
-    pack: metadataEntry.pack,
-    name: metadataEntry.name,
-  };
+	return {
+		iconId,
+		pack,
+		name,
+	};
 }
-

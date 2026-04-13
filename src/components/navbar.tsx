@@ -1,29 +1,26 @@
 import {
+	Avatar,
 	Button,
+	Input,
 	Kbd,
 	Link,
-	Input,
-	Navbar as NextUINavbar,
-	NavbarContent,
-	NavbarMenu,
-	NavbarMenuToggle,
 	NavbarBrand,
+	NavbarContent,
 	NavbarItem,
+	NavbarMenu,
 	NavbarMenuItem,
-	Avatar,
+	NavbarMenuToggle,
+	Navbar as NextUINavbar,
 } from "@heroui/react";
-import { useEffect, useState } from "react";
-
 import { link as linkStyles } from "@heroui/theme";
-
-import { basePath, siteConfig } from "@/config/site";
-import NextLink from "next/link";
 import clsx from "clsx";
-
-import { ContentIcon } from "@/components/content-icon";
-import { ThemeSwitch } from "@/components/theme-switch";
+import NextLink from "next/link";
+import { useEffect, useState } from "react";
+import { MdMail } from "react-icons/md";
 import { SearchIcon } from "@/components/icons";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { basePath, siteConfig } from "@/config/site";
 
 export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
@@ -49,8 +46,7 @@ export const Navbar = () => {
 				input: "text-sm",
 			}}
 			endContent={
-				<Kbd className="hidden lg:inline-block" keys={["enter"]}>
-				</Kbd>
+				<Kbd className="hidden lg:inline-block" keys={["enter"]}></Kbd>
 			}
 			labelPlacement="outside"
 			placeholder="Search..."
@@ -70,27 +66,32 @@ export const Navbar = () => {
 					"z-40 border-b border-default-200/60 transition-colors duration-300",
 					isScrolled
 						? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-						: "bg-background"
+						: "bg-background",
 				),
 				item: [
-				"flex",
-				"relative",
-				"h-full",
-				"items-center",
-				"data-[active=true]:after:content-['']",
-				"data-[active=true]:after:absolute",
-				"data-[active=true]:after:bottom-0",
-				"data-[active=true]:after:left-0",
-				"data-[active=true]:after:right-0",
-				"data-[active=true]:after:h-[2px]",
-				"data-[active=true]:after:rounded-[2px]",
-				"data-[active=true]:after:bg-primary",
+					"flex",
+					"relative",
+					"h-full",
+					"items-center",
+					"data-[active=true]:after:content-['']",
+					"data-[active=true]:after:absolute",
+					"data-[active=true]:after:bottom-0",
+					"data-[active=true]:after:left-0",
+					"data-[active=true]:after:right-0",
+					"data-[active=true]:after:h-[2px]",
+					"data-[active=true]:after:rounded-[2px]",
+					"data-[active=true]:after:bg-primary",
 				],
-			}}>
+			}}
+		>
 			<NavbarContent className="basis-1/5 sm:basis-full" justify="start">
 				<NavbarBrand className="gap-3 max-w-fit">
 					<NextLink className="flex justify-start items-center gap-1" href="/">
-						<Avatar src={`${basePath}/favicon.png`} name={siteConfig.initials} size="sm" />
+						<Avatar
+							src={`${basePath}/favicon.png`}
+							name={siteConfig.initials}
+							size="sm"
+						/>
 						<p className="font-bold text-inherit ml-2">{siteConfig.name}</p>
 					</NextLink>
 				</NavbarBrand>
@@ -100,7 +101,7 @@ export const Navbar = () => {
 							<NextLink
 								className={clsx(
 									linkStyles({ color: "foreground" }),
-									"data-[active=true]:text-primary data-[active=true]:font-medium"
+									"data-[active=true]:text-primary data-[active=true]:font-medium",
 								)}
 								color="foreground"
 								href={item.href}
@@ -112,7 +113,10 @@ export const Navbar = () => {
 				</div>
 			</NavbarContent>
 
-			<NavbarContent className="hidden sm:flex basis-1/5 sm:basis-full" justify="end">
+			<NavbarContent
+				className="hidden sm:flex basis-1/5 sm:basis-full"
+				justify="end"
+			>
 				<NavbarItem className="hidden lg:flex gap-2">
 					<SocialLinks />
 					<ThemeSwitch />
@@ -123,14 +127,9 @@ export const Navbar = () => {
 						as={Link}
 						className="text-sm font-normal text-default-600 bg-default-100"
 						href={siteConfig.navigation.headerQuickLink.href}
-						startContent={
-							<ContentIcon
-								className="text-default-500"
-								name={siteConfig.navigation.headerQuickLink.icon}
-								size={20}
-							/>
-						}
-						variant="flat">
+						startContent={<MdMail className="text-default-500" size={20} />}
+						variant="flat"
+					>
 						{siteConfig.navigation.headerQuickLink.label}
 					</Button>
 				</NavbarItem>
@@ -140,31 +139,29 @@ export const Navbar = () => {
 				<SocialLinksCompact />
 				<ThemeSwitch />
 				<NavbarMenuToggle />
-      		</NavbarContent>
+			</NavbarContent>
 
 			<NavbarMenu>
 				{searchInput}
 				<div className="mx-4 mt-2 flex flex-col gap-2">
-					{siteConfig.navMenuItems.map((item, index) => (
-						<NavbarMenuItem key={`${item}-${index}`}>
-							<Link
-								color="foreground"
-								href={item.href}
-								size="lg"
-							>
+					{siteConfig.navMenuItems.map((item) => (
+						<NavbarMenuItem key={`${item.href}`}>
+							<Link color="foreground" href={item.href} size="lg">
 								{item.label}
 							</Link>
 						</NavbarMenuItem>
 					))}
-					{siteConfig.navigation.headerQuickLink?.href !== '/contact' && (
+					{siteConfig.navigation.headerQuickLink?.href !== "/contact" && (
 						<NavbarMenuItem key="header-quick-link">
 							<Link
 								color="foreground"
 								href={siteConfig.navigation.headerQuickLink.href}
-								size="lg">
+								size="lg"
+							>
 								{siteConfig.navigation.headerQuickLink.label}
 							</Link>
-					</NavbarMenuItem>)}
+						</NavbarMenuItem>
+					)}
 				</div>
 			</NavbarMenu>
 		</NextUINavbar>

@@ -1,10 +1,13 @@
-import { AdminBar } from "@/components/admin-bar";
-import { Navbar } from "@/components/navbar";
-import { Head } from "./head";
-import { Footer } from "./footer";
 import { useTheme } from "next-themes";
-import { ComingSoonScreen, useComingSoonGate } from "@/components/coming-soon-gate";
+import { AdminBar } from "@/components/admin-bar";
+import {
+	ComingSoonScreen,
+	useComingSoonGate,
+} from "@/components/coming-soon-gate";
+import { Navbar } from "@/components/navbar";
 import type { SeoEntry } from "@/lib/seo";
+import { Footer } from "./footer";
+import { Head } from "./head";
 
 export default function DefaultLayout({
 	children,
@@ -17,8 +20,9 @@ export default function DefaultLayout({
 	const { shouldShowComingSoon } = useComingSoonGate();
 
 	const activeTheme = resolvedTheme || theme || "dark";
-	const animation = activeTheme === "light" ? "lightAnimation" : "darkAnimation";
-	
+	const animation =
+		activeTheme === "light" ? "lightAnimation" : "darkAnimation";
+
 	return (
 		<div className="relative flex min-h-screen flex-col">
 			<Head seo={seo} />

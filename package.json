@@ -11,9 +11,10 @@
     "seo:og": "node scripts/generate-og-images.mjs",
     "seo:generate": "yarn seo:assets && yarn seo:og",
     "build:site": "next build",
-    "build": "yarn seo:assets && yarn build:site",
+    "build": "yarn lint && yarn seo:assets && yarn build:site",
     "start": "serve out",
-    "lint": "next lint"
+    "lint": "biome check src cloudflare-worker/src",
+    "lint:fix": "biome check --write src cloudflare-worker/src"
   },
   "dependencies": {
     "@heroui/react": "2.8.0",
@@ -46,6 +47,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.11",
     "serve": "^14.2.6",
     "sharp": "^0.34.5"
   }
