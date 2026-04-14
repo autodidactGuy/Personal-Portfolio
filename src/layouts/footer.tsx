@@ -31,10 +31,7 @@ export function Footer() {
 							reserved.
 						</p>
 						<Chip className="inline-flex items-center gap-2 rounded-full border border-default-400/70 shadow-sm bg-content1/35 px-3 py-1 font-mono text-[13px] font-medium tracking-[0.01em] text-foreground backdrop-blur-sm sm:text-sm">
-							<HiOutlineCommandLine
-								className="shrink-0"
-								size={18}
-							/>
+							<HiOutlineCommandLine className="shrink-0" size={18} />
 							<Chip.Label>$ build systems --for clarity --at scale</Chip.Label>
 						</Chip>
 					</div>
