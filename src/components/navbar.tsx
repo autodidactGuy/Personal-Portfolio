@@ -66,15 +66,32 @@ export const Navbar = () => {
 			return;
 		}
 
-		const { body } = document;
-		const previousOverflow = body.style.overflow;
+		const { body, documentElement } = document;
+		const previousBodyOverflow = body.style.overflow;
+		const previousHtmlOverflow = documentElement.style.overflow;
+		const previousPosition = body.style.position;
+		const previousTop = body.style.top;
+		const previousWidth = body.style.width;
+		const scrollY = window.scrollY;
 
 		if (isMenuOpen) {
 			body.style.overflow = "hidden";
+			documentElement.style.overflow = "hidden";
+			body.style.position = "fixed";
+			body.style.top = `-${scrollY}px`;
+			body.style.width = "100%";
 		}
 
 		return () => {
-			body.style.overflow = previousOverflow;
+			body.style.overflow = previousBodyOverflow;
+			documentElement.style.overflow = previousHtmlOverflow;
+			body.style.position = previousPosition;
+			body.style.top = previousTop;
+			body.style.width = previousWidth;
+
+			if (isMenuOpen) {
+				window.scrollTo(0, scrollY);
+			}
 		};
 	}, [isMenuOpen]);
 
@@ -97,11 +114,9 @@ export const Navbar = () => {
 
 		updateMenuPosition();
 		window.addEventListener("resize", updateMenuPosition);
-		window.addEventListener("scroll", updateMenuPosition, { passive: true });
 
 		return () => {
 			window.removeEventListener("resize", updateMenuPosition);
-			window.removeEventListener("scroll", updateMenuPosition);
 		};
 	}, [isMenuOpen]);
 
@@ -222,13 +237,13 @@ export const Navbar = () => {
 				<div className="xl:hidden">
 					<button
 						aria-label="Close mobile menu overlay"
-						className="fixed inset-x-0 bottom-0 z-40 bg-background/45 backdrop-blur-sm"
+						className="fixed inset-x-0 bottom-0 z-40 bg-background/70 backdrop-blur-md"
 						onClick={() => setIsMenuOpen(false)}
 						style={{ top: menuTop }}
 						type="button"
 					/>
 					<div
-						className="fixed inset-x-0 z-50 border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
+						className="fixed inset-x-0 bottom-0 z-50 overflow-y-auto border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
 						id="mobile-navigation-menu"
 						style={{ top: menuTop }}
 					>
