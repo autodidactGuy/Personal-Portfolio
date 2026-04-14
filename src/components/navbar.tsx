@@ -1,8 +1,19 @@
-import { Avatar, Button, SearchField } from "@heroui/react";
+import {
+	Avatar,
+	Button,
+	Navbar as HeroNavbar,
+	NavbarBrand,
+	NavbarContent,
+	NavbarItem,
+	NavbarMenu,
+	NavbarMenuItem,
+	NavbarMenuToggle,
+	SearchField,
+} from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MdMail } from "react-icons/md";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -14,25 +25,8 @@ export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const [menuTop, setMenuTop] = useState(0);
 	const [searchQuery, setSearchQuery] = useState("");
-	const navRef = useRef<HTMLElement | null>(null);
 	const router = useRouter();
-
-	const updateMenuTop = useCallback(() => {
-		if (!navRef.current || typeof window === "undefined") {
-			return;
-		}
-
-		const navRect = navRef.current.getBoundingClientRect();
-		const navIsInViewport =
-			navRect.bottom > 0 && navRect.top < window.innerHeight;
-		const safeBottom = navIsInViewport
-			? Math.min(window.innerHeight, Math.max(0, navRect.bottom))
-			: 0;
-
-		setMenuTop(safeBottom);
-	}, []);
 
 	useEffect(() => {
 		setIsMounted(true);
@@ -77,41 +71,16 @@ export const Navbar = () => {
 	}, []);
 
 	useEffect(() => {
-		if (typeof document === "undefined") {
-			return;
-		}
+		const closeMenuOnRouteChange = () => {
+			setIsMenuOpen(false);
+		};
 
-		const { body, documentElement } = document;
-		const previousBodyOverflow = body.style.overflow;
-		const previousHtmlOverflow = documentElement.style.overflow;
-
-		if (isMenuOpen) {
-			body.style.overflow = "hidden";
-			documentElement.style.overflow = "hidden";
-		}
+		router.events.on("routeChangeStart", closeMenuOnRouteChange);
 
 		return () => {
-			body.style.overflow = previousBodyOverflow;
-			documentElement.style.overflow = previousHtmlOverflow;
+			router.events.off("routeChangeStart", closeMenuOnRouteChange);
 		};
-	}, [isMenuOpen]);
-
-	useEffect(() => {
-		setIsMenuOpen(false);
-	}, []);
-
-	useEffect(() => {
-		if (!isMenuOpen || typeof window === "undefined") {
-			return;
-		}
-
-		updateMenuTop();
-		window.addEventListener("resize", updateMenuTop);
-
-		return () => {
-			window.removeEventListener("resize", updateMenuTop);
-		};
-	}, [isMenuOpen, updateMenuTop]);
+	}, [router.events]);
 
 	const renderSearchInput = (inputClassName?: string) => (
 		<form action="/search" className={inputClassName} method="get">
@@ -134,147 +103,123 @@ export const Navbar = () => {
 	);
 
 	return (
-		<nav
-			ref={navRef}
-			className={clsx(
-				"relative z-40 border-b border-default-200/60 transition-colors duration-300",
-				isScrolled
-					? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-					: "bg-background",
-			)}
+		<HeroNavbar
+			isBordered
+			isMenuOpen={isMenuOpen}
+			maxWidth="2xl"
+			onMenuOpenChange={setIsMenuOpen}
+			classNames={{
+				base: clsx(
+					"border-default-200/60 transition-colors duration-300",
+					isScrolled
+						? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+						: "bg-background",
+				),
+				wrapper: "px-4 py-3",
+				menu: "bg-background/95 pb-6 pt-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85",
+			}}
 		>
-			<div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-				<div className="flex min-w-0 items-center gap-6">
+			<NavbarContent className="gap-6" justify="start">
+				<NavbarBrand>
 					<NextLink className="flex items-center gap-2" href="/">
 						<Avatar>
 							<Avatar.Image
 								alt={siteConfig.initials}
-								// className="rounded-full object-cover"
 								src={`${basePath}/favicon.png`}
 							/>
 							<Avatar.Fallback>{siteConfig.initials}</Avatar.Fallback>
 						</Avatar>
 						<p className="truncate font-bold text-inherit">{siteConfig.name}</p>
 					</NextLink>
-					<ul className="hidden items-center gap-4 xl:flex">
-						{siteConfig.navItems.map((item) =>
-							item.href ===
-							siteConfig.navigation.headerQuickLink.href ? null : (
-								<li key={item.href}>
-									<NextLink
-										className="text-md text-foreground transition-colors hover:text-primary"
-										href={item.href}
-									>
-										{item.label}
-									</NextLink>
-								</li>
-							),
-						)}
-					</ul>
-				</div>
+				</NavbarBrand>
 
-				<div className="hidden items-center gap-3 xl:flex">
+				{siteConfig.navItems.map((item) =>
+					item.href === siteConfig.navigation.headerQuickLink.href ? null : (
+						<NavbarItem key={item.href} className="hidden xl:flex">
+							<NextLink
+								className="text-md text-foreground transition-colors hover:text-primary"
+								href={item.href}
+							>
+								{item.label}
+							</NextLink>
+						</NavbarItem>
+					),
+				)}
+			</NavbarContent>
+
+			<NavbarContent className="hidden gap-3 xl:flex" justify="end">
+				<NavbarItem>
 					<SocialLinks />
+				</NavbarItem>
+				<NavbarItem>
 					<ThemeSwitch />
-					{renderSearchInput("w-56")}
+				</NavbarItem>
+				<NavbarItem>{renderSearchInput("w-56")}</NavbarItem>
+				<NavbarItem>
 					<NextLink
-						className={clsx(
-							"inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90",
-						)}
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90"
 						href={siteConfig.navigation.headerQuickLink.href}
 					>
 						<MdMail size={20} />
 						{siteConfig.navigation.headerQuickLink.label}
 					</NextLink>
-				</div>
+				</NavbarItem>
+			</NavbarContent>
 
-				<div className="flex items-center gap-3 xl:hidden">
+			<NavbarContent className="gap-3 xl:hidden" justify="end">
+				<NavbarItem>
 					<SocialLinksCompact />
+				</NavbarItem>
+				<NavbarItem>
 					<ThemeSwitch />
-					<Button
-						className="xl:hidden"
-						onClick={() => {
-							setIsMenuOpen((previousValue) => {
-								if (!previousValue) {
-									updateMenuTop();
-								}
-								return !previousValue;
-							});
-						}}
-						aria-label="Toggle menu"
-						aria-expanded={isMenuOpen}
+				</NavbarItem>
+				<NavbarItem>
+					<NavbarMenuToggle
 						aria-controls="mobile-navigation-menu"
+						aria-label="Toggle menu"
+					/>
+				</NavbarItem>
+			</NavbarContent>
+
+			<NavbarMenu id="mobile-navigation-menu">
+				<div className="mx-auto w-full max-w-7xl space-y-4 px-2">
+					{renderSearchInput("w-full")}
+					<div className="space-y-3">
+						{siteConfig.navMenuItems.map((item) =>
+							item.href ===
+							siteConfig.navigation.headerQuickLink.href ? null : (
+								<NavbarMenuItem key={item.href}>
+									<NextLink
+										className="block text-md text-foreground"
+										href={item.href}
+										onClick={() => setIsMenuOpen(false)}
+									>
+										{item.label}
+									</NextLink>
+								</NavbarMenuItem>
+							),
+						)}
+						<NavbarMenuItem>
+							<NextLink
+								className="block text-md text-foreground"
+								href={siteConfig.navigation.headerQuickLink.href}
+								onClick={() => setIsMenuOpen(false)}
+							>
+								{siteConfig.navigation.headerQuickLink.label}
+							</NextLink>
+						</NavbarMenuItem>
+					</div>
+					<Button
+						as={NextLink}
+						className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90"
+						href={siteConfig.navigation.headerQuickLink.href}
+						onClick={() => setIsMenuOpen(false)}
 					>
-						<span className="sr-only">Menu</span>
-						<svg
-							className="h-6 w-6"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<title>Toggle menu</title>
-							{isMenuOpen ? (
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M6 18L18 6M6 6l12 12"
-								/>
-							) : (
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M4 6h16M4 12h16M4 18h16"
-								/>
-							)}
-						</svg>
+						<MdMail size={20} />
+						{siteConfig.navigation.headerQuickLink.label}
 					</Button>
 				</div>
-			</div>
-
-			{isMenuOpen ? (
-				<div className="xl:hidden">
-					<button
-						aria-label="Close mobile menu overlay"
-						className="fixed inset-x-0 bottom-0 z-40 bg-background/70 backdrop-blur-md"
-						onClick={() => setIsMenuOpen(false)}
-						style={{ top: menuTop }}
-						type="button"
-					/>
-					<div
-						className="fixed inset-x-0 bottom-0 z-50 overflow-y-auto border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
-						id="mobile-navigation-menu"
-						style={{ top: menuTop }}
-					>
-						<div className="mx-auto max-w-7xl space-y-4">
-							{renderSearchInput("w-full")}
-							<div className="space-y-3">
-								{siteConfig.navMenuItems.map((item) =>
-									item.href ===
-									siteConfig.navigation.headerQuickLink.href ? null : (
-										<NextLink
-											key={item.href}
-											className="block text-md text-foreground"
-											href={item.href}
-											onClick={() => setIsMenuOpen(false)}
-										>
-											{item.label}
-										</NextLink>
-									),
-								)}
-								<NextLink
-									className="block text-md text-foreground"
-									href={siteConfig.navigation.headerQuickLink.href}
-									onClick={() => setIsMenuOpen(false)}
-								>
-									{siteConfig.navigation.headerQuickLink.label}
-								</NextLink>
-							</div>
-						</div>
-					</div>
-				</div>
-			) : null}
-		</nav>
+			</NavbarMenu>
+		</HeroNavbar>
 	);
 };
