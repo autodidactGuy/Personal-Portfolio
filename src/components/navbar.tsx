@@ -2,7 +2,7 @@ import { Avatar, Button, SearchField } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MdMail } from "react-icons/md";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -14,7 +14,9 @@ export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [menuTop, setMenuTop] = useState(0);
 	const [searchQuery, setSearchQuery] = useState("");
+	const navRef = useRef<HTMLElement | null>(null);
 	const router = useRouter();
 
 	useEffect(() => {
@@ -59,9 +61,53 @@ export const Navbar = () => {
 		};
 	}, []);
 
+	useEffect(() => {
+		if (typeof document === "undefined") {
+			return;
+		}
+
+		const { body } = document;
+		const previousOverflow = body.style.overflow;
+
+		if (isMenuOpen) {
+			body.style.overflow = "hidden";
+		}
+
+		return () => {
+			body.style.overflow = previousOverflow;
+		};
+	}, [isMenuOpen]);
+
+	useEffect(() => {
+		setIsMenuOpen(false);
+	}, []);
+
+	useEffect(() => {
+		if (!isMenuOpen || typeof window === "undefined") {
+			return;
+		}
+
+		const updateMenuPosition = () => {
+			if (!navRef.current) {
+				return;
+			}
+
+			setMenuTop(navRef.current.getBoundingClientRect().bottom);
+		};
+
+		updateMenuPosition();
+		window.addEventListener("resize", updateMenuPosition);
+		window.addEventListener("scroll", updateMenuPosition, { passive: true });
+
+		return () => {
+			window.removeEventListener("resize", updateMenuPosition);
+			window.removeEventListener("scroll", updateMenuPosition);
+		};
+	}, [isMenuOpen]);
+
 	const renderSearchInput = (inputClassName?: string) => (
 		<form action="/search" className={inputClassName} method="get">
-			<SearchField>
+			<SearchField aria-label="Search the site">
 				<SearchField.Group>
 					<SearchField.SearchIcon />
 					<SearchField.Input
@@ -81,8 +127,9 @@ export const Navbar = () => {
 
 	return (
 		<nav
+			ref={navRef}
 			className={clsx(
-				"z-40 border-b border-default-200/60 transition-colors duration-300",
+				"relative z-40 border-b border-default-200/60 transition-colors duration-300",
 				isScrolled
 					? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
 					: "bg-background",
@@ -141,6 +188,7 @@ export const Navbar = () => {
 						onClick={() => setIsMenuOpen(!isMenuOpen)}
 						aria-label="Toggle menu"
 						aria-expanded={isMenuOpen}
+						aria-controls="mobile-navigation-menu"
 					>
 						<span className="sr-only">Menu</span>
 						<svg
@@ -171,30 +219,43 @@ export const Navbar = () => {
 			</div>
 
 			{isMenuOpen ? (
-				<div className="border-t border-default-200/60 px-4 py-4 xl:hidden">
-					<div className="mx-auto max-w-7xl space-y-4">
-						{renderSearchInput("w-full")}
-						<div className="space-y-3">
-							{siteConfig.navMenuItems.map((item) =>
-								item.href ===
-								siteConfig.navigation.headerQuickLink.href ? null : (
-									<NextLink
-										key={item.href}
-										className="block text-md text-foreground"
-										href={item.href}
-										onClick={() => setIsMenuOpen(false)}
-									>
-										{item.label}
-									</NextLink>
-								),
-							)}
-							<NextLink
-								className="block text-md text-foreground"
-								href={siteConfig.navigation.headerQuickLink.href}
-								onClick={() => setIsMenuOpen(false)}
-							>
-								{siteConfig.navigation.headerQuickLink.label}
-							</NextLink>
+				<div className="xl:hidden">
+					<button
+						aria-label="Close mobile menu overlay"
+						className="fixed inset-x-0 bottom-0 z-40 bg-background/45 backdrop-blur-sm"
+						onClick={() => setIsMenuOpen(false)}
+						style={{ top: menuTop }}
+						type="button"
+					/>
+					<div
+						className="fixed inset-x-0 z-50 border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
+						id="mobile-navigation-menu"
+						style={{ top: menuTop }}
+					>
+						<div className="mx-auto max-w-7xl space-y-4">
+							{renderSearchInput("w-full")}
+							<div className="space-y-3">
+								{siteConfig.navMenuItems.map((item) =>
+									item.href ===
+									siteConfig.navigation.headerQuickLink.href ? null : (
+										<NextLink
+											key={item.href}
+											className="block text-md text-foreground"
+											href={item.href}
+											onClick={() => setIsMenuOpen(false)}
+										>
+											{item.label}
+										</NextLink>
+									),
+								)}
+								<NextLink
+									className="block text-md text-foreground"
+									href={siteConfig.navigation.headerQuickLink.href}
+									onClick={() => setIsMenuOpen(false)}
+								>
+									{siteConfig.navigation.headerQuickLink.label}
+								</NextLink>
+							</div>
 						</div>
 					</div>
 				</div>

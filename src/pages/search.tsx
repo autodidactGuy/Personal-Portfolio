@@ -168,7 +168,6 @@ export default function SearchPage() {
 
 				<Card
 					className="mt-8 border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72"
-					p-0
 				>
 					<CardContent className="gap-5 p-5 sm:p-6">
 						<form
