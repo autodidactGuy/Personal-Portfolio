@@ -71,7 +71,8 @@ export const Navbar = () => {
 		const previousHtmlOverflow = documentElement.style.overflow;
 		const previousBodyTouchAction = body.style.touchAction;
 		const previousBodyOverscrollBehavior = body.style.overscrollBehavior;
-		const previousHtmlOverscrollBehavior = documentElement.style.overscrollBehavior;
+		const previousHtmlOverscrollBehavior =
+      documentElement.style.overscrollBehavior;
 
 		if (isMenuOpen) {
 			body.style.overflow = "hidden";
