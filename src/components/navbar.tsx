@@ -27,18 +27,26 @@ const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
 
 export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
+	const [isMounted, setIsMounted] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const router = useRouter();
 
 	useEffect(() => {
+		setIsMounted(true);
+		let frameId = 0;
+
 		const handleScroll = () => {
-			setIsScrolled(window.scrollY > 12);
+			cancelAnimationFrame(frameId);
+			frameId = window.requestAnimationFrame(() => {
+				setIsScrolled(window.scrollY > 12);
+			});
 		};
 
 		handleScroll();
 		window.addEventListener("scroll", handleScroll, { passive: true });
 
 		return () => {
+			cancelAnimationFrame(frameId);
 			window.removeEventListener("scroll", handleScroll);
 		};
 	}, []);
@@ -71,7 +79,7 @@ export const Navbar = () => {
 				aria-label="Search"
 				classNames={{
 					inputWrapper: "bg-default-100",
-					input: "text-sm",
+					input: "text-base sm:text-sm",
 				}}
 				endContent={
 					<Kbd className="hidden lg:inline-block" keys={["enter"]}></Kbd>
@@ -83,7 +91,7 @@ export const Navbar = () => {
 					<SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
 				}
 				type="search"
-				value={searchQuery}
+				value={isMounted ? searchQuery : ""}
 				onValueChange={setSearchQuery}
 			/>
 		</form>
@@ -117,8 +125,8 @@ export const Navbar = () => {
 			}}
 		>
 			<NavbarContent
-				as="div"
-				className="basis-1/5 sm:basis-full"
+				as="ul"
+				className="basis-1/5 list-none sm:basis-full"
 				justify="start"
 			>
 				<NavbarBrand className="gap-3 max-w-fit">
@@ -148,8 +156,8 @@ export const Navbar = () => {
 			</NavbarContent>
 
 			<NavbarContent
-				as="div"
-				className="hidden sm:flex basis-1/5 sm:basis-full"
+				as="ul"
+				className="hidden basis-1/5 list-none sm:flex sm:basis-full"
 				justify="end"
 			>
 				<NavbarItem className="hidden lg:flex gap-2">
@@ -172,7 +180,11 @@ export const Navbar = () => {
 				</NavbarItem>
 			</NavbarContent>
 
-			<NavbarContent as="div" className="lg:hidden basis-1 pl-4" justify="end">
+			<NavbarContent
+				as="div"
+				className="basis-1 pl-4 lg:hidden"
+				justify="end"
+			>
 				<SocialLinksCompact />
 				<ThemeSwitch />
 				<NavbarMenuToggle />

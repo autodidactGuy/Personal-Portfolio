@@ -1,11 +1,15 @@
-import type { GetStaticProps } from "next";
+import type { GetStaticPaths, GetStaticProps } from "next";
 
 import { ContentCard } from "@/components/content-card";
 import { PaginationControls } from "@/components/pagination-controls";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { getProjects } from "@/lib/content";
-import { getPaginatedItems, getTotalPages } from "@/lib/pagination";
+import {
+	CONTENT_PAGE_SIZE,
+	getPaginatedItems,
+	getTotalPages,
+} from "@/lib/pagination";
 import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
 import type { PostFrontmatter } from "@/types/content";
@@ -19,32 +23,33 @@ type ProjectsPageProps = {
 	totalPages: number;
 };
 
-export default function ProjectsPage({
+export default function ProjectsListingPage({
 	projects,
 	currentPage,
 	totalPages,
 }: ProjectsPageProps) {
 	const pageDescription =
 		"Systems I've built, explained through real-world case studies.";
+	const pathname = `/projects/page/${currentPage}`;
 
 	return (
 		<DefaultLayout
 			seo={{
-				title: `Projects`,
+				title: `Projects - Page ${currentPage}`,
 				description: pageDescription,
-				pathname: "/projects",
+				pathname,
 				image: getSeoImage(getGeneratedPageOgImage("projects")),
 				structuredData: {
 					"@context": "https://schema.org",
 					"@type": "CollectionPage",
-					name: `${siteConfig.name} Projects`,
-					url: getSiteUrl("/projects"),
+					name: `${siteConfig.name} Projects - Page ${currentPage}`,
+					url: getSiteUrl(pathname),
 					description: pageDescription,
 					mainEntity: {
 						"@type": "ItemList",
 						itemListElement: projects.map((project, index) => ({
 							"@type": "ListItem",
-							position: index + 1,
+							position: (currentPage - 1) * CONTENT_PAGE_SIZE + index + 1,
 							url: getSiteUrl(`/project/${project.slug}`),
 							name: project.frontmatter.title,
 						})),
@@ -54,17 +59,6 @@ export default function ProjectsPage({
 		>
 			<section className="mx-auto max-w-5xl py-10">
 				<div className="mb-10 space-y-4">
-					{/* <Chip
-            classNames={{
-              base: "border border-primary/20 bg-primary/10 text-primary",
-              content: "font-medium uppercase tracking-[0.10em] text-[11px]",
-            }}
-            radius="full"
-            size="sm"
-            variant="flat"
-          >
-            Portfolio Work
-          </Chip> */}
 					<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
 						Projects
 					</h1>
@@ -92,14 +86,41 @@ export default function ProjectsPage({
 	);
 }
 
-export const getStaticProps: GetStaticProps<ProjectsPageProps> = async () => {
+export const getStaticPaths: GetStaticPaths = async () => {
+	const totalPages = getTotalPages(getProjects().length);
+
+	return {
+		paths: Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) => ({
+			params: {
+				page: String(index + 2),
+			},
+		})),
+		fallback: false,
+	};
+};
+
+export const getStaticProps: GetStaticProps<ProjectsPageProps> = async ({
+	params,
+}) => {
 	const projects = getProjects();
+	const totalPages = getTotalPages(projects.length);
+	const currentPage = Number(params?.page || "1");
+
+	if (
+		!Number.isInteger(currentPage) ||
+		currentPage < 2 ||
+		currentPage > totalPages
+	) {
+		return {
+			notFound: true,
+		};
+	}
 
 	return {
 		props: {
-			projects: getPaginatedItems(projects, 1),
-			currentPage: 1,
-			totalPages: getTotalPages(projects.length),
+			projects: getPaginatedItems(projects, currentPage),
+			currentPage,
+			totalPages,
 		},
 	};
 };

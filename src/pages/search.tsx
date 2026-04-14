@@ -1,19 +1,14 @@
-import { Button, Card, CardBody, Chip, Input } from "@heroui/react";
-import type { GetStaticProps } from "next";
+import { Button, Card, CardBody, Chip, Input, Spinner } from "@heroui/react";
 import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
 import { HiArrowSmLeft } from "react-icons/hi";
 import { SearchIcon } from "@/components/icons";
+import { withBasePath } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
-import { getSearchIndex } from "@/lib/content";
 import { getGeneratedPageOgImage, getSeoImage } from "@/lib/seo";
 import type { SearchIndexEntry } from "@/types/content";
 
 const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
-
-type SearchPageProps = {
-	entries: SearchIndexEntry[];
-};
 
 const TYPE_ORDER: SearchIndexEntry["type"][] = [
 	"project",
@@ -64,8 +59,11 @@ function groupResults(entries: SearchIndexEntry[], query: string) {
 	})).filter((group) => group.items.length > 0);
 }
 
-export default function SearchPage({ entries }: SearchPageProps) {
+export default function SearchPage() {
 	const [query, setQuery] = useState("");
+	const [entries, setEntries] = useState<SearchIndexEntry[] | null>(null);
+	const [isLoadingIndex, setIsLoadingIndex] = useState(false);
+	const [hasRequestedIndex, setHasRequestedIndex] = useState(false);
 	const deferredQuery = useDeferredValue(query);
 
 	useEffect(() => {
@@ -91,7 +89,40 @@ export default function SearchPage({ entries }: SearchPageProps) {
 		);
 	}, [query]);
 
-	const groups = groupResults(entries, deferredQuery);
+	useEffect(() => {
+		if (
+			!normalizeQuery(deferredQuery) ||
+			entries !== null ||
+			isLoadingIndex ||
+			hasRequestedIndex
+		) {
+			return;
+		}
+
+		const loadIndex = async () => {
+			setHasRequestedIndex(true);
+			setIsLoadingIndex(true);
+
+			try {
+				const response = await fetch(withBasePath("/search-index.json"));
+
+				if (!response.ok) {
+					throw new Error(`Failed to load search index: ${response.status}`);
+				}
+
+				const payload = (await response.json()) as SearchIndexEntry[];
+				setEntries(payload);
+			} catch {
+				setEntries([]);
+			} finally {
+				setIsLoadingIndex(false);
+			}
+		};
+
+		void loadIndex();
+	}, [deferredQuery, entries, hasRequestedIndex, isLoadingIndex]);
+
+	const groups = groupResults(entries || [], deferredQuery);
 	const resultCount = groups.reduce(
 		(count, group) => count + group.items.length,
 		0,
@@ -128,8 +159,7 @@ export default function SearchPage({ entries }: SearchPageProps) {
 					</h1>
 					<p className="text-default-700">
 						Search across about, experience, education, projects, case studies,
-						articles, and recommendations. Results stay grouped by type so it is
-						easy to jump into the right section.
+						articles, and recommendations.
 					</p>
 				</div>
 
@@ -143,9 +173,12 @@ export default function SearchPage({ entries }: SearchPageProps) {
 							<Input
 								aria-label="Search the site"
 								className="flex-1"
+								classNames={{
+									input: "text-base sm:text-sm",
+								}}
 								name="q"
 								onValueChange={setQuery}
-								placeholder="Search systems, payments, AI, AWS, Amazon, recommendations..."
+								placeholder="Search projects, case studies, articles, experience, education, and recommendations..."
 								startContent={
 									<SearchIcon className="pointer-events-none flex-shrink-0 text-base text-default-400" />
 								}
@@ -162,7 +195,7 @@ export default function SearchPage({ entries }: SearchPageProps) {
 							</Button>
 						</form>
 
-						{isSearching ? (
+						{isSearching && !isLoadingIndex && entries ? (
 							<div className="flex flex-wrap items-center gap-2">
 								<Chip radius="full" size="sm" variant="flat">
 									{resultCount} results for &ldquo;{deferredQuery.trim()}&rdquo;
@@ -173,7 +206,16 @@ export default function SearchPage({ entries }: SearchPageProps) {
 				</Card>
 
 				<div className="mt-8 space-y-8">
-					{isSearching && resultCount === 0 ? (
+					{isSearching && isLoadingIndex ? (
+						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
+							<CardBody className="flex flex-row items-center gap-3 p-5 text-default-700 sm:p-6">
+								<Spinner color="primary" size="sm" />
+								<p>Searching...</p>
+							</CardBody>
+						</Card>
+					) : null}
+
+					{isSearching && !isLoadingIndex && entries && resultCount === 0 ? (
 						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
 							<CardBody className="p-5 text-default-700 sm:p-6">
 								No results found for &ldquo;{deferredQuery.trim()}&rdquo;. Try a
@@ -183,6 +225,8 @@ export default function SearchPage({ entries }: SearchPageProps) {
 					) : null}
 
 					{isSearching &&
+						!isLoadingIndex &&
+						entries &&
 						groups.map((group) => (
 							<section key={group.type} className="space-y-4">
 								<div className="flex items-center justify-between gap-3">
@@ -250,11 +294,3 @@ export default function SearchPage({ entries }: SearchPageProps) {
 		</DefaultLayout>
 	);
 }
-
-export const getStaticProps: GetStaticProps<SearchPageProps> = async () => {
-	return {
-		props: {
-			entries: getSearchIndex(),
-		},
-	};
-};

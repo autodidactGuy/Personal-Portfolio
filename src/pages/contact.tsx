@@ -97,7 +97,9 @@ export default function Contact({ settings }: ContactPageProps) {
 		base: "group",
 		inputWrapper:
 			"border border-default-200/80 bg-content1/90 transition-colors dark:border-default-100/14 dark:bg-[#13233c] dark:data-[hover=true]:bg-[#162946] dark:group-data-[focus=true]:border-primary/45 dark:group-data-[focus=true]:bg-[#162946]",
-		input: "text-foreground placeholder:text-default-400",
+		input: "text-base sm:text-sm text-foreground placeholder:text-default-400",
+		inputs:
+			"text-base sm:text-sm text-foreground placeholder:text-default-400",
 		label: "text-default-500 dark:text-default-400",
 		errorMessage: "text-danger",
 	} as const;
