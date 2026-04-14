@@ -69,29 +69,24 @@ export const Navbar = () => {
 		const { body, documentElement } = document;
 		const previousBodyOverflow = body.style.overflow;
 		const previousHtmlOverflow = documentElement.style.overflow;
-		const previousPosition = body.style.position;
-		const previousTop = body.style.top;
-		const previousWidth = body.style.width;
-		const scrollY = window.scrollY;
+		const previousBodyTouchAction = body.style.touchAction;
+		const previousBodyOverscrollBehavior = body.style.overscrollBehavior;
+		const previousHtmlOverscrollBehavior = documentElement.style.overscrollBehavior;
 
 		if (isMenuOpen) {
 			body.style.overflow = "hidden";
 			documentElement.style.overflow = "hidden";
-			body.style.position = "fixed";
-			body.style.top = `-${scrollY}px`;
-			body.style.width = "100%";
+			body.style.touchAction = "none";
+			body.style.overscrollBehavior = "none";
+			documentElement.style.overscrollBehavior = "none";
 		}
 
 		return () => {
 			body.style.overflow = previousBodyOverflow;
 			documentElement.style.overflow = previousHtmlOverflow;
-			body.style.position = previousPosition;
-			body.style.top = previousTop;
-			body.style.width = previousWidth;
-
-			if (isMenuOpen) {
-				window.scrollTo(0, scrollY);
-			}
+			body.style.touchAction = previousBodyTouchAction;
+			body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+			documentElement.style.overscrollBehavior = previousHtmlOverscrollBehavior;
 		};
 	}, [isMenuOpen]);
 
@@ -109,7 +104,8 @@ export const Navbar = () => {
 				return;
 			}
 
-			setMenuTop(navRef.current.getBoundingClientRect().bottom);
+			const navBottom = navRef.current.getBoundingClientRect().bottom;
+			setMenuTop(Math.max(0, navBottom));
 		};
 
 		updateMenuPosition();
