@@ -25,13 +25,13 @@ export const Navbar = () => {
 		}
 
 		const navRect = navRef.current.getBoundingClientRect();
-		const measuredBottom = navRect.bottom;
-		const safeBottom =
-			measuredBottom >= 0 && measuredBottom <= window.innerHeight
-				? measuredBottom
-				: navRect.height;
+		const navIsInViewport =
+			navRect.bottom > 0 && navRect.top < window.innerHeight;
+		const safeBottom = navIsInViewport
+			? Math.min(window.innerHeight, Math.max(0, navRect.bottom))
+			: 0;
 
-		setMenuTop(Math.max(0, safeBottom));
+		setMenuTop(safeBottom);
 	}, []);
 
 	useEffect(() => {
@@ -194,10 +194,12 @@ export const Navbar = () => {
 					<Button
 						className="xl:hidden"
 						onClick={() => {
-							if (!isMenuOpen) {
-								updateMenuTop();
-							}
-							setIsMenuOpen(!isMenuOpen);
+							setIsMenuOpen((previousValue) => {
+								if (!previousValue) {
+									updateMenuTop();
+								}
+								return !previousValue;
+							});
 						}}
 						aria-label="Toggle menu"
 						aria-expanded={isMenuOpen}
