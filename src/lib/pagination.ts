@@ -1,4 +1,4 @@
-export const CONTENT_PAGE_SIZE = 20;
+export const CONTENT_PAGE_SIZE = 10;
 
 export function getTotalPages(itemCount: number, pageSize = CONTENT_PAGE_SIZE) {
 	return Math.max(1, Math.ceil(itemCount / pageSize));
