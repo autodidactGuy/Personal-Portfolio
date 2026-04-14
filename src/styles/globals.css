@@ -1,5 +1,133 @@
 @config "../../tailwind.config.ts";
 @import "tailwindcss";
+@import "@heroui/styles";
+
+@theme inline {
+  --color-primary: var(--portfolio-primary);
+  --color-primary-50: var(--portfolio-primary-50);
+  --color-primary-100: var(--portfolio-primary-100);
+  --color-primary-200: var(--portfolio-primary-200);
+  --color-primary-300: var(--portfolio-primary-300);
+  --color-primary-400: var(--portfolio-primary-400);
+  --color-primary-500: var(--portfolio-primary-500);
+  --color-primary-600: var(--portfolio-primary-600);
+  --color-primary-700: var(--portfolio-primary-700);
+  --color-primary-800: var(--portfolio-primary-800);
+  --color-primary-900: var(--portfolio-primary-900);
+
+  --color-content1: var(--portfolio-content1);
+  --color-content2: var(--portfolio-content2);
+  --color-content3: var(--portfolio-content3);
+  --color-content4: var(--portfolio-content4);
+
+  --color-default-50: var(--portfolio-default-50);
+  --color-default-100: var(--portfolio-default-100);
+  --color-default-200: var(--portfolio-default-200);
+  --color-default-300: var(--portfolio-default-300);
+  --color-default-400: var(--portfolio-default-400);
+  --color-default-500: var(--portfolio-default-500);
+  --color-default-600: var(--portfolio-default-600);
+  --color-default-700: var(--portfolio-default-700);
+  --color-default-800: var(--portfolio-default-800);
+  --color-default-900: var(--portfolio-default-900);
+}
+
+:root,
+.light,
+[data-theme="light"] {
+  --portfolio-primary: #0072f5;
+  --portfolio-primary-50: #eef6ff;
+  --portfolio-primary-100: #d9ebff;
+  --portfolio-primary-200: #b9daff;
+  --portfolio-primary-300: #8bc2ff;
+  --portfolio-primary-400: #56a1ff;
+  --portfolio-primary-500: #0072f5;
+  --portfolio-primary-600: #0059c7;
+  --portfolio-primary-700: #00469c;
+  --portfolio-primary-800: #003576;
+  --portfolio-primary-900: #02244f;
+
+  --portfolio-content1: #ffffff;
+  --portfolio-content2: #f8fafc;
+  --portfolio-content3: #f1f5f9;
+  --portfolio-content4: #e2e8f0;
+
+  --portfolio-default-50: #f8fafc;
+  --portfolio-default-100: #f1f5f9;
+  --portfolio-default-200: #e2e8f0;
+  --portfolio-default-300: #cbd5e1;
+  --portfolio-default-400: #94a3b8;
+  --portfolio-default-500: #64748b;
+  --portfolio-default-600: #475569;
+  --portfolio-default-700: #334155;
+  --portfolio-default-800: #1e293b;
+  --portfolio-default-900: #0f172a;
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #020617;
+  --foreground: #e5e7eb;
+
+  --surface: #0f172a;
+  --surface-foreground: #f8fafc;
+  --surface-secondary: #111827;
+  --surface-secondary-foreground: #f3f4f6;
+  --surface-tertiary: #1f2937;
+  --surface-tertiary-foreground: #e5e7eb;
+  --overlay: #0f172a;
+  --overlay-foreground: #f8fafc;
+
+  --default: #334155;
+  --default-foreground: #f8fafc;
+  --accent: #0072f5;
+  --accent-foreground: #ffffff;
+  --focus: #0072f5;
+  --muted: #94a3b8;
+  --field-background: #0f172a;
+  --field-foreground: #f8fafc;
+  --field-placeholder: #94a3b8;
+  --field-border: rgba(148, 163, 184, 0.18);
+  --border: rgba(148, 163, 184, 0.18);
+  --separator: rgba(148, 163, 184, 0.14);
+  --segment: #334155;
+  --segment-foreground: #f8fafc;
+  --link: #f8fafc;
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --surface-shadow: 0 0 0 0 transparent inset;
+  --overlay-shadow: 0 0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  --field-shadow: 0 0 0 0 transparent inset;
+
+  --portfolio-primary: #0072f5;
+  --portfolio-primary-50: #e8f3ff;
+  --portfolio-primary-100: #cde4ff;
+  --portfolio-primary-200: #9fcbff;
+  --portfolio-primary-300: #6aaeff;
+  --portfolio-primary-400: #3f91ff;
+  --portfolio-primary-500: #0072f5;
+  --portfolio-primary-600: #005fd1;
+  --portfolio-primary-700: #004ea9;
+  --portfolio-primary-800: #063c7c;
+  --portfolio-primary-900: #0a2950;
+
+  --portfolio-content1: #0f172a;
+  --portfolio-content2: #111827;
+  --portfolio-content3: #1f2937;
+  --portfolio-content4: #334155;
+
+  --portfolio-default-50: #0f172a;
+  --portfolio-default-100: #111827;
+  --portfolio-default-200: #1f2937;
+  --portfolio-default-300: #334155;
+  --portfolio-default-400: #475569;
+  --portfolio-default-500: #64748b;
+  --portfolio-default-600: #94a3b8;
+  --portfolio-default-700: #cbd5e1;
+  --portfolio-default-800: #e2e8f0;
+  --portfolio-default-900: #f8fafc;
+}
 
 html {
   --cursor-color: #333

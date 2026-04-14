@@ -269,6 +269,22 @@
       "date": "2026-02-17"
     },
     {
+      "slug": "designing-a-content-system-that-scales-beyond-a-portoflio",
+      "title": "Designing a Content System That Scales Beyond a Portfolio",
+      "summary": "Building a Git-based CMS architecture using static generation, structured content, and a clean separation between content and UI.",
+      "tags": [
+        "architecture",
+        "nextjs",
+        "cms",
+        "systems-design",
+        "decap-cms"
+      ],
+      "featured": true,
+      "coverImage": "https://hassanraza.us/decap.jpg",
+      "url": "https://hassanraza.us/project/designing-a-content-system-that-scales-beyond-a-portoflio",
+      "date": "2026-03-10T00:00:00.000Z"
+    },
+    {
       "slug": "etl-data-migration-at-scale",
       "title": "Designing Data Migration Pipelines That Don’t Break at Scale",
       "summary": "Building resilient pipelines to process large datasets with correctness, observability, and recoverability.",

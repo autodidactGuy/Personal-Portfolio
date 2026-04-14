@@ -31,22 +31,12 @@ export function Footer() {
 							reserved.
 						</p>
 						<Chip
-							classNames={{
-								base: "border border-default-200/70 bg-content1/35 text-foreground backdrop-blur-sm",
-								content:
-									"font-mono text-[13px] font-medium tracking-[0.01em] sm:text-sm",
-							}}
-							radius="full"
-							size="sm"
-							startContent={
-								<HiOutlineCommandLine
-									className="shrink-0 text-default-500"
-									size={18}
-								/>
-							}
-							variant="flat"
+							color="default"
+							variant="soft"
+							className="inline-flex items-center gap-2 border border-default-400/70 shadow-sm bg-content1/35 font-mono font-medium tracking-[0.01em] text-foreground backdrop-blur-sm"
 						>
-							$ build systems --for clarity --at scale
+							<HiOutlineCommandLine className="shrink-0" size={18} />
+							<Chip.Label>$ build systems --for clarity --at scale</Chip.Label>
 						</Chip>
 					</div>
 				</div>

@@ -1,12 +1,13 @@
 import {
 	Accordion,
-	AccordionItem,
-	Button,
 	Card,
-	CardBody,
+	CardContent,
 	CardHeader,
+	FieldError,
 	Input,
-	Textarea,
+	Label,
+	TextArea,
+	TextField,
 } from "@heroui/react";
 import type { GetStaticProps } from "next";
 import { useTheme } from "next-themes";
@@ -93,15 +94,14 @@ export default function Contact({ settings }: ContactPageProps) {
 		primaryColor: "0072f5",
 	};
 
-	const formFieldClassNames = {
-		base: "group",
-		inputWrapper:
-			"border border-default-200/80 bg-content1/90 transition-colors dark:border-default-100/14 dark:bg-[#13233c] dark:data-[hover=true]:bg-[#162946] dark:group-data-[focus=true]:border-primary/45 dark:group-data-[focus=true]:bg-[#162946]",
-		input: "text-base sm:text-sm text-foreground placeholder:text-default-400",
-		inputs: "text-base sm:text-sm text-foreground placeholder:text-default-400",
-		label: "text-default-500 dark:text-default-400",
-		errorMessage: "text-danger",
-	} as const;
+	const textFieldClassName = "w-full";
+
+	const inputClassName =
+		"rounded-2xl border border-default-200/80 bg-content1/90 px-4 py-3 text-base text-foreground shadow-none outline-none transition-colors placeholder:text-default-400 sm:text-sm dark:border-default-100/14 dark:bg-[#13233c] focus:border-primary/45";
+
+	const labelClassName = "sr-only";
+
+	const fieldErrorClassName = "text-sm text-danger";
 
 	const contactForm = (
 		<Card className="mb-5 border-none bg-transparent shadow-none lg:border lg:border-default-200/80 lg:bg-content1/85 lg:shadow-sm lg:shadow-primary/5 lg:dark:bg-content1/72">
@@ -124,11 +124,11 @@ export default function Contact({ settings }: ContactPageProps) {
 					{/* <p className="max-w-xl text-default-600">{settings.description}</p> */}
 				</div>
 			</CardHeader>
-			<CardBody className="px-4 pb-5 pt-0 lg:px-8 lg:pb-8">
+			<CardContent className="px-4 pb-5 pt-0 lg:px-8 lg:pb-8">
 				<form
-					onSubmit={handleSubmit(onSubmit)}
 					className="flex w-full flex-col gap-4"
 					noValidate
+					onSubmit={handleSubmit(onSubmit)}
 				>
 					<Toaster position="bottom-left" richColors theme={toastTheme} />
 
@@ -137,16 +137,26 @@ export default function Contact({ settings }: ContactPageProps) {
 							control={control}
 							name="name"
 							render={({ field }) => (
-								<Input
-									{...field}
-									aria-label="Name"
-									classNames={formFieldClassNames}
-									errorMessage={getErrorMessage(errors.name?.message)}
+								<TextField
+									className={textFieldClassName}
 									isInvalid={!!errors.name}
-									label="Name"
-									radius="lg"
-									variant="bordered"
-								/>
+									name={field.name}
+									value={field.value}
+								>
+									<Label className={labelClassName}>Name</Label>
+									<Input
+										aria-label="Name"
+										className={`${inputClassName} ${errors.name ? "border-danger" : ""}`}
+										onBlur={field.onBlur}
+										onChange={field.onChange}
+										placeholder="Name"
+										ref={field.ref}
+										variant="secondary"
+									/>
+									<FieldError className={fieldErrorClassName}>
+										{getErrorMessage(errors.name?.message)}
+									</FieldError>
+								</TextField>
 							)}
 						/>
 
@@ -154,17 +164,27 @@ export default function Contact({ settings }: ContactPageProps) {
 							control={control}
 							name="email"
 							render={({ field }) => (
-								<Input
-									{...field}
-									aria-label="Email"
-									classNames={formFieldClassNames}
-									errorMessage={getErrorMessage(errors.email?.message)}
+								<TextField
+									className={textFieldClassName}
 									isInvalid={!!errors.email}
-									label="Email"
-									radius="lg"
+									name={field.name}
 									type="email"
-									variant="bordered"
-								/>
+									value={field.value}
+								>
+									<Label className={labelClassName}>Email</Label>
+									<Input
+										aria-label="Email"
+										className={`${inputClassName} ${errors.email ? "border-danger" : ""}`}
+										onBlur={field.onBlur}
+										onChange={field.onChange}
+										placeholder="Email"
+										ref={field.ref}
+										variant="secondary"
+									/>
+									<FieldError className={fieldErrorClassName}>
+										{getErrorMessage(errors.email?.message)}
+									</FieldError>
+								</TextField>
 							)}
 						/>
 					</div>
@@ -174,17 +194,27 @@ export default function Contact({ settings }: ContactPageProps) {
 							control={control}
 							name="phone"
 							render={({ field }) => (
-								<Input
-									{...field}
-									aria-label="Phone"
-									classNames={formFieldClassNames}
-									errorMessage={getErrorMessage(errors.phone?.message)}
+								<TextField
+									className={textFieldClassName}
 									isInvalid={!!errors.phone}
-									label="Phone"
-									radius="lg"
+									name={field.name}
 									type="tel"
-									variant="bordered"
-								/>
+									value={field.value}
+								>
+									<Label className={labelClassName}>Phone</Label>
+									<Input
+										aria-label="Phone"
+										className={`${inputClassName} ${errors.phone ? "border-danger" : ""}`}
+										onBlur={field.onBlur}
+										onChange={field.onChange}
+										placeholder="Phone"
+										ref={field.ref}
+										variant="secondary"
+									/>
+									<FieldError className={fieldErrorClassName}>
+										{getErrorMessage(errors.phone?.message)}
+									</FieldError>
+								</TextField>
 							)}
 						/>
 
@@ -192,17 +222,27 @@ export default function Contact({ settings }: ContactPageProps) {
 							control={control}
 							name="subject"
 							render={({ field }) => (
-								<Input
-									{...field}
-									aria-label="Subject"
-									classNames={formFieldClassNames}
-									errorMessage={getErrorMessage(errors.subject?.message)}
+								<TextField
+									className={textFieldClassName}
 									isInvalid={!!errors.subject}
-									label="Subject"
-									radius="lg"
+									name={field.name}
 									type="text"
-									variant="bordered"
-								/>
+									value={field.value}
+								>
+									<Label className={labelClassName}>Subject</Label>
+									<Input
+										aria-label="Subject"
+										className={`${inputClassName} ${errors.subject ? "border-danger" : ""}`}
+										onBlur={field.onBlur}
+										onChange={field.onChange}
+										placeholder="Subject"
+										ref={field.ref}
+										variant="secondary"
+									/>
+									<FieldError className={fieldErrorClassName}>
+										{getErrorMessage(errors.subject?.message)}
+									</FieldError>
+								</TextField>
 							)}
 						/>
 					</div>
@@ -211,38 +251,45 @@ export default function Contact({ settings }: ContactPageProps) {
 						control={control}
 						name="message"
 						render={({ field }) => (
-							<Textarea
-								{...field}
-								aria-label="Message"
-								classNames={formFieldClassNames}
-								errorMessage={getErrorMessage(errors.message?.message)}
+							<TextField
+								className={textFieldClassName}
 								isInvalid={!!errors.message}
-								label="Message"
-								minRows={6}
-								radius="lg"
-								variant="bordered"
-							/>
+								name={field.name}
+								value={field.value}
+							>
+								<Label className={labelClassName}>Message</Label>
+								<TextArea
+									aria-label="Message"
+									className={`${inputClassName} min-h-28 resize-y ${errors.message ? "border-danger" : ""}`}
+									onBlur={field.onBlur}
+									onChange={field.onChange}
+									placeholder="Message"
+									ref={field.ref}
+									variant="secondary"
+								/>
+								<FieldError className={fieldErrorClassName}>
+									{getErrorMessage(errors.message?.message)}
+								</FieldError>
+							</TextField>
 						)}
 					/>
 
 					<div className="flex justify-start pt-2">
-						<Button
-							color="primary"
-							isLoading={isSubmitting}
-							radius="full"
+						<button
+							className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+							disabled={isSubmitting}
 							type="submit"
-							variant="solid"
 						>
-							Send message
-						</Button>
+							{isSubmitting ? "Sending..." : "Send message"}
+						</button>
 					</div>
 				</form>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 
 	const scheduleWidget = (
-		<Card className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72 mb-5">
+		<Card className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72 mb-5 p-0">
 			<CardHeader className="hidden flex-col items-start gap-4 px-4 pt-5 sm:px-8 sm:pt-6 lg:flex">
 				{/* <Chip
           classNames={{
@@ -264,7 +311,7 @@ export default function Contact({ settings }: ContactPageProps) {
           </p> */}
 				</div>
 			</CardHeader>
-			<CardBody className="px-0 pb-0 pt-0">
+			<CardContent>
 				{/* <div className="px-4 sm:px-8">
           <Divider className="opacity-60" />
         </div> */}
@@ -288,7 +335,7 @@ export default function Contact({ settings }: ContactPageProps) {
 						/>
 					</div>
 				</div>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 
@@ -349,33 +396,37 @@ export default function Contact({ settings }: ContactPageProps) {
 				</section>
 
 				<section className="lg:hidden">
-					<Accordion
-						itemClasses={{
-							base: "border border-default-200/80 bg-background/80 shadow-sm",
-							indicator: "text-primary",
-							subtitle: "mt-2 text-default-500",
-							title: "text-lg font-semibold tracking-tight",
-							trigger: "px-4 py-4 sm:px-5 sm:py-5",
-							content: "px-0 pb-0 pt-0",
-						}}
-						variant="splitted"
-					>
-						<AccordionItem
-							key="contact"
-							aria-label={settings.formHeading}
-							// subtitle="Send a message directly"
-							title={settings.formHeading}
+					<Accordion className="space-y-4" hideSeparator>
+						<Accordion.Item
+							className="overflow-hidden rounded-3xl border border-default-200/80 bg-background/80 shadow-sm"
+							id="contact-form"
 						>
-							{contactForm}
-						</AccordionItem>
-						<AccordionItem
-							key="schedule"
-							aria-label={settings.scheduleHeading}
-							// subtitle="Book a short intro call"
-							title={settings.scheduleHeading}
+							<Accordion.Heading>
+								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5">
+									<span>{settings.formHeading}</span>
+									<Accordion.Indicator className="shrink-0 text-primary" />
+								</Accordion.Trigger>
+							</Accordion.Heading>
+							<Accordion.Panel>
+								<Accordion.Body className="p-0">{contactForm}</Accordion.Body>
+							</Accordion.Panel>
+						</Accordion.Item>
+						<Accordion.Item
+							className="overflow-hidden rounded-3xl border border-default-200/80 bg-background/80 shadow-sm"
+							id="schedule-widget"
 						>
-							{scheduleWidget}
-						</AccordionItem>
+							<Accordion.Heading>
+								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5">
+									<span>{settings.scheduleHeading}</span>
+									<Accordion.Indicator className="shrink-0 text-primary" />
+								</Accordion.Trigger>
+							</Accordion.Heading>
+							<Accordion.Panel>
+								<Accordion.Body className="px-5 pb-3">
+									{scheduleWidget}
+								</Accordion.Body>
+							</Accordion.Panel>
+						</Accordion.Item>
 					</Accordion>
 				</section>
 			</section>

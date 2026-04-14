@@ -1,4 +1,12 @@
-import { Button, Card, CardBody, Chip, Input, Spinner } from "@heroui/react";
+import {
+	Card,
+	CardContent,
+	Chip,
+	Input,
+	Label,
+	Spinner,
+	TextField,
+} from "@heroui/react";
 import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
 import { HiArrowSmLeft } from "react-icons/hi";
@@ -140,18 +148,13 @@ export default function SearchPage() {
 			}}
 		>
 			<section className="mx-auto max-w-5xl py-10">
-				<Button
-					as={Link}
-					className="mb-5"
-					color="primary"
+				<Link
+					className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
 					href="/"
-					radius="full"
-					size="sm"
-					startContent={<HiArrowSmLeft size={18} />}
-					variant="flat"
 				>
+					<HiArrowSmLeft size={18} />
 					Back to Home
-				</Button>
+				</Link>
 
 				<div className="space-y-4">
 					<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -164,63 +167,61 @@ export default function SearchPage() {
 				</div>
 
 				<Card className="mt-8 border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
-					<CardBody className="gap-5 p-5 sm:p-6">
+					<CardContent className="gap-5 p-5 sm:p-6">
 						<form
 							action="/search"
 							className="flex flex-col gap-4 sm:flex-row"
 							method="get"
 						>
-							<Input
-								aria-label="Search the site"
-								className="flex-1"
-								classNames={{
-									input: "text-base sm:text-sm",
-								}}
-								name="q"
-								onValueChange={setQuery}
-								placeholder="Search projects, case studies, articles, experience, education, and recommendations..."
-								startContent={
-									<SearchIcon className="pointer-events-none flex-shrink-0 text-base text-default-400" />
-								}
-								type="search"
-								value={query}
-							/>
-							<Button
-								color="primary"
-								radius="full"
+							<TextField className="flex-1" name="q" value={query}>
+								<Label className="sr-only">Search the site</Label>
+								<div className="relative">
+									<SearchIcon className="pointer-events-none absolute left-4 top-1/2 z-10 flex-shrink-0 -translate-y-1/2 text-base text-default-400" />
+									<Input
+										aria-label="Search the site"
+										className="w-full rounded-2xl border border-default-200/80 bg-content1/90 py-3 pl-12 pr-4 text-base text-foreground shadow-none outline-none transition-colors placeholder:text-default-400 sm:text-sm dark:border-default-100/14 dark:bg-[#13233c] focus:border-primary/45"
+										name="q"
+										onChange={(event) => setQuery(event.target.value)}
+										placeholder="Search projects, case studies, articles, experience, education, and recommendations..."
+										type="search"
+										variant="secondary"
+									/>
+								</div>
+							</TextField>
+							<button
+								className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
 								type="submit"
-								variant="flat"
 							>
 								Search
-							</Button>
+							</button>
 						</form>
 
 						{isSearching && !isLoadingIndex && entries ? (
 							<div className="flex flex-wrap items-center gap-2">
-								<Chip radius="full" size="sm" variant="flat">
+								<span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary">
 									{resultCount} results for &ldquo;{deferredQuery.trim()}&rdquo;
-								</Chip>
+								</span>
 							</div>
 						) : null}
-					</CardBody>
+					</CardContent>
 				</Card>
 
 				<div className="mt-8 space-y-8">
 					{isSearching && isLoadingIndex ? (
-						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
-							<CardBody className="flex flex-row items-center gap-3 p-5 text-default-700 sm:p-6">
-								<Spinner color="primary" size="sm" />
+						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72 p-0">
+							<CardContent className="flex flex-row items-center gap-3 p-5 text-default-700 sm:p-6">
+								<Spinner color="accent" size="sm" />
 								<p>Searching...</p>
-							</CardBody>
+							</CardContent>
 						</Card>
 					) : null}
 
 					{isSearching && !isLoadingIndex && entries && resultCount === 0 ? (
-						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
-							<CardBody className="p-5 text-default-700 sm:p-6">
+						<Card className="border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72 p-0">
+							<CardContent className="p-5 text-default-700 sm:p-6">
 								No results found for &ldquo;{deferredQuery.trim()}&rdquo;. Try a
 								broader term or a company, skill, or system keyword.
-							</CardBody>
+							</CardContent>
 						</Card>
 					) : null}
 
@@ -231,19 +232,19 @@ export default function SearchPage() {
 							<section key={group.type} className="space-y-4">
 								<div className="flex items-center justify-between gap-3">
 									<h2 className="text-2xl font-semibold">{group.label}</h2>
-									<Chip radius="full" size="sm" variant="flat">
+									<span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary">
 										{group.items.length}
-									</Chip>
+									</span>
 								</div>
 								<div className="grid gap-4 md:grid-cols-2">
 									{group.items.map((entry) => (
 										<Card
 											key={entry.id}
-											className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72"
+											className="p-0 border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72"
 										>
-											<CardBody className="gap-4 p-5">
+											<CardContent className="gap-4 p-5">
 												<div className="flex flex-wrap items-center gap-2">
-													<Chip radius="full" size="sm" variant="flat">
+													<Chip size="md" color="accent" variant="soft">
 														{entry.typeLabel}
 													</Chip>
 													{entry.meta ? (
@@ -262,28 +263,19 @@ export default function SearchPage() {
 													{entry.keywords.slice(0, 4).map(
 														(keyword) =>
 															keyword && (
-																<Chip
-																	key={`${entry.id}-${keyword}`}
-																	radius="full"
-																	size="sm"
-																	variant="flat"
-																>
+																<Chip key={`${entry.id}-${keyword}`} size="sm">
 																	{keyword}
 																</Chip>
 															),
 													)}
 												</div>
-												<Button
-													as={Link}
-													className="w-fit"
-													color="primary"
+												<Link
+													className="inline-flex w-fit items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-transform duration-300 hover:translate-x-0.5"
 													href={entry.href}
-													radius="full"
-													variant="flat"
 												>
 													Read more
-												</Button>
-											</CardBody>
+												</Link>
+											</CardContent>
 										</Card>
 									))}
 								</div>

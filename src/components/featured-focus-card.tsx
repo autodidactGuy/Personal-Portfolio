@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@heroui/react";
 import Link from "next/link";
 import type { IconType } from "react-icons";
 import {
@@ -8,6 +8,7 @@ import {
 } from "react-icons/hi2";
 
 import type { FeaturedFocus } from "@/types/content";
+import { AccentContentChip } from "./content-chip";
 
 type FeaturedFocusCardProps = {
 	featuredFocus: FeaturedFocus;
@@ -22,18 +23,11 @@ const pillarIcons: IconType[] = [
 export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
 	return (
 		<Card className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72">
-			<CardHeader className="flex flex-col items-start gap-4 px-6 py-6 sm:px-8 sm:py-8">
-				<Chip
-					classNames={{
-						base: "border border-primary/20 bg-primary/10 text-primary",
-						content: "font-medium uppercase tracking-[0.10em] text-[11px]",
-					}}
-					radius="full"
-					size="sm"
-					variant="flat"
-				>
-					{featuredFocus.sectionLabel}
-				</Chip>
+			<CardHeader className="flex flex-col items-start gap-4 px-3 py-3 sm:px-4 sm:py-4">
+				<AccentContentChip size="md">
+					{featuredFocus.sectionLabel.toUpperCase()}
+				</AccentContentChip>
+
 				<div className="flex w-full flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 					<div className="space-y-4">
 						<h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -44,7 +38,7 @@ export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
 					{/* <div className="hidden h-3 w-3 shrink-0 rounded-full bg-primary/75 shadow-[0_0_24px_rgba(0,114,245,0.35)] lg:block" /> */}
 				</div>
 			</CardHeader>
-			<CardBody className="gap-6 overflow-visible px-6 pb-6 pt-0 sm:px-8 sm:pb-8">
+			<CardContent className="flex flex-col gap-6 overflow-visible px-3 pb-3 pt-0 sm:px-4 sm:pb-4">
 				<div className="grid gap-3 pt-1 md:grid-cols-3">
 					{featuredFocus.pillars.map((pillar, index) => {
 						const PillarIcon = pillarIcons[index % pillarIcons.length];
@@ -54,7 +48,7 @@ export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
 								key={pillar}
 								className="group h-full overflow-hidden border border-default-200/70 bg-content1/90 shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/78"
 							>
-								<CardBody className="relative gap-4 p-5">
+								<CardContent className="relative flex flex-col gap-4 p-3">
 									<div className="relative z-10 flex items-center justify-between">
 										<div className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
 											<PillarIcon size={16} />
@@ -69,23 +63,20 @@ export function FeaturedFocusCard({ featuredFocus }: FeaturedFocusCardProps) {
 											{pillar}
 										</p>
 									</div>
-								</CardBody>
+								</CardContent>
 							</Card>
 						);
 					})}
 				</div>
 				<div>
-					<Button
-						as={Link}
-						color="primary"
+					<Link
+						className="inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
 						href={featuredFocus.cta.href}
-						radius="full"
-						variant="flat"
 					>
 						{featuredFocus.cta.label}
-					</Button>
+					</Link>
 				</div>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 }

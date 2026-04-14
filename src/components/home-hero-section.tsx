@@ -1,5 +1,3 @@
-import { Image } from "@heroui/react";
-import { button as buttonStyles } from "@heroui/theme";
 import NextImage from "next/image";
 import Link from "next/link";
 import { FaLinkedin } from "react-icons/fa6";
@@ -33,14 +31,12 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 	return (
 		<div className="animate__animated animate__fadeInUp grid items-center gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
 			<div className="flex justify-center">
-				<Image
-					as={NextImage}
-					isBlurred
+				<NextImage
 					alt={siteConfig.name}
-					width={220}
+					className="animate__animated animate__fadeInUp "
 					height={220}
-					className="animate__animated animate__fadeInUp"
 					src={withBasePath(hero.image)}
+					width={220}
 				/>
 			</div>
 			<div className="text-center lg:text-left">
@@ -55,11 +51,7 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 				</p>
 				<div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
 					<a
-						className={buttonStyles({
-							color: "primary",
-							radius: "full",
-							variant: "solid",
-						})}
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/15 transition-opacity hover:opacity-90"
 						href={withBasePath(hero.primaryCta.href)}
 						rel={hero.primaryCta.external ? "noreferrer" : undefined}
 						target={hero.primaryCta.external ? "_blank" : undefined}
@@ -68,7 +60,7 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 						{hero.primaryCta.label}
 					</a>
 					<a
-						className={buttonStyles({ variant: "bordered", radius: "full" })}
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-default-200/80 bg-default px-4 text-sm font-medium text-default-foreground shadow-sm transition-colors hover:bg-default-hover dark:border-default-200/80 dark:bg-default dark:text-default-foreground dark:hover:bg-default-hover"
 						href={siteConfig.links.linkedin}
 						rel="noreferrer"
 						target="_blank"
@@ -77,7 +69,7 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 						LinkedIn
 					</a>
 					<Link
-						className={buttonStyles({ radius: "full", variant: "bordered" })}
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-default-200/80 bg-default px-4 text-sm font-medium text-default-foreground shadow-sm transition-colors hover:bg-default-hover dark:border-default-200/80 dark:bg-default dark:text-default-foreground dark:hover:bg-default-hover"
 						href={hero.secondaryCta.href}
 					>
 						<IoDocument size={20} />

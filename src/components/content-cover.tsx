@@ -1,4 +1,3 @@
-import { Image } from "@heroui/react";
 import NextImage from "next/image";
 
 import { withBasePath } from "@/config/site";
@@ -25,17 +24,14 @@ export function ContentCover({
 }: ContentCoverProps) {
 	if (hasCoverImage(coverImage)) {
 		return (
-			<div className={`relative w-full overflow-hidden ${heightClassName}`}>
-				<Image
-					as={NextImage}
+			<div
+				//h-full
+				className={`relative w-full overflow-hidden ${heightClassName}`}
+			>
+				<NextImage
 					alt={title}
-					classNames={{
-						img: "h-full w-full object-cover",
-						wrapper: "!max-w-full w-full h-full",
-					}}
 					className="h-full w-full object-cover"
-					height={"100"}
-					radius="none"
+					height={175}
 					src={withBasePath(coverImage as string)}
 					width={1200}
 				/>
