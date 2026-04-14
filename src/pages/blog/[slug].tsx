@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { HiArrowSmLeft } from "react-icons/hi";
 import { HiOutlineCalendarDays } from "react-icons/hi2";
+import { MetaContentChip } from "@/components/content-chip";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { siteConfig } from "@/config/site";
@@ -94,8 +95,8 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 					</div>
 					<CardHeader className="flex flex-col items-start gap-5 px-6 py-6 sm:px-8 sm:py-8">
 						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-							<div className="inline-flex items-center gap-1.5 rounded-full border border-default-200/60 bg-default-100/25 px-2.5 py-1 text-xs font-medium text-default-500">
-								<HiOutlineCalendarDays className="text-primary/75" size={13} />
+							<MetaContentChip>
+								<HiOutlineCalendarDays className="text-primary/75" size={12} />
 								<span>
 									{new Date(post.frontmatter.date).toLocaleDateString("en-US", {
 										month: "short",
@@ -105,11 +106,11 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 								</span>
 								{siteConfig.githubHandle ? (
 									<>
-										<span className="h-1 w-1 rounded-full bg-default-300/90" />
+										<span className="h-1 w-1 rounded-full bg-default-400/90" />
 										<span>@{siteConfig.githubHandle}</span>
 									</>
 								) : null}
-							</div>
+							</MetaContentChip>
 						</div>
 						<h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
 							{post.frontmatter.title}

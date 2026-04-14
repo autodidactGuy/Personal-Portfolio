@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, Chip } from "@heroui/react";
 import Link from "next/link";
 import { HiOutlineCalendarDays, HiStar } from "react-icons/hi2";
 
-import { AccentContentChip } from "@/components/content-chip";
+import { AccentContentChip, MetaContentChip } from "@/components/content-chip";
 import { ContentCover } from "@/components/content-cover";
 import { siteConfig } from "@/config/site";
 import { toTitleCase } from "@/lib/string";
@@ -73,7 +73,7 @@ export function ContentCard({
 				/>
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
 			</div>
-			<CardHeader className="flex flex-row items-start justify-between gap-3 px-5 pb-0 pt-5 sm:px-6">
+			<CardHeader className="flex flex-row items-start justify-between gap-3 px-3 pb-0 pt-3">
 				<div className="min-w-0 flex-1">
 					<p className="text-xl font-semibold tracking-tight">
 						{frontmatter.title}
@@ -94,12 +94,12 @@ export function ContentCard({
 					{/* <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" /> */}
 				</div>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-4 px-5 pb-5 pt-0">
+			<CardContent className="flex flex-col gap-4 px-3 pb-3 pt-0">
 				<p className="text-default-700">{frontmatter.summary}</p>
 				<div className=" flex flex-col items-start gap-4 pt-2">
 					{shouldShowMeta ? (
 						<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-							<div className="inline-flex items-center gap-1.5 rounded-full border border-default-200/60 bg-default-100/25 px-2.5 py-0.5 text-[11px] font-medium text-default-500">
+							<MetaContentChip>
 								<HiOutlineCalendarDays className="text-primary/75" size={12} />
 								<span>
 									{new Date(frontmatter.date).toLocaleDateString("en-US", {
@@ -110,16 +110,18 @@ export function ContentCard({
 								</span>
 								{siteConfig.githubHandle ? (
 									<>
-										<span className="h-1 w-1 rounded-full bg-default-300/90" />
+										<span className="h-1 w-1 rounded-full bg-default-400/90" />
 										<span>@{siteConfig.githubHandle}</span>
 									</>
 								) : null}
-							</div>
+							</MetaContentChip>
 						</div>
 					) : null}
 					<div className="flex flex-wrap gap-2">
 						{frontmatter.tags.map((tag) => (
-							<Chip key={tag}>{tag}</Chip>
+							<Chip key={tag} className="px-1">
+								{tag}
+							</Chip>
 						))}
 					</div>
 					<Link
