@@ -166,9 +166,7 @@ export default function SearchPage() {
 					</p>
 				</div>
 
-				<Card
-					className="mt-8 border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72"
-				>
+				<Card className="mt-8 border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72">
 					<CardContent className="gap-5 p-5 sm:p-6">
 						<form
 							action="/search"
