@@ -1,10 +1,11 @@
-import { Button, Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import { Card, CardContent, CardHeader, Chip } from "@heroui/react";
 import type { GetStaticPaths, GetStaticProps } from "next";
 
 import Link from "next/link";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { HiArrowSmLeft } from "react-icons/hi";
 import { HiOutlineCalendarDays } from "react-icons/hi2";
+import { AccentContentChip } from "@/components/content-chip";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { siteConfig } from "@/config/site";
@@ -74,19 +75,14 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 			}}
 		>
 			<article className="mx-auto max-w-4xl py-10">
-				<Button
-					as={Link}
-					color="primary"
+				<Link
+					className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
 					href="/blog"
-					radius="full"
-					size="sm"
-					className="mb-5"
-					startContent={<HiArrowSmLeft size={18} />}
-					variant="flat"
 				>
+					<HiArrowSmLeft size={18} />
 					Back to Blog
-				</Button>
-				<Card className="overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72">
+				</Link>
+				<Card className="overflow-hidden border border-default-200/80 bg-content1/85 p-0 shadow-sm shadow-primary/5 dark:bg-content1/72">
 					<div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
 						<ContentCover
 							coverImage={post.frontmatter.coverImage}
@@ -123,19 +119,19 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 							{post.frontmatter.summary}
 						</p>
 						<div className="flex flex-wrap gap-2">
-							<Chip radius="full" size="sm" variant="flat">
-								{toTitleCase(post.frontmatter.contentType || "post")}
-							</Chip>
+							{/* <AccentContentChip size="md">
+								{toTitleCase(
+									post.frontmatter.contentType || "post",
+								).toUpperCase()}
+							</AccentContentChip> */}
 							{post.frontmatter.tags.map((tag) => (
-								<Chip key={tag} radius="full" size="sm" variant="flat">
-									{tag}
-								</Chip>
+								<Chip key={tag}>{tag}</Chip>
 							))}
 						</div>
 					</CardHeader>
-					<CardBody className="px-6 pb-8 pt-0 sm:px-8">
+					<CardContent className="px-6 pb-8 pt-0 sm:px-8">
 						<MDXRenderer source={source} />
-					</CardBody>
+					</CardContent>
 				</Card>
 			</article>
 		</DefaultLayout>

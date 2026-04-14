@@ -1,6 +1,7 @@
-import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@heroui/react";
 
 import type { HomeStats } from "@/types/content";
+import { AccentContentChip } from "./content-chip";
 
 type HomeStatsSectionProps = {
 	stats: HomeStats;
@@ -17,17 +18,9 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 				<p className="text-sm font-semibold uppercase tracking-[0.10em] text-primary">
 					{stats.title}
 				</p>
-				<Chip
-					classNames={{
-						base: "border border-primary/20 bg-primary/10 text-primary",
-						content: "font-medium uppercase tracking-[0.10em] text-[11px]",
-					}}
-					radius="full"
-					size="sm"
-					variant="flat"
-				>
-					{stats.badgeLabel}
-				</Chip>
+				<AccentContentChip size="md">
+					{stats.badgeLabel.toUpperCase()}
+				</AccentContentChip>
 			</div>
 			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 				{stats.items.map((item, index) => (
@@ -107,13 +100,13 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 								</div>
 							)}
 						</div>
-						<CardHeader className="items-start justify-between pb-0 pt-5">
-							<span className="relative z-10 text-[10px] font-semibold uppercase tracking-[0.32em] text-default-400">
+						<CardHeader className="flex flex-row items-center justify-between gap-3 pb-0 pt-0">
+							<span className="relative z-10 block shrink-0 text-[10px] font-semibold uppercase tracking-[0.28em] text-default-400">
 								0{index + 1}
 							</span>
-							<div className="relative z-10 h-2.5 w-2.5 rounded-full bg-primary/80 shadow-[0_0_18px_rgba(0,114,245,0.45)]" />
+							<div className="relative z-10 ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-primary/80 shadow-[0_0_18px_rgba(0,114,245,0.45)]" />
 						</CardHeader>
-						<CardBody className="relative gap-3 pb-5 pt-4">
+						<CardContent className="relative flex flex-col gap-3 pb-0 pt-0">
 							<p className="relative z-10 text-5xl font-semibold leading-none tracking-[-0.06em] text-foreground lg:text-6xl">
 								{item.value}
 							</p>
@@ -121,7 +114,7 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 							<p className="relative z-10 max-w-[25ch] text-xs font-medium uppercase tracking-[0.10em] text-default-500">
 								{item.label}
 							</p>
-						</CardBody>
+						</CardContent>
 					</Card>
 				))}
 			</div>

@@ -1,20 +1,14 @@
-import {
-	Accordion,
-	AccordionItem,
-	Card,
-	CardBody,
-	Chip,
-	Divider,
-	Image,
-} from "@heroui/react";
+import { Accordion, Card, CardContent, Chip } from "@heroui/react";
 import type { GetStaticProps } from "next";
 import NextImage from "next/image";
+import type { ReactNode } from "react";
 import { BiSolidUserAccount } from "react-icons/bi";
 import { FaUserGraduate } from "react-icons/fa6";
 import { HiOutlineMapPin } from "react-icons/hi2";
 import { MdWork } from "react-icons/md";
 import { TbNotes } from "react-icons/tb";
 
+import { AccentContentChip } from "@/components/content-chip";
 import { siteConfig, withBasePath } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { getAboutProfile, getEducation, getExperience } from "@/lib/content";
@@ -68,16 +62,14 @@ function AboutEntryCard({
 }: AboutEntryCardProps) {
 	return (
 		<Card className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72">
-			<CardBody className="gap-5 p-5 sm:p-6">
+			<CardContent className="gap-5 p-5 sm:p-6">
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center">
 					<div className="flex shrink-0 justify-center sm:block">
 						<div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm">
-							<Image
-								as={NextImage}
+							<NextImage
 								alt={subtitle}
 								className="aspect-square h-12 w-12 object-contain"
 								height={48}
-								radius="none"
 								src={withBasePath(image)}
 								width={48}
 							/>
@@ -90,17 +82,7 @@ function AboutEntryCard({
 									{title}
 								</p>
 								{badge ? (
-									<Chip
-										classNames={{
-											base: "border border-primary/20 bg-primary/10 text-primary",
-											content: "font-medium text-[11px]",
-										}}
-										radius="full"
-										size="sm"
-										variant="flat"
-									>
-										{badge}
-									</Chip>
+									<AccentContentChip size="md">{badge}</AccentContentChip>
 								) : null}
 							</div>
 							<div className="space-y-1 text-[15px] font-medium sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:space-y-0">
@@ -115,7 +97,7 @@ function AboutEntryCard({
 						</div>
 					</div>
 				</div>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 }
@@ -133,16 +115,14 @@ function ExperienceEntryCard({
 }: ExperienceEntryCardProps) {
 	return (
 		<Card className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72">
-			<CardBody className="gap-5 p-5 sm:p-6">
+			<CardContent className="gap-5 p-5 sm:p-6">
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
 					<div className="flex shrink-0 justify-center sm:block">
 						<div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-default-200/80 bg-white p-3 shadow-sm">
-							<Image
-								as={NextImage}
+							<NextImage
 								alt={company}
 								className="aspect-square h-12 w-12 object-contain"
 								height={48}
-								radius="none"
 								src={withBasePath(image)}
 								width={48}
 							/>
@@ -155,17 +135,9 @@ function ExperienceEntryCard({
 									{title}
 								</p>
 								{companyComments ? (
-									<Chip
-										classNames={{
-											base: "border border-primary/20 bg-primary/10 text-primary",
-											content: "font-medium text-[11px]",
-										}}
-										radius="full"
-										size="sm"
-										variant="flat"
-									>
+									<AccentContentChip size="sm">
 										{companyComments}
-									</Chip>
+									</AccentContentChip>
 								) : null}
 							</div>
 							<div className="space-y-1 text-[15px] font-medium sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:space-y-0">
@@ -181,65 +153,106 @@ function ExperienceEntryCard({
 					</div>
 				</div>
 				<div className="w-full">
-					<Accordion
-						className="w-full"
-						itemClasses={{
-							base: "border border-default-200/70 bg-content1/90 shadow-none dark:bg-content1/78",
-							content: "px-4 pb-4 pt-0 sm:px-4 sm:pb-4",
-							indicator: "text-primary",
-							subtitle: "m-0 text-sm leading-6 text-default-600",
-							title: "text-sm font-semibold text-foreground",
-							titleWrapper: "min-h-0 gap-0",
-							trigger: "px-4 py-3.5 sm:px-4 sm:py-3",
-						}}
-						selectionMode="multiple"
-						variant="splitted"
-					>
-						<AccordionItem
-							key={`${company}-${title}-details`}
-							subtitle={<span className="hidden lg:block">{highlight}</span>}
-							title={
-								<>
-									<span className="lg:hidden">View details</span>
-									{/* <span className="hidden lg:inline">Details</span> */}
-								</>
-							}
+					<Accordion className="w-full">
+						<Accordion.Item
+							className="overflow-hidden rounded-2xl border "
+							id={`${company}-${title}-details`}
 						>
-							<div className="space-y-4">
-								<p className="text-sm leading-6 text-default-600 lg:hidden">
-									{highlight}
-								</p>
-								<ul className="space-y-2 text-sm leading-6 text-default-700">
-									{details.map((detail) => (
-										<li key={detail} className="flex gap-2">
-											<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
-											<span>{detail}</span>
-										</li>
-									))}
-								</ul>
-								{tech.length ? (
-									<div className="flex flex-wrap gap-2">
-										{tech.map((item) => (
-											<Chip key={item} radius="full" size="sm" variant="flat">
-												{item}
-											</Chip>
-										))}
+							<Accordion.Heading>
+								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-default-100/45 dark:hover:bg-default-100/5">
+									<div className="min-w-0">
+										<span className="hidden lg:block">{highlight}</span>
+										<span className="lg:hidden">View details</span>
 									</div>
-								) : null}
-							</div>
-						</AccordionItem>
+									<Accordion.Indicator className="shrink-0 text-primary" />
+								</Accordion.Trigger>
+							</Accordion.Heading>
+							<Accordion.Panel>
+								<Accordion.Body className="space-y-4 border-t border-default-200/50 px-4 pb-4 pt-4 dark:border-default-100/10">
+									<p className="text-sm leading-6 text-default-600 lg:hidden">
+										{highlight}
+									</p>
+									<ul className="space-y-2 text-sm leading-6 text-default-700">
+										{details.map((detail) => (
+											<li key={detail} className="flex gap-2">
+												<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
+												<span>{detail}</span>
+											</li>
+										))}
+									</ul>
+									{tech.length ? (
+										<div className="flex flex-wrap gap-2">
+											{tech.map((item) => (
+												<Chip key={item}>{item}</Chip>
+											))}
+										</div>
+									) : null}
+								</Accordion.Body>
+							</Accordion.Panel>
+						</Accordion.Item>
 					</Accordion>
 				</div>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 }
 
-function AboutAccordionIcon({ children }: { children: React.ReactNode }) {
+function AboutAccordionIcon({ children }: { children: ReactNode }) {
 	return (
 		<div className="flex h-10 w-10 shrink-0 self-center items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
 			{children}
 		</div>
+	);
+}
+
+type AboutSectionCardProps = {
+	id: string;
+	title: string;
+	subtitle: string;
+	icon: ReactNode;
+	children: ReactNode;
+	defaultExpanded?: boolean;
+};
+
+function AboutSectionCard({
+	id,
+	title,
+	subtitle,
+	icon,
+	children,
+	defaultExpanded = false,
+}: AboutSectionCardProps) {
+	return (
+		<Accordion
+			className="w-full"
+			defaultExpandedKeys={defaultExpanded ? [id] : undefined}
+			hideSeparator
+		>
+			<Accordion.Item
+				className="overflow-hidden rounded-3xl border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72"
+				id={id}
+			>
+				<Accordion.Heading>
+					<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition-colors hover:bg-default-100/35 sm:px-6 sm:py-6 dark:hover:bg-default-100/5">
+						<div className="flex min-w-0 items-center gap-4">
+							<AboutAccordionIcon>{icon}</AboutAccordionIcon>
+							<div className="min-w-0">
+								<h2 className="text-xl font-semibold tracking-tight">
+									{title}
+								</h2>
+								<p className="mt-1 text-sm text-default-500">{subtitle}</p>
+							</div>
+						</div>
+						<Accordion.Indicator className="shrink-0 text-primary" />
+					</Accordion.Trigger>
+				</Accordion.Heading>
+				<Accordion.Panel>
+					<Accordion.Body className="px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
+						{children}
+					</Accordion.Body>
+				</Accordion.Panel>
+			</Accordion.Item>
+		</Accordion>
 	);
 }
 export default function About({
@@ -276,16 +289,14 @@ export default function About({
 			}}
 		>
 			<section className="mx-auto flex max-w-6xl flex-col gap-8 py-10 sm:py-14 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-				<Card className="animate__animated animate__fadeInUp overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72">
-					<CardBody className="gap-6 p-6 items-center text-center">
+				<Card className="p-0 animate__animated animate__fadeInUp overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/72">
+					<CardContent className="gap-6 p-6 items-center text-center">
 						<div className="relative overflow-hidden rounded-3xl border border-default-200/80 bg-default-100/40">
 							<div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
-							<Image
-								as={NextImage}
+							<NextImage
 								alt={siteConfig.name}
 								className="h-[300px] w-full object-cover"
 								height={300}
-								radius="none"
 								src={withBasePath(profile.photo)}
 								width={320}
 							/>
@@ -293,18 +304,9 @@ export default function About({
 
 						<div className="space-y-4 text-center">
 							<div className="space-y-2">
-								<Chip
-									classNames={{
-										base: "border border-primary/20 bg-primary/10 text-primary",
-										content:
-											"font-medium uppercase tracking-[0.10em] text-[11px]",
-									}}
-									radius="full"
-									size="sm"
-									variant="flat"
-								>
-									{profile.pageLabel}
-								</Chip>
+								<AccentContentChip size="md">
+									{profile.pageLabel.toUpperCase()}
+								</AccentContentChip>
 								<h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
 									{siteConfig.name}
 								</h1>
@@ -313,7 +315,7 @@ export default function About({
 								</p>
 							</div>
 
-							<Divider className="opacity-60" />
+							<div className="h-px w-full bg-default-200/60" />
 
 							<div className="space-y-3">
 								<p className="text-lg font-medium leading-7 text-foreground">
@@ -324,7 +326,7 @@ export default function About({
 								</p>
 							</div>
 						</div>
-					</CardBody>
+					</CardContent>
 				</Card>
 
 				<div className="space-y-5">
@@ -348,27 +350,11 @@ export default function About({
 						</p>
 					</div>
 
-					<Accordion
-						itemClasses={{
-							base: "border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72",
-							indicator: "text-primary",
-							subtitle: "mt-2 text-default-500",
-							title: "text-xl font-semibold tracking-tight",
-							trigger: "items-center gap-4 px-5 py-5 sm:px-6",
-							titleWrapper: "flex min-h-10 flex-col justify-center",
-							content: "px-5 pb-5 pt-0 sm:px-6 sm:pb-6",
-						}}
-						selectionMode="multiple"
-						variant="splitted"
-					>
-						<AccordionItem
-							key="about"
-							aria-label={profile.aboutSectionTitle}
-							startContent={
-								<AboutAccordionIcon>
-									<BiSolidUserAccount size={22} />
-								</AboutAccordionIcon>
-							}
+					<div className="space-y-4">
+						<AboutSectionCard
+							defaultExpanded
+							icon={<BiSolidUserAccount size={22} />}
+							id="about"
 							subtitle={profile.aboutSectionSubtitle}
 							title={profile.aboutSectionTitle}
 						>
@@ -400,16 +386,11 @@ export default function About({
 									))}
 								</div>
 							</div>
-						</AccordionItem>
+						</AboutSectionCard>
 
-						<AccordionItem
-							key="experience"
-							aria-label={profile.experienceTitle}
-							startContent={
-								<AboutAccordionIcon>
-									<MdWork size={22} />
-								</AboutAccordionIcon>
-							}
+						<AboutSectionCard
+							icon={<MdWork size={22} />}
+							id="experience"
 							subtitle={profile.experienceSubtitle}
 							title={profile.experienceTitle}
 						>
@@ -429,16 +410,11 @@ export default function About({
 									/>
 								))}
 							</div>
-						</AccordionItem>
+						</AboutSectionCard>
 
-						<AccordionItem
-							key="education"
-							aria-label={profile.educationTitle}
-							startContent={
-								<AboutAccordionIcon>
-									<FaUserGraduate size={20} />
-								</AboutAccordionIcon>
-							}
+						<AboutSectionCard
+							icon={<FaUserGraduate size={20} />}
+							id="education"
 							subtitle={profile.educationSubtitle}
 							title={profile.educationTitle}
 						>
@@ -455,8 +431,8 @@ export default function About({
 									/>
 								))}
 							</div>
-						</AccordionItem>
-					</Accordion>
+						</AboutSectionCard>
+					</div>
 				</div>
 			</section>
 		</DefaultLayout>

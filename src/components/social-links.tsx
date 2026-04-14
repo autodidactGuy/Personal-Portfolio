@@ -1,4 +1,3 @@
-import { Link } from "@heroui/react";
 import { FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import { GithubIcon } from "@/components/icons";
 import { siteConfig } from "@/config/site";
@@ -17,24 +16,30 @@ export function SocialLinks({
 			aria-label="Social links"
 			className={`flex items-center gap-2 ${className}`.trim()}
 		>
-			<Link aria-label="LinkedIn" isExternal href={siteConfig.links.linkedin}>
-				<FaLinkedin
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
-			<Link aria-label="GitHub" isExternal href={siteConfig.links.github}>
-				<GithubIcon
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
-			<Link aria-label="X" isExternal href={siteConfig.links.twitter}>
-				<FaXTwitter
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
+			<a
+				aria-label="LinkedIn"
+				href={siteConfig.links.linkedin}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<FaLinkedin size={iconSize} />
+			</a>
+			<a
+				aria-label="GitHub"
+				href={siteConfig.links.github}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<GithubIcon size={iconSize} />
+			</a>
+			<a
+				aria-label="X"
+				href={siteConfig.links.twitter}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<FaXTwitter size={iconSize} />
+			</a>
 		</nav>
 	);
 }
@@ -42,29 +47,31 @@ export function SocialLinks({
 export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 	return (
 		<>
-			<Link aria-label="LinkedIn" isExternal href={siteConfig.links.linkedin}>
-				<FaLinkedin
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
-			<Link aria-label="GitHub" isExternal href={siteConfig.links.github}>
-				<GithubIcon
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
-			<Link
+			<a
+				aria-label="LinkedIn"
+				href={siteConfig.links.linkedin}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<FaLinkedin size={iconSize} />
+			</a>
+			<a
+				aria-label="GitHub"
+				href={siteConfig.links.github}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<GithubIcon size={iconSize} />
+			</a>
+			<a
 				aria-label="X"
-				isExternal
 				className="hidden xsm:block"
 				href={siteConfig.links.twitter}
+				rel="noreferrer"
+				target="_blank"
 			>
-				<FaXTwitter
-					className="text-default-600 dark:text-default-400"
-					size={iconSize}
-				/>
-			</Link>
+				<FaXTwitter size={iconSize} />
+			</a>
 		</>
 	);
 }

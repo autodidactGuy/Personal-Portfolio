@@ -30,23 +30,12 @@ export function Footer() {
 							&copy; {new Date().getFullYear()} {siteConfig.name}. All rights
 							reserved.
 						</p>
-						<Chip
-							classNames={{
-								base: "border border-default-200/70 bg-content1/35 text-foreground backdrop-blur-sm",
-								content:
-									"font-mono text-[13px] font-medium tracking-[0.01em] sm:text-sm",
-							}}
-							radius="full"
-							size="sm"
-							startContent={
-								<HiOutlineCommandLine
-									className="shrink-0 text-default-500"
-									size={18}
-								/>
-							}
-							variant="flat"
-						>
-							$ build systems --for clarity --at scale
+						<Chip className="inline-flex items-center gap-2 rounded-full border border-default-400/70 shadow-sm bg-content1/35 px-3 py-1 font-mono text-[13px] font-medium tracking-[0.01em] text-foreground backdrop-blur-sm sm:text-sm">
+							<HiOutlineCommandLine
+								className="shrink-0"
+								size={18}
+							/>
+							<Chip.Label>$ build systems --for clarity --at scale</Chip.Label>
 						</Chip>
 					</div>
 				</div>

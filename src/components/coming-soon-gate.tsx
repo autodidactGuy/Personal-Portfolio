@@ -1,4 +1,3 @@
-import { Image } from "@heroui/react";
 import NextImage from "next/image";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -120,14 +119,12 @@ export function ComingSoonScreen() {
 		<section className="mx-auto flex min-h-[70vh] w-full max-w-4xl items-center justify-center px-6 py-20">
 			<div className="text-center">
 				<div className="mb-6 flex justify-center">
-					<Image
-						as={NextImage}
-						isBlurred
+					<NextImage
 						alt={siteConfig.name}
-						width={220}
+						className="animate__animated animate__fadeInUp rounded-3xl shadow-[0_0_40px_rgba(59,130,246,0.18)]"
 						height={220}
-						className="animate__animated animate__fadeInUp"
 						src={withBasePath(siteConfig.avatar)}
+						width={220}
 					/>
 				</div>
 				<p className="text-sm font-semibold tracking-[0.15em] text-primary">

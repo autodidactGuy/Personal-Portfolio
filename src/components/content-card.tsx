@@ -1,14 +1,8 @@
-import {
-	Button,
-	Card,
-	CardBody,
-	CardHeader,
-	Chip,
-	Tooltip,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader, Chip } from "@heroui/react";
 import Link from "next/link";
 import { HiOutlineCalendarDays, HiStar } from "react-icons/hi2";
 
+import { AccentContentChip } from "@/components/content-chip";
 import { ContentCover } from "@/components/content-cover";
 import { siteConfig } from "@/config/site";
 import { toTitleCase } from "@/lib/string";
@@ -68,7 +62,7 @@ export function ContentCard({
 	return (
 		<Card
 			key={slug}
-			className="group h-full overflow-hidden border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72"
+			className="group h-full overflow-hidden border border-default-200/80 bg-content1/85 p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5 dark:bg-content1/72"
 		>
 			<div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
 				<ContentCover
@@ -79,38 +73,28 @@ export function ContentCard({
 				/>
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
 			</div>
-			<CardHeader className="items-start justify-between gap-3 pb-0 pt-5">
-				<div className="space-y-2">
+			<CardHeader className="flex flex-row items-start justify-between gap-3 px-5 pb-0 pt-5 sm:px-6">
+				<div className="min-w-0 flex-1">
 					<p className="text-xl font-semibold tracking-tight">
 						{frontmatter.title}
 					</p>
 				</div>
-				<div className="flex shrink-0 items-center gap-2">
-					<Chip
-						classNames={{
-							base: "border border-primary/20 bg-primary/10 text-primary",
-							content: "font-medium uppercase tracking-[0.10em] text-[11px]",
-						}}
-						radius="full"
-						size="sm"
-						variant="flat"
-					>
-						{displayTypeLabel}
-					</Chip>
+				<div className="flex shrink-0 items-center gap-2 self-start">
+					<AccentContentChip size="md">
+						{displayTypeLabel.toUpperCase()}
+					</AccentContentChip>
 					{frontmatter.featured ? (
-						<Tooltip content="Featured" delay={150}>
-							<span className="inline-flex h-8 w-8 items-center justify-center text-primary transition-transform duration-300 group-hover:scale-110">
-								<HiStar
-									className="drop-shadow-[0_0_10px_rgba(0,114,245,0.28)]"
-									size={16}
-								/>
-							</span>
-						</Tooltip>
+						<Chip variant="tertiary" color="accent">
+							<HiStar
+								className="drop-shadow-[0_0_10px_rgba(0,114,245,0.28)]"
+								size={16}
+							/>
+						</Chip>
 					) : null}
 					{/* <div className="h-2.5 w-2.5 rounded-full bg-primary/75 shadow-[0_0_18px_rgba(0,114,245,0.35)]" /> */}
 				</div>
 			</CardHeader>
-			<CardBody className="gap-4 pb-3 pt-3">
+			<CardContent className="flex flex-col gap-4 px-5 pb-5 pt-0">
 				<p className="text-default-700">{frontmatter.summary}</p>
 				<div className=" flex flex-col items-start gap-4 pt-2">
 					{shouldShowMeta ? (
@@ -135,24 +119,18 @@ export function ContentCard({
 					) : null}
 					<div className="flex flex-wrap gap-2">
 						{frontmatter.tags.map((tag) => (
-							<Chip key={tag} radius="full" size="sm" variant="flat">
-								{tag}
-							</Chip>
+							<Chip key={tag}>{tag}</Chip>
 						))}
 					</div>
-					<Button
-						as={Link}
+					<Link
 						aria-label={`${ctaLabel}: ${frontmatter.title}`}
-						className="w-fit font-medium transition-transform duration-300 group-hover:translate-x-0.5"
-						color="primary"
+						className="inline-flex w-fit items-center justify-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-transform duration-300 group-hover:translate-x-0.5"
 						href={href}
-						radius="full"
-						variant="flat"
 					>
 						{ctaLabel}
-					</Button>
+					</Link>
 				</div>
-			</CardBody>
+			</CardContent>
 		</Card>
 	);
 }

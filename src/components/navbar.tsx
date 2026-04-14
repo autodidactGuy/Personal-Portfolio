@@ -1,24 +1,9 @@
-import {
-	Avatar,
-	Button,
-	Input,
-	Kbd,
-	Link,
-	NavbarBrand,
-	NavbarContent,
-	NavbarItem,
-	NavbarMenu,
-	NavbarMenuItem,
-	NavbarMenuToggle,
-	Navbar as NextUINavbar,
-} from "@heroui/react";
-import { link as linkStyles } from "@heroui/theme";
+import { Avatar, Button, SearchField } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { MdMail } from "react-icons/md";
-import { SearchIcon } from "@/components/icons";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { basePath, siteConfig } from "@/config/site";
@@ -28,6 +13,7 @@ const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
 export const Navbar = () => {
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const router = useRouter();
 
@@ -75,140 +61,144 @@ export const Navbar = () => {
 
 	const renderSearchInput = (inputClassName?: string) => (
 		<form action="/search" className={inputClassName} method="get">
-			<Input
-				aria-label="Search"
-				classNames={{
-					inputWrapper: "bg-default-100",
-					input: "text-base sm:text-sm",
-				}}
-				endContent={
-					<Kbd className="hidden lg:inline-block" keys={["enter"]}></Kbd>
-				}
-				labelPlacement="outside"
-				name="q"
-				placeholder="Search..."
-				startContent={
-					<SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
-				}
-				type="search"
-				value={isMounted ? searchQuery : ""}
-				onValueChange={setSearchQuery}
-			/>
+			<SearchField>
+				<SearchField.Group>
+					<SearchField.SearchIcon />
+					<SearchField.Input
+						aria-label="Search"
+						className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-default-400 sm:text-sm"
+						name="q"
+						placeholder="Search..."
+						type="search"
+						value={isMounted ? searchQuery : ""}
+						onChange={(event) => setSearchQuery(event.target.value)}
+					/>
+					<SearchField.ClearButton />
+				</SearchField.Group>
+			</SearchField>
 		</form>
 	);
 
 	return (
-		<NextUINavbar
-			maxWidth="xl"
-			position="static"
-			classNames={{
-				base: clsx(
-					"z-40 border-b border-default-200/60 transition-colors duration-300",
-					isScrolled
-						? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-						: "bg-background",
-				),
-				item: [
-					"flex",
-					"relative",
-					"h-full",
-					"items-center",
-					"data-[active=true]:after:content-['']",
-					"data-[active=true]:after:absolute",
-					"data-[active=true]:after:bottom-0",
-					"data-[active=true]:after:left-0",
-					"data-[active=true]:after:right-0",
-					"data-[active=true]:after:h-[2px]",
-					"data-[active=true]:after:rounded-[2px]",
-					"data-[active=true]:after:bg-primary",
-				],
-			}}
+		<nav
+			className={clsx(
+				"z-40 border-b border-default-200/60 transition-colors duration-300",
+				isScrolled
+					? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+					: "bg-background",
+			)}
 		>
-			<NavbarContent
-				as="ul"
-				className="basis-1/5 list-none sm:basis-full"
-				justify="start"
-			>
-				<NavbarBrand className="gap-3 max-w-fit">
-					<NextLink className="flex justify-start items-center gap-1" href="/">
-						<Avatar
-							src={`${basePath}/favicon.png`}
-							name={siteConfig.initials}
-							size="sm"
-						/>
-						<p className="font-bold text-inherit ml-2">{siteConfig.name}</p>
+			<div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+				<div className="flex min-w-0 items-center gap-6">
+					<NextLink className="flex items-center gap-2" href="/">
+						<Avatar>
+							<Avatar.Image
+								alt={siteConfig.initials}
+								// className="rounded-full object-cover"
+								src={`${basePath}/favicon.png`}
+							/>
+							<Avatar.Fallback>{siteConfig.initials}</Avatar.Fallback>
+						</Avatar>
+						<p className="truncate font-bold text-inherit">{siteConfig.name}</p>
 					</NextLink>
-				</NavbarBrand>
-				{siteConfig.navItems.map((item) => (
-					<NavbarItem key={item.href} className="hidden lg:flex">
-						<NextLink
-							className={clsx(
-								linkStyles({ color: "foreground" }),
-								"data-[active=true]:text-primary data-[active=true]:font-medium",
-							)}
-							color="foreground"
-							href={item.href}
-						>
-							{item.label}
-						</NextLink>
-					</NavbarItem>
-				))}
-			</NavbarContent>
+					<ul className="hidden items-center gap-4 xl:flex">
+						{siteConfig.navItems.map((item) =>
+							item.href ===
+							siteConfig.navigation.headerQuickLink.href ? null : (
+								<li key={item.href}>
+									<NextLink
+										className="text-md text-foreground transition-colors hover:text-primary"
+										href={item.href}
+									>
+										{item.label}
+									</NextLink>
+								</li>
+							),
+						)}
+					</ul>
+				</div>
 
-			<NavbarContent
-				as="ul"
-				className="hidden basis-1/5 list-none sm:flex sm:basis-full"
-				justify="end"
-			>
-				<NavbarItem className="hidden lg:flex gap-2">
+				<div className="hidden items-center gap-3 xl:flex">
 					<SocialLinks />
 					<ThemeSwitch />
-				</NavbarItem>
-				<NavbarItem className="hidden lg:flex">
-					{renderSearchInput("w-full")}
-				</NavbarItem>
-				<NavbarItem className="hidden lg:flex">
-					<Button
-						as={Link}
-						className="text-sm font-normal text-default-600 bg-default-100"
+					{renderSearchInput("w-56")}
+					<NextLink
+						className={clsx(
+							"inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90",
+						)}
 						href={siteConfig.navigation.headerQuickLink.href}
-						startContent={<MdMail className="text-default-500" size={20} />}
-						variant="flat"
 					>
+						<MdMail size={20} />
 						{siteConfig.navigation.headerQuickLink.label}
-					</Button>
-				</NavbarItem>
-			</NavbarContent>
+					</NextLink>
+				</div>
 
-			<NavbarContent as="div" className="basis-1 pl-4 lg:hidden" justify="end">
-				<SocialLinksCompact />
-				<ThemeSwitch />
-				<NavbarMenuToggle />
-			</NavbarContent>
-
-			<NavbarMenu>
-				<NavbarMenuItem key="menu-search">
-					{renderSearchInput("w-full")}
-				</NavbarMenuItem>
-				{siteConfig.navMenuItems.map((item) => (
-					<NavbarMenuItem key={item.href}>
-						<Link color="foreground" href={item.href} size="lg">
-							{item.label}
-						</Link>
-					</NavbarMenuItem>
-				))}
-				{siteConfig.navigation.headerQuickLink?.href !== "/contact" && (
-					<NavbarMenuItem key="header-quick-link">
-						<Link
-							color="foreground"
-							href={siteConfig.navigation.headerQuickLink.href}
-							size="lg"
+				<div className="flex items-center gap-3 xl:hidden">
+					<SocialLinksCompact />
+					<ThemeSwitch />
+					<Button
+						className="xl:hidden"
+						onClick={() => setIsMenuOpen(!isMenuOpen)}
+						aria-label="Toggle menu"
+						aria-expanded={isMenuOpen}
+					>
+						<span className="sr-only">Menu</span>
+						<svg
+							className="h-6 w-6"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
 						>
-							{siteConfig.navigation.headerQuickLink.label}
-						</Link>
-					</NavbarMenuItem>
-				)}
-			</NavbarMenu>
-		</NextUINavbar>
+							<title>Toggle menu</title>
+							{isMenuOpen ? (
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M6 18L18 6M6 6l12 12"
+								/>
+							) : (
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M4 6h16M4 12h16M4 18h16"
+								/>
+							)}
+						</svg>
+					</Button>
+				</div>
+			</div>
+
+			{isMenuOpen ? (
+				<div className="border-t border-default-200/60 px-4 py-4 xl:hidden">
+					<div className="mx-auto max-w-7xl space-y-4">
+						{renderSearchInput("w-full")}
+						<div className="space-y-3">
+							{siteConfig.navMenuItems.map((item) =>
+								item.href ===
+								siteConfig.navigation.headerQuickLink.href ? null : (
+									<NextLink
+										key={item.href}
+										className="block text-md text-foreground"
+										href={item.href}
+										onClick={() => setIsMenuOpen(false)}
+									>
+										{item.label}
+									</NextLink>
+								),
+							)}
+							<NextLink
+								className="block text-md text-foreground"
+								href={siteConfig.navigation.headerQuickLink.href}
+								onClick={() => setIsMenuOpen(false)}
+							>
+								{siteConfig.navigation.headerQuickLink.label}
+							</NextLink>
+						</div>
+					</div>
+				</div>
+			) : null}
+		</nav>
 	);
 };
