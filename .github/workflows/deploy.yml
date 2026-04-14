@@ -13,29 +13,32 @@ on:
       - "package.json"
       - "yarn.lock"
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/preview.yml"
+      - ".github/workflows/preview-cleanup.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: "pages"
+  group: "pages-production"
   cancel-in-progress: false
 
 env:
   NODE_VERSION: "20"
   NEXT_PUBLIC_REPOSITORY_NAME: ${{ github.event.repository.name }}
   NEXT_PUBLIC_BASE_PATH: ""
+  PUBLISH_BRANCH: "gh-pages"
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -43,31 +46,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Build static export
         run: yarn build
 
-      - name: Ensure GitHub Pages static artifact
-        run: touch out/.nojekyll
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ./out
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Publish production site to gh-pages root
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SOURCE_DIR: out
+          PRESERVE_DIR: previews
+          COMMIT_MESSAGE: "Deploy production site from ${{ github.sha }}"
+        run: bash scripts/publish-pages-branch.sh
