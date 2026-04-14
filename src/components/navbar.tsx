@@ -2,7 +2,7 @@ import { Avatar, Button, SearchField } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MdMail } from "react-icons/md";
 import { SocialLinks, SocialLinksCompact } from "@/components/social-links";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -18,6 +18,21 @@ export const Navbar = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const navRef = useRef<HTMLElement | null>(null);
 	const router = useRouter();
+
+	const updateMenuTop = useCallback(() => {
+		if (!navRef.current || typeof window === "undefined") {
+			return;
+		}
+
+		const navRect = navRef.current.getBoundingClientRect();
+		const measuredBottom = navRect.bottom;
+		const safeBottom =
+			measuredBottom >= 0 && measuredBottom <= window.innerHeight
+				? measuredBottom
+				: navRect.height;
+
+		setMenuTop(Math.max(0, safeBottom));
+	}, []);
 
 	useEffect(() => {
 		setIsMounted(true);
@@ -66,15 +81,18 @@ export const Navbar = () => {
 			return;
 		}
 
-		const { body } = document;
-		const previousOverflow = body.style.overflow;
+		const { body, documentElement } = document;
+		const previousBodyOverflow = body.style.overflow;
+		const previousHtmlOverflow = documentElement.style.overflow;
 
 		if (isMenuOpen) {
 			body.style.overflow = "hidden";
+			documentElement.style.overflow = "hidden";
 		}
 
 		return () => {
-			body.style.overflow = previousOverflow;
+			body.style.overflow = previousBodyOverflow;
+			documentElement.style.overflow = previousHtmlOverflow;
 		};
 	}, [isMenuOpen]);
 
@@ -87,23 +105,13 @@ export const Navbar = () => {
 			return;
 		}
 
-		const updateMenuPosition = () => {
-			if (!navRef.current) {
-				return;
-			}
-
-			setMenuTop(navRef.current.getBoundingClientRect().bottom);
-		};
-
-		updateMenuPosition();
-		window.addEventListener("resize", updateMenuPosition);
-		window.addEventListener("scroll", updateMenuPosition, { passive: true });
+		updateMenuTop();
+		window.addEventListener("resize", updateMenuTop);
 
 		return () => {
-			window.removeEventListener("resize", updateMenuPosition);
-			window.removeEventListener("scroll", updateMenuPosition);
+			window.removeEventListener("resize", updateMenuTop);
 		};
-	}, [isMenuOpen]);
+	}, [isMenuOpen, updateMenuTop]);
 
 	const renderSearchInput = (inputClassName?: string) => (
 		<form action="/search" className={inputClassName} method="get">
@@ -185,7 +193,12 @@ export const Navbar = () => {
 					<ThemeSwitch />
 					<Button
 						className="xl:hidden"
-						onClick={() => setIsMenuOpen(!isMenuOpen)}
+						onClick={() => {
+							if (!isMenuOpen) {
+								updateMenuTop();
+							}
+							setIsMenuOpen(!isMenuOpen);
+						}}
 						aria-label="Toggle menu"
 						aria-expanded={isMenuOpen}
 						aria-controls="mobile-navigation-menu"
@@ -222,13 +235,13 @@ export const Navbar = () => {
 				<div className="xl:hidden">
 					<button
 						aria-label="Close mobile menu overlay"
-						className="fixed inset-x-0 bottom-0 z-40 bg-background/45 backdrop-blur-sm"
+						className="fixed inset-x-0 bottom-0 z-40 bg-background/70 backdrop-blur-md"
 						onClick={() => setIsMenuOpen(false)}
 						style={{ top: menuTop }}
 						type="button"
 					/>
 					<div
-						className="fixed inset-x-0 z-50 border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
+						className="fixed inset-x-0 bottom-0 z-50 overflow-y-auto border-b border-default-200/60 bg-background/95 px-4 py-4 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
 						id="mobile-navigation-menu"
 						style={{ top: menuTop }}
 					>
