@@ -67,9 +67,6 @@ function groupResults(entries: SearchIndexEntry[], query: string) {
 	})).filter((group) => group.items.length > 0);
 }
 
-const accentPillClassName =
-	"inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.10em] text-primary";
-
 export default function SearchPage() {
 	const [query, setQuery] = useState("");
 	const [entries, setEntries] = useState<SearchIndexEntry[] | null>(null);

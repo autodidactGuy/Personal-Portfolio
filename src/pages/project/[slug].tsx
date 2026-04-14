@@ -4,7 +4,6 @@ import type { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { HiArrowSmLeft } from "react-icons/hi";
-import { AccentContentChip } from "@/components/content-chip";
 import { ContentCover } from "@/components/content-cover";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { siteConfig } from "@/config/site";
