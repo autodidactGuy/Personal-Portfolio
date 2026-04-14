@@ -1,15 +1,4 @@
-import {
-	Avatar,
-	Button,
-	Navbar as HeroNavbar,
-	NavbarBrand,
-	NavbarContent,
-	NavbarItem,
-	NavbarMenu,
-	NavbarMenuItem,
-	NavbarMenuToggle,
-	SearchField,
-} from "@heroui/react";
+import { Avatar, Button, Drawer, Header, SearchField } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
@@ -103,123 +92,132 @@ export const Navbar = () => {
 	);
 
 	return (
-		<HeroNavbar
-			isBordered
-			isMenuOpen={isMenuOpen}
-			maxWidth="2xl"
-			onMenuOpenChange={setIsMenuOpen}
-			classNames={{
-				base: clsx(
-					"border-default-200/60 transition-colors duration-300",
+		<>
+			<Header
+				className={clsx(
+					"relative z-40 border-b border-default-200/60 transition-colors duration-300",
 					isScrolled
 						? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
 						: "bg-background",
-				),
-				wrapper: "px-4 py-3",
-				menu: "bg-background/95 pb-6 pt-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85",
-			}}
-		>
-			<NavbarContent className="gap-6" justify="start">
-				<NavbarBrand>
-					<NextLink className="flex items-center gap-2" href="/">
-						<Avatar>
-							<Avatar.Image
-								alt={siteConfig.initials}
-								src={`${basePath}/favicon.png`}
-							/>
-							<Avatar.Fallback>{siteConfig.initials}</Avatar.Fallback>
-						</Avatar>
-						<p className="truncate font-bold text-inherit">{siteConfig.name}</p>
-					</NextLink>
-				</NavbarBrand>
-
-				{siteConfig.navItems.map((item) =>
-					item.href === siteConfig.navigation.headerQuickLink.href ? null : (
-						<NavbarItem key={item.href} className="hidden xl:flex">
-							<NextLink
-								className="text-md text-foreground transition-colors hover:text-primary"
-								href={item.href}
-							>
-								{item.label}
-							</NextLink>
-						</NavbarItem>
-					),
 				)}
-			</NavbarContent>
+			>
+				<nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3">
+					<div className="flex min-w-0 items-center gap-6">
+						<NextLink className="flex items-center gap-2" href="/">
+							<Avatar>
+								<Avatar.Image
+									alt={siteConfig.initials}
+									src={`${basePath}/favicon.png`}
+								/>
+								<Avatar.Fallback>{siteConfig.initials}</Avatar.Fallback>
+							</Avatar>
+							<p className="truncate font-bold text-inherit">
+								{siteConfig.name}
+							</p>
+						</NextLink>
+						<ul className="hidden items-center gap-4 xl:flex">
+							{siteConfig.navItems.map((item) =>
+								item.href ===
+								siteConfig.navigation.headerQuickLink.href ? null : (
+									<li key={item.href}>
+										<NextLink
+											className="text-md text-foreground transition-colors hover:text-primary"
+											href={item.href}
+										>
+											{item.label}
+										</NextLink>
+									</li>
+								),
+							)}
+						</ul>
+					</div>
 
-			<NavbarContent className="hidden gap-3 xl:flex" justify="end">
-				<NavbarItem>
-					<SocialLinks />
-				</NavbarItem>
-				<NavbarItem>
-					<ThemeSwitch />
-				</NavbarItem>
-				<NavbarItem>{renderSearchInput("w-56")}</NavbarItem>
-				<NavbarItem>
-					<NextLink
-						className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90"
-						href={siteConfig.navigation.headerQuickLink.href}
-					>
-						<MdMail size={20} />
-						{siteConfig.navigation.headerQuickLink.label}
-					</NextLink>
-				</NavbarItem>
-			</NavbarContent>
+					<div className="hidden items-center gap-3 xl:flex">
+						<SocialLinks />
+						<ThemeSwitch />
+						{renderSearchInput("w-56")}
+						<NextLink
+							className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90"
+							href={siteConfig.navigation.headerQuickLink.href}
+						>
+							<MdMail size={20} />
+							{siteConfig.navigation.headerQuickLink.label}
+						</NextLink>
+					</div>
 
-			<NavbarContent className="gap-3 xl:hidden" justify="end">
-				<NavbarItem>
-					<SocialLinksCompact />
-				</NavbarItem>
-				<NavbarItem>
-					<ThemeSwitch />
-				</NavbarItem>
-				<NavbarItem>
-					<NavbarMenuToggle
-						aria-controls="mobile-navigation-menu"
-						aria-label="Toggle menu"
-					/>
-				</NavbarItem>
-			</NavbarContent>
+					<div className="flex items-center gap-3 xl:hidden">
+						<SocialLinksCompact />
+						<ThemeSwitch />
+						<Button
+							onClick={() => setIsMenuOpen((previousValue) => !previousValue)}
+							aria-expanded={isMenuOpen}
+							aria-label="Toggle menu"
+						>
+							<svg
+								className="h-6 w-6"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<title>Toggle menu</title>
+								{isMenuOpen ? (
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								) : (
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M4 6h16M4 12h16M4 18h16"
+									/>
+								)}
+							</svg>
+						</Button>
+					</div>
+				</nav>
+			</Header>
 
-			<NavbarMenu id="mobile-navigation-menu">
-				<div className="mx-auto w-full max-w-7xl space-y-4 px-2">
-					{renderSearchInput("w-full")}
-					<div className="space-y-3">
-						{siteConfig.navMenuItems.map((item) =>
-							item.href ===
-							siteConfig.navigation.headerQuickLink.href ? null : (
-								<NavbarMenuItem key={item.href}>
+			<Drawer isOpen={isMenuOpen} onOpenChange={setIsMenuOpen}>
+				<Drawer.Backdrop className="z-40 bg-background/70 backdrop-blur-md" />
+				<Drawer.Content
+					className="z-50 border-b border-default-200/60 bg-background/95 shadow-lg shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85"
+					placement="top"
+				>
+					<Drawer.Dialog>
+						<Drawer.Body className="max-h-[85dvh] overflow-y-auto px-4 py-4">
+							<div className="mx-auto max-w-7xl space-y-4">
+								{renderSearchInput("w-full")}
+								<div className="space-y-3">
+									{siteConfig.navMenuItems.map((item) =>
+										item.href ===
+										siteConfig.navigation.headerQuickLink.href ? null : (
+											<NextLink
+												key={item.href}
+												className="block text-md text-foreground"
+												href={item.href}
+												onClick={() => setIsMenuOpen(false)}
+											>
+												{item.label}
+											</NextLink>
+										),
+									)}
 									<NextLink
 										className="block text-md text-foreground"
-										href={item.href}
+										href={siteConfig.navigation.headerQuickLink.href}
 										onClick={() => setIsMenuOpen(false)}
 									>
-										{item.label}
+										{siteConfig.navigation.headerQuickLink.label}
 									</NextLink>
-								</NavbarMenuItem>
-							),
-						)}
-						<NavbarMenuItem>
-							<NextLink
-								className="block text-md text-foreground"
-								href={siteConfig.navigation.headerQuickLink.href}
-								onClick={() => setIsMenuOpen(false)}
-							>
-								{siteConfig.navigation.headerQuickLink.label}
-							</NextLink>
-						</NavbarMenuItem>
-					</div>
-					<Button
-						as={NextLink}
-						className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-white shadow-sm shadow-primary/20 transition-opacity hover:opacity-90"
-						href={siteConfig.navigation.headerQuickLink.href}
-						onClick={() => setIsMenuOpen(false)}
-					>
-						<MdMail size={20} />
-						{siteConfig.navigation.headerQuickLink.label}
-					</Button>
-				</div>
-			</NavbarMenu>
-		</HeroNavbar>
+								</div>
+							</div>
+						</Drawer.Body>
+					</Drawer.Dialog>
+				</Drawer.Content>
+			</Drawer>
+		</>
 	);
 };
