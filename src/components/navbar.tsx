@@ -180,11 +180,7 @@ export const Navbar = () => {
 				</NavbarItem>
 			</NavbarContent>
 
-			<NavbarContent
-				as="div"
-				className="basis-1 pl-4 lg:hidden"
-				justify="end"
-			>
+			<NavbarContent as="div" className="basis-1 pl-4 lg:hidden" justify="end">
 				<SocialLinksCompact />
 				<ThemeSwitch />
 				<NavbarMenuToggle />
