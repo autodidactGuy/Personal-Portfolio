@@ -153,7 +153,7 @@ function ExperienceEntryCard({
 					</div>
 				</div>
 				<div className="w-full">
-					<Accordion className="w-full" disableAnimation>
+					<Accordion className="w-full">
 						<Accordion.Item
 							className="overflow-hidden rounded-2xl border "
 							id={`${company}-${title}-details`}
@@ -167,7 +167,7 @@ function ExperienceEntryCard({
 									<Accordion.Indicator className="shrink-0 text-primary" />
 								</Accordion.Trigger>
 							</Accordion.Heading>
-							<Accordion.Panel>
+							<Accordion.Panel className="transition-none">
 								<Accordion.Body className="space-y-4 border-t border-default-200/50 px-4 pb-4 pt-4 dark:border-default-100/10">
 									<p className="text-sm leading-6 text-default-600 lg:hidden">
 										{highlight}
@@ -226,7 +226,6 @@ function AboutSectionCard({
 		<Accordion
 			className="w-full"
 			defaultExpandedKeys={defaultExpanded ? [id] : undefined}
-			disableAnimation
 			hideSeparator
 		>
 			<Accordion.Item
@@ -247,7 +246,7 @@ function AboutSectionCard({
 						<Accordion.Indicator className="shrink-0 text-primary" />
 					</Accordion.Trigger>
 				</Accordion.Heading>
-				<Accordion.Panel>
+				<Accordion.Panel className="transition-none">
 					<Accordion.Body className="px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
 						{children}
 					</Accordion.Body>

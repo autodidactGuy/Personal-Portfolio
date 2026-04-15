@@ -11,7 +11,7 @@ import { basePath, siteConfig } from "@/config/site";
 const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
 
 export const Navbar = () => {
-	const [isScrolled, setIsScrolled] = useState(false);
+	const [_isScrolled, setIsScrolled] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [menuTop, setMenuTop] = useState(0);
