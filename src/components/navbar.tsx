@@ -129,8 +129,7 @@ export const Navbar = () => {
 		<nav
 			ref={navRef}
 			className={clsx(
-				"relative z-40 border-b border-default-200/60 transition-colors duration-300",
-				"bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
+				"relative z-40 border-b border-default-200/60 transition-colors duration-300 bg-background",
 			)}
 		>
 			<div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
@@ -217,10 +216,10 @@ export const Navbar = () => {
 			</div>
 
 			{isMenuOpen ? (
-				<div className="xl:hidden bg-background/45">
+				<div className="xl:hidden bg-background">
 					<button
 						aria-label="Close mobile menu overlay"
-						className="fixed inset-x-0 bottom-0 z-40 bg-background/45 backdrop-blur-sm"
+						className="fixed inset-x-0 bottom-0 z-40 bg-background backdrop-blur-sm"
 						onClick={() => setIsMenuOpen(false)}
 						style={{ top: menuTop }}
 						type="button"
