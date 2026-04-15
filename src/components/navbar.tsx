@@ -219,7 +219,7 @@ export const Navbar = () => {
 			</div>
 
 			{isMenuOpen ? (
-				<div className="xl:hidden">
+				<div className="xl:hidden bg-background/45">
 					<button
 						aria-label="Close mobile menu overlay"
 						className="fixed inset-x-0 bottom-0 z-40 bg-background/45 backdrop-blur-sm"
