@@ -130,9 +130,7 @@ export const Navbar = () => {
 			ref={navRef}
 			className={clsx(
 				"relative z-40 border-b border-default-200/60 transition-colors duration-300",
-				isScrolled
-					? "bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-					: "bg-background",
+				"bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/60",
 			)}
 		>
 			<div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
