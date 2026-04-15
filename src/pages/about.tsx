@@ -153,7 +153,7 @@ function ExperienceEntryCard({
 					</div>
 				</div>
 				<div className="w-full">
-					<Accordion className="w-full">
+					<Accordion className="w-full" disableAnimation>
 						<Accordion.Item
 							className="overflow-hidden rounded-2xl border "
 							id={`${company}-${title}-details`}
@@ -226,6 +226,7 @@ function AboutSectionCard({
 		<Accordion
 			className="w-full"
 			defaultExpandedKeys={defaultExpanded ? [id] : undefined}
+			disableAnimation
 			hideSeparator
 		>
 			<Accordion.Item
