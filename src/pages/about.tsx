@@ -2,9 +2,10 @@ import { Accordion, Card, CardContent, Chip } from "@heroui/react";
 import type { GetStaticProps } from "next";
 import NextImage from "next/image";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { BiSolidUserAccount } from "react-icons/bi";
 import { FaUserGraduate } from "react-icons/fa6";
-import { HiOutlineMapPin } from "react-icons/hi2";
+import { HiChevronDown, HiOutlineMapPin } from "react-icons/hi2";
 import { MdWork } from "react-icons/md";
 import { TbNotes } from "react-icons/tb";
 
@@ -113,6 +114,8 @@ function ExperienceEntryCard({
 	details,
 	tech,
 }: ExperienceEntryCardProps) {
+	const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
 	return (
 		<Card className="border border-default-200/80 bg-content1/85 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 dark:bg-content1/72">
 			<CardContent className="gap-5 p-5 sm:p-6">
@@ -153,44 +156,51 @@ function ExperienceEntryCard({
 					</div>
 				</div>
 				<div className="w-full">
-					<Accordion className="w-full">
-						<Accordion.Item
-							className="overflow-hidden rounded-2xl border "
-							id={`${company}-${title}-details`}
+					<div className="overflow-hidden rounded-2xl border border-default-200/70">
+						<button
+							aria-controls={`${company}-${title}-details`}
+							aria-expanded={isDetailsOpen}
+							className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-default-100/45 dark:hover:bg-default-100/5"
+							type="button"
+							onClick={() => setIsDetailsOpen((value) => !value)}
 						>
-							<Accordion.Heading>
-								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-default-100/45 dark:hover:bg-default-100/5">
-									<div className="min-w-0">
-										<span className="hidden lg:block">{highlight}</span>
-										<span className="lg:hidden">View details</span>
-									</div>
-									<Accordion.Indicator className="shrink-0 text-primary" />
-								</Accordion.Trigger>
-							</Accordion.Heading>
-							<Accordion.Panel className="transition-none">
-								<Accordion.Body className="space-y-4 border-t border-default-200/50 px-4 pb-4 pt-4 dark:border-default-100/10">
-									<p className="text-sm leading-6 text-default-600 lg:hidden">
-										{highlight}
-									</p>
-									<ul className="space-y-2 text-sm leading-6 text-default-700">
-										{details.map((detail) => (
-											<li key={detail} className="flex gap-2">
-												<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
-												<span>{detail}</span>
-											</li>
+							<div className="min-w-0">
+								<span className="hidden lg:block">{highlight}</span>
+								<span className="lg:hidden">View details</span>
+							</div>
+							<HiChevronDown
+								className={`shrink-0 text-primary transition-transform ${
+									isDetailsOpen ? "rotate-180" : ""
+								}`}
+								size={18}
+							/>
+						</button>
+						{isDetailsOpen ? (
+							<div
+								className="space-y-4 border-t border-default-200/50 px-4 pb-4 pt-4 dark:border-default-100/10"
+								id={`${company}-${title}-details`}
+							>
+								<p className="text-sm leading-6 text-default-600 lg:hidden">
+									{highlight}
+								</p>
+								<ul className="space-y-2 text-sm leading-6 text-default-700">
+									{details.map((detail) => (
+										<li key={detail} className="flex gap-2">
+											<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
+											<span>{detail}</span>
+										</li>
+									))}
+								</ul>
+								{tech.length ? (
+									<div className="flex flex-wrap gap-2">
+										{tech.map((item) => (
+											<Chip key={item}>{item}</Chip>
 										))}
-									</ul>
-									{tech.length ? (
-										<div className="flex flex-wrap gap-2">
-											{tech.map((item) => (
-												<Chip key={item}>{item}</Chip>
-											))}
-										</div>
-									) : null}
-								</Accordion.Body>
-							</Accordion.Panel>
-						</Accordion.Item>
-					</Accordion>
+									</div>
+								) : null}
+							</div>
+						) : null}
+					</div>
 				</div>
 			</CardContent>
 		</Card>
@@ -246,7 +256,7 @@ function AboutSectionCard({
 						<Accordion.Indicator className="shrink-0 text-primary" />
 					</Accordion.Trigger>
 				</Accordion.Heading>
-				<Accordion.Panel className="transition-none">
+				<Accordion.Panel>
 					<Accordion.Body className="px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
 						{children}
 					</Accordion.Body>
