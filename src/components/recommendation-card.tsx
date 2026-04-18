@@ -82,7 +82,7 @@ export function RecommendationCard({
 						className={clsx(
 							"relative text-[15px] leading-7 italic",
 							isOverflowing && !isExpanded && "line-clamp-5",
-							!isOverflowing && "min-h-[calc(1.75rem*5)]",
+							!isOverflowing && "md:min-h-[calc(1.75rem*6)]",
 						)}
 					>
 						{recommendation.quote}
