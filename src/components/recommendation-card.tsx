@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from "@heroui/react";
+import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiMiniChatBubbleBottomCenterText } from "react-icons/hi2";
 
@@ -11,9 +12,6 @@ type RecommendationCardProps = {
 	recommendation: RecommendationItem;
 };
 
-const LINE_CLAMP_LIMIT = 5;
-const LINE_HEIGHT_PX = 28; // matches leading-7 (1.75rem = 28px)
-
 export function RecommendationCard({
 	recommendation,
 }: RecommendationCardProps) {
@@ -24,7 +22,7 @@ export function RecommendationCard({
 	useEffect(() => {
 		const el = quoteRef.current;
 		if (!el) return;
-		setIsClamped(el.scrollHeight > LINE_CLAMP_LIMIT * LINE_HEIGHT_PX);
+		setIsClamped(el.scrollHeight > el.clientHeight);
 	}, []);
 
 	const toggleExpanded = useCallback(() => {
@@ -50,9 +48,10 @@ export function RecommendationCard({
 					</span>
 					<p
 						ref={quoteRef}
-						className={`relative text-[15px] leading-7 italic ${
-							!isExpanded ? "line-clamp-5" : ""
-						}`}
+						className={clsx(
+							"relative text-[15px] leading-7 italic",
+							!isExpanded && "line-clamp-5",
+						)}
 					>
 						{recommendation.quote}
 					</p>
