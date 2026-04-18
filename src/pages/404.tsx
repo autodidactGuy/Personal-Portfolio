@@ -8,6 +8,8 @@ export default function NotFoundPage() {
 			seo={{
 				title: "Page Not Found",
 				description: `The page you're looking for doesn't exist on ${siteConfig.name}.`,
+				pathname: "/404",
+				canonicalPathname: "/404",
 				noindex: true,
 			}}
 		>
