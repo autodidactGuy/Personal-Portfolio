@@ -30,7 +30,7 @@ export function RecommendationCard({
 		const resolvedLineHeight = Number.isFinite(lineHeight)
 			? lineHeight
 			: fontSize * 1.2;
-		const maxClampedHeight = resolvedLineHeight * 5;
+		const maxClampedHeight = resolvedLineHeight * 6;
 
 		setIsOverflowing(el.scrollHeight > maxClampedHeight + 1);
 	}, []);
