@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "@heroui/react";
 import clsx from "clsx";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { FaLinkedin } from "react-icons/fa6";
 import { HiMiniChatBubbleBottomCenterText } from "react-icons/hi2";
 
 import type { Recommendations } from "@/types/content";
@@ -100,7 +101,20 @@ export function RecommendationCard({
 					</button>
 				)}
 				<div>
-					<p className="font-semibold">{recommendation.name}</p>
+					<div className="flex items-center gap-2">
+						<p className="font-semibold">{recommendation.name}</p>
+						{recommendation.linkedin && (
+							<a
+								aria-label={`${recommendation.name} on LinkedIn`}
+								className="text-default-500 transition-colors hover:text-primary focus:outline-none focus-visible:text-primary"
+								href={recommendation.linkedin}
+								rel="noreferrer"
+								target="_blank"
+							>
+								<FaLinkedin size={16} />
+							</a>
+						)}
+					</div>
 					<p className="text-sm text-default-500">{recommendation.role}</p>
 				</div>
 			</CardContent>

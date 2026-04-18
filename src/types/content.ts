@@ -109,6 +109,7 @@ export const recommendationsSchema = z.object({
 				quote: z.string().min(1),
 				highlight: z.string().default(""),
 				featured: z.boolean().default(false),
+				linkedin: z.string().url().optional(),
 			}),
 		)
 		.min(1),
