@@ -8,7 +8,7 @@
       "quote": "Hassan was a contract SDE on my team, and he has been a great resource. One of his super power is learning way faster than you expected and taking full ownership of all projects from end to end. He has provided concise, timely and long term solutions for the features he worked on. Hassan is always keen to understand more about product and AWS technologies that the team uses. Hassan is a true team player.",
       "highlight": "Ownership and fast ramp-up in AWS systems",
       "featured": true,
-      "linkedin": "https://www.linkedin.com/in/fengwei-tech/"
+      "linkedin": "https://www.linkedin.com/in/feng-wei-ba452814/"
     },
     {
       "name": "Peter Chen",
@@ -17,7 +17,7 @@
       "quote": "Hassan was nothing short of amazing. During his tenure at Amazon, He consistently demonstrated technical skills and a self driven mindset. His deep understanding of AWS was not accelerated project timelines but also enhanced our overall efficiency. His collaborative work ethic made him a central figure in most of our team projects, and enhanced our team's capabilities at Amazon. I am confident that Hassan will be an extraordinary addition wherever he goes.",
       "highlight": "AWS expertise and impact on team efficiency",
       "featured": true,
-      "linkedin": "https://www.linkedin.com/in/peterchen-sde/"
+      "linkedin": "https://www.linkedin.com/in/peterch/"
     },
     {
       "name": "Vishal Kumar",
@@ -26,15 +26,16 @@
       "quote": "Hassan Raza is an exceptionally smart individual, he has experience with multiple technologies from Web to Backend to Mobile. Java, Node, React, Angular, AWS, Python and more just name the technology and this guy has it in his Tech Stack. A very good problem solver, quick to learn, embrace challenges and get the work done. I highly recommend Hassan for Software Engineer position in any company that needs the top talent.",
       "highlight": "Broad technical depth across systems",
       "featured": true,
-      "linkedin": "https://www.linkedin.com/in/vishalkumar-android/"
+      "linkedin": "https://www.linkedin.com/in/vishalkumarmotwani/"
     },
     {
       "name": "Danyal Javed",
       "role": "Software Engineer, Deliotte",
-      "relationship": "Teammate @ ThinkGeniux",
+      "relationship": "Academic Peer and Collaborator",
       "quote": "I highly recommend Hassan Raza for his outstanding skills and expertise in the field of software development. I had the pleasure of working with Hassan at the National Solutions Convention (NaSCon’18) in Pakistan, where we participated in a software development competition as a team of three and emerged as the winners. During the 24-hour long competition, Hassan displayed remarkable dedication, hard work, and a forward-thinking approach. His ability to work non-stop and deliver quality work within the given time frame was truly impressive. I was amazed by his level of productivity and his attention to detail. Hassan is an intelligent, ambitious, energetic, and proactive perfectionist. His quest for proficiency and excellence makes him an invaluable asset to any team. He is a careful, proactive, self-motivated, and a great team player. Working with him is always a pleasure, and his contributions are always significant. In conclusion, I highly recommend Hassan Raza for any software development projects. His skills, professionalism, and dedication to excellence are unmatched, and his contributions to any project will undoubtedly lead to success.",
       "highlight": "High-performance execution under tight deadlines",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/dj0/"
     },
     {
       "name": "Talha Tahir",
@@ -42,7 +43,8 @@
       "relationship": "Teammate @ ThinkGeniux",
       "quote": "Let me tell everyone \"you are such an inspiration, how good of a problem solver you are, how quickly you adopt to different technologies, it has been inspiring for me since we started this journey together in 2015\". Thank you for that.",
       "highlight": "Fast learner with strong execution",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/talhatahirb/"
     },
     {
       "name": "Zahid Ali",
@@ -50,7 +52,8 @@
       "relationship": "Teammate @ ThinkGeniux",
       "quote": "Hassan has worked as a Full Stack developer at ThinkGeniux. He also provided us with good problem solving skills I have known Hassan since the day I joined the organization, and have worked with him on several projects over the time. He distinguished himself in every way due to his exceptional insight into handling core programming skills and coming out with good and easy solutions even when things seem very complicated. Hassan a great learner. He has not let go of a single opportunity to better himself professionall. As his colleague, I have never seen anybody complain, as all his deadlines are met way before time, and He works diligently to ensure that no stones are left unturned when handling crises situations.",
       "highlight": "Strong problem-solving in complex systems",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/zahid-ali-b09822a0/"
     },
     {
       "name": "Muhammad Ali",
@@ -58,7 +61,8 @@
       "relationship": "Cross-functional collaborator",
       "quote": "Hassan consistently impressed us with his technical abilities and dedication to his work. Strong work ethic, attention to detail, and a commitment to delivering high-quality work and his communication skills were also top-notch, always able to clearly articulate complex technical concepts to both technical and non-technical team members. He will be an asset to any organization he work for.",
       "highlight": "Explains complex systems clearly",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/muhammadalich069/"
     },
     {
       "name": "Tosief Ahmad",
@@ -66,15 +70,17 @@
       "relationship": "",
       "quote": "I have had the pleasure of working with as a Full Stack Developer for ThinkGeniux for the past 3 years. During this time, I have been impressed with Hassan's exceptional technical skills and ability to effectively manage our IT infrastructure. Hassan has demonstrated a deep understanding of various software and hardware systems, and is adept at identifying and addressing technical issues before they escalate. I highly recommend Hassan for his qualities  mentioned above.",
       "highlight": "Proactive problem-solving and system ownership",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/tosief-ahmad-165837204/"
     },
     {
       "name": "Hamza Khan",
       "role": "Full Stack Developer",
-      "relationship": "",
+      "relationship": "Academic Peer and Collaborator",
       "quote": "He had excellent time management skills and had a knack for keeping everyone calm and productive during intense crunch periods. Any team would be lucky to have Hassan, I highly recommend.",
       "highlight": "Execution and stability during high-pressure work",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/hamza-k08/"
     },
     {
       "name": "M. Noman Akram",
@@ -82,7 +88,8 @@
       "relationship": "Teammate @ ThinkGeniux",
       "quote": "As I know you as a colleague in the past just want to say about you \"You were really a motivation for us at that times.  Learn a lot from your problem solving and leadership qualities. Have good working and professional ethics\". Highly Recommended.",
       "highlight": "Leadership and strong professional discipline",
-      "featured": false
+      "featured": false,
+      "linkedin": "https://www.linkedin.com/in/nomanakram08/"
     }
   ]
 }

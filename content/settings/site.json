@@ -5,10 +5,6 @@
   "navigation": {
     "primary": [
       {
-        "label": "Home",
-        "href": "/"
-      },
-      {
         "label": "About",
         "href": "/about"
       },

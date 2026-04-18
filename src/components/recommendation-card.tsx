@@ -31,7 +31,7 @@ export function RecommendationCard({
 		const resolvedLineHeight = Number.isFinite(lineHeight)
 			? lineHeight
 			: fontSize * 1.2;
-		const maxClampedHeight = resolvedLineHeight * 6;
+		const maxClampedHeight = resolvedLineHeight * 4;
 
 		setIsOverflowing(el.scrollHeight > maxClampedHeight + 1);
 	}, []);
@@ -73,7 +73,12 @@ export function RecommendationCard({
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				<blockquote className="relative border-l-2 border-primary/20 pl-4 text-default-700">
+				<blockquote
+					className={clsx(
+						"relative border-l-2 border-primary/20 pl-4 text-default-700",
+						!isOverflowing && "md:mb-[calc(1.75rem)]",
+					)}
+				>
 					<span className="absolute -left-1 top-0 text-4xl leading-none text-primary/20">
 						&ldquo;
 					</span>
@@ -82,8 +87,7 @@ export function RecommendationCard({
 						id={quoteId}
 						className={clsx(
 							"relative text-[15px] leading-7 italic",
-							isOverflowing && !isExpanded && "line-clamp-5",
-							!isOverflowing && "md:min-h-[calc(1.75rem*6)]",
+							isOverflowing && !isExpanded && "line-clamp-4",
 						)}
 					>
 						{recommendation.quote}
@@ -93,7 +97,7 @@ export function RecommendationCard({
 					<button
 						aria-controls={quoteId}
 						aria-expanded={isExpanded}
-						className="self-start text-sm font-medium text-primary hover:underline"
+						className="self-start text-sm font-medium text-primary hover:underline cursor-pointer"
 						type="button"
 						onClick={toggleExpanded}
 					>
@@ -106,7 +110,6 @@ export function RecommendationCard({
 						{recommendation.linkedin && (
 							<a
 								aria-label={`${recommendation.name} on LinkedIn`}
-								className="text-default-500 transition-colors hover:text-primary focus:outline-none focus-visible:text-primary"
 								href={recommendation.linkedin}
 								rel="noreferrer"
 								target="_blank"
