@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@heroui/react";
 import clsx from "clsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { HiMiniChatBubbleBottomCenterText } from "react-icons/hi2";
 
 import type { Recommendations } from "@/types/content";
@@ -16,14 +16,44 @@ export function RecommendationCard({
 	recommendation,
 }: RecommendationCardProps) {
 	const quoteRef = useRef<HTMLParagraphElement>(null);
-	const [isClamped, setIsClamped] = useState(false);
+	const [isOverflowing, setIsOverflowing] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
+	const quoteId = useId();
+
+	const updateOverflowState = useCallback(() => {
+		const el = quoteRef.current;
+		if (!el) return;
+
+		const computedStyle = window.getComputedStyle(el);
+		const lineHeight = Number.parseFloat(computedStyle.lineHeight);
+		const fontSize = Number.parseFloat(computedStyle.fontSize);
+		const resolvedLineHeight = Number.isFinite(lineHeight)
+			? lineHeight
+			: fontSize * 1.2;
+		const maxClampedHeight = resolvedLineHeight * 5;
+
+		setIsOverflowing(el.scrollHeight > maxClampedHeight + 1);
+	}, []);
 
 	useEffect(() => {
 		const el = quoteRef.current;
 		if (!el) return;
-		setIsClamped(el.scrollHeight > el.clientHeight);
-	}, []);
+
+		updateOverflowState();
+
+		const resizeObserver = new ResizeObserver(() => {
+			updateOverflowState();
+		});
+		resizeObserver.observe(el);
+
+		void document.fonts?.ready.then(() => {
+			updateOverflowState();
+		});
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, [updateOverflowState]);
 
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => !prev);
@@ -48,16 +78,19 @@ export function RecommendationCard({
 					</span>
 					<p
 						ref={quoteRef}
+						id={quoteId}
 						className={clsx(
 							"relative text-[15px] leading-7 italic",
-							!isExpanded && "line-clamp-5",
+							isOverflowing && !isExpanded && "line-clamp-5",
 						)}
 					>
 						{recommendation.quote}
 					</p>
 				</blockquote>
-				{isClamped && (
+				{isOverflowing && (
 					<button
+						aria-controls={quoteId}
+						aria-expanded={isExpanded}
 						className="self-start text-sm font-medium text-primary hover:underline"
 						type="button"
 						onClick={toggleExpanded}
