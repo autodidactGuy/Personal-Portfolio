@@ -62,7 +62,7 @@ export default function RecommendationsPage({
 					</div>
 				</div>
 
-				<div className="grid gap-5 md:grid-cols-2 xl:gap-6">
+				<div className="grid items-start gap-5 md:grid-cols-2 xl:gap-6">
 					{recommendations.items.map((recommendation) => (
 						<RecommendationCard
 							key={`${recommendation.name}-${recommendation.role}`}
