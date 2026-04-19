@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import worker from "../index.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import worker, { rateLimitMap } from "../index.js";
 
 const ALLOWED_ORIGIN = "https://hassanraza.us";
 
@@ -437,5 +437,261 @@ describe("/contact email delivery", () => {
 		expect(data.error).toBe(
 			"Service temporarily unavailable. Please try again later.",
 		);
+	});
+});
+
+function buildRequestWithHeaders(
+	method,
+	origin,
+	body,
+	extraHeaders = {},
+	contentType = "application/json",
+) {
+	const headers = new Headers();
+
+	if (origin) {
+		headers.set("Origin", origin);
+	}
+
+	if (contentType) {
+		headers.set("Content-Type", contentType);
+	}
+
+	for (const [key, value] of Object.entries(extraHeaders)) {
+		headers.set(key, value);
+	}
+
+	const init = { method, headers };
+
+	if (body !== undefined) {
+		init.body = JSON.stringify(body);
+	}
+
+	return new Request("https://worker.test/contact", init);
+}
+
+describe("/contact honeypot", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("silently accepts when _hp honeypot field is filled (bot trap)", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			_hp: "I am a bot",
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
+		expect(data.message).toBe("Message received");
+	});
+
+	it("does not send email when honeypot is triggered", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			_hp: "bot content",
+		});
+		await worker.fetch(request, env);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeUndefined();
+	});
+
+	it("proceeds normally when _hp is empty", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			_hp: "",
+		});
+		const response = await worker.fetch(request, fullEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
+	});
+});
+
+describe("/contact Turnstile verification", () => {
+	const turnstileEnv = {
+		...env,
+		RESEND_API_KEY: "re_test_key",
+		CONTACT_EMAIL: "inbox@example.com",
+		TURNSTILE_SECRET_KEY: "ts_secret_test",
+	};
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("returns 403 when TURNSTILE_SECRET_KEY is set but token is missing", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		const response = await worker.fetch(request, turnstileEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(403);
+		expect(data.error).toBe("Bot verification is required");
+	});
+
+	it("returns 403 when Turnstile verification fails", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ success: false }), { status: 200 }),
+		);
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			turnstileToken: "invalid-token",
+		});
+		const response = await worker.fetch(request, turnstileEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(403);
+		expect(data.error).toBe("Bot verification failed");
+	});
+
+	it("proceeds when Turnstile verification succeeds", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockImplementation(async (url) => {
+				if (
+					url === "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+				) {
+					return new Response(JSON.stringify({ success: true }), {
+						status: 200,
+					});
+				}
+
+				return new Response(JSON.stringify({ id: "email_123" }), {
+					status: 200,
+				});
+			});
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			turnstileToken: "valid-token",
+		});
+		const response = await worker.fetch(request, turnstileEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
+
+		const turnstileCall = fetchSpy.mock.calls.find(
+			(call) =>
+				call[0] === "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		);
+		expect(turnstileCall).toBeDefined();
+	});
+
+	it("skips Turnstile check when TURNSTILE_SECRET_KEY is not set", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const envWithoutTurnstile = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		const response = await worker.fetch(request, envWithoutTurnstile);
+
+		expect(response.status).toBe(200);
+
+		const turnstileCall = fetchSpy.mock.calls.find(
+			(call) =>
+				call[0] === "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		);
+		expect(turnstileCall).toBeUndefined();
+	});
+});
+
+describe("/contact rate limiting", () => {
+	const fullEnv = {
+		...env,
+		RESEND_API_KEY: "re_test_key",
+		CONTACT_EMAIL: "inbox@example.com",
+	};
+
+	beforeEach(() => {
+		rateLimitMap.clear();
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		rateLimitMap.clear();
+	});
+
+	it("returns 429 after exceeding rate limit from same IP", async () => {
+		for (let i = 0; i < 5; i++) {
+			const request = buildRequestWithHeaders(
+				"POST",
+				ALLOWED_ORIGIN,
+				validPayload,
+				{ "CF-Connecting-IP": "192.168.1.100" },
+			);
+			const response = await worker.fetch(request, fullEnv);
+			expect(response.status).toBe(200);
+		}
+
+		const request = buildRequestWithHeaders(
+			"POST",
+			ALLOWED_ORIGIN,
+			validPayload,
+			{ "CF-Connecting-IP": "192.168.1.100" },
+		);
+		const response = await worker.fetch(request, fullEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(429);
+		expect(data.error).toBe("Too many requests. Please try again later.");
+	});
+
+	it("allows requests from different IPs independently", async () => {
+		for (let i = 0; i < 5; i++) {
+			const request = buildRequestWithHeaders(
+				"POST",
+				ALLOWED_ORIGIN,
+				validPayload,
+				{ "CF-Connecting-IP": "10.0.0.1" },
+			);
+			await worker.fetch(request, fullEnv);
+		}
+
+		const request = buildRequestWithHeaders(
+			"POST",
+			ALLOWED_ORIGIN,
+			validPayload,
+			{ "CF-Connecting-IP": "10.0.0.2" },
+		);
+		const response = await worker.fetch(request, fullEnv);
+
+		expect(response.status).toBe(200);
+	});
+
+	it("does not rate-limit when no IP header is present", async () => {
+		for (let i = 0; i < 10; i++) {
+			const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+			const response = await worker.fetch(request, fullEnv);
+			expect(response.status).toBe(200);
+		}
 	});
 });

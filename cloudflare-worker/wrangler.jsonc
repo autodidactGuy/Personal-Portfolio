@@ -20,4 +20,5 @@
   //   RESEND_API_KEY         – API key from https://resend.com
   //   CONTACT_EMAIL          – Inbox address for contact form submissions
   //   FROM_EMAIL (optional)  – Sender address verified in Resend (default: noreply@contact.hassanraza.us)
+  //   TURNSTILE_SECRET_KEY (optional) – Cloudflare Turnstile secret key for bot verification
 }
