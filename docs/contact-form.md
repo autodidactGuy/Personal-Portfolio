@@ -20,7 +20,7 @@ Set these via `wrangler secret put <NAME>` from the `cloudflare-worker/` directo
 |---|---|
 | `RESEND_API_KEY` | API key from [resend.com](https://resend.com). Required for email delivery. |
 
-Without `RESEND_API_KEY` and `CONTACT_EMAIL` the worker returns **503 Service Unavailable** for every contact submission. `CONTACT_EMAIL` and `FROM_EMAIL` are set as vars in `wrangler.jsonc` (see below) so they deploy automatically, but can be overridden with secrets if needed.
+Without `RESEND_API_KEY` or `CONTACT_EMAIL`, the worker returns **503 Service Unavailable** for every contact submission. `CONTACT_EMAIL` is a required worker var (not a secret), and `CONTACT_EMAIL` and `FROM_EMAIL` are set as vars in `wrangler.jsonc` (see below) so they deploy automatically, but can be overridden with secrets if needed.
 
 ## Optional Cloudflare Worker Secrets
 
