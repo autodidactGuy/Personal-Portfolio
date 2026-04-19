@@ -157,13 +157,34 @@ async function verifyTurnstile(token, ip, secretKey) {
 		form.append("remoteip", ip);
 	}
 
-	const response = await fetch(
-		"https://challenges.cloudflare.com/turnstile/v0/siteverify",
-		{ method: "POST", body: form },
-	);
+	try {
+		const response = await fetch(
+			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
+			{ method: "POST", body: form },
+		);
 
-	const result = await response.json();
-	return result.success === true;
+		if (!response.ok) {
+			console.error("Turnstile verification request failed", {
+				status: response.status,
+				statusText: response.statusText,
+			});
+			return false;
+		}
+
+		const contentType = response.headers.get("content-type") || "";
+		if (!contentType.toLowerCase().includes("application/json")) {
+			console.error("Turnstile verification returned non-JSON response", {
+				contentType,
+			});
+			return false;
+		}
+
+		const result = await response.json();
+		return result.success === true;
+	} catch (error) {
+		console.error("Turnstile verification failed", error);
+		return false;
+	}
 }
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
