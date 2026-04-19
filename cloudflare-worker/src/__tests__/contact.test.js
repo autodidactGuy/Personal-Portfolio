@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "../index.js";
 
 const ALLOWED_ORIGIN = "https://hassanraza.us";
@@ -40,9 +40,22 @@ const validPayload = {
 };
 
 describe("/contact", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it("returns 200 for a valid POST from an allowed origin", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 		const data = await response.json();
 
 		expect(response.status).toBe(200);
@@ -54,9 +67,18 @@ describe("/contact", () => {
 	});
 
 	it("returns 200 when phone is omitted", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const { phone, ...payload } = validPayload;
 		const request = buildRequest("POST", ALLOWED_ORIGIN, payload);
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 
 		expect(response.status).toBe(200);
 		expect((await response.json()).success).toBe(true);
@@ -72,6 +94,15 @@ describe("/contact", () => {
 	});
 
 	it("accepts origin from Referer header when Origin is absent", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const headers = new Headers();
 		headers.set("Referer", `${ALLOWED_ORIGIN}/some-page`);
 		headers.set("Content-Type", "application/json");
@@ -81,7 +112,7 @@ describe("/contact", () => {
 			headers,
 			body: JSON.stringify(validPayload),
 		});
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 		const data = await response.json();
 
 		expect(response.status).toBe(200);
@@ -260,5 +291,151 @@ describe("/contact", () => {
 
 		expect(response.status).toBe(422);
 		expect(data.fields).toContain("message must not exceed 5000 characters");
+	});
+});
+
+describe("/contact email delivery", () => {
+	const emailEnv = {
+		...env,
+		RESEND_API_KEY: "re_test_key",
+		CONTACT_EMAIL: "inbox@example.com",
+	};
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("sends email via Resend template when secrets are configured", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		const response = await worker.fetch(request, emailEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeDefined();
+
+		const payload = JSON.parse(resendCall[1].body);
+		expect(payload.to).toEqual(["inbox@example.com"]);
+		expect(payload.subject).toBe(`[Contact] ${validPayload.subject}`);
+		expect(payload.reply_to).toBe(validPayload.email);
+		expect(payload.template.id).toBe("contact-form-submission");
+		expect(payload.template.variables.sender_name).toBe(validPayload.name);
+		expect(payload.template.variables.sender_email).toBe(validPayload.email);
+		expect(payload.template.variables.sender_phone).toBe(validPayload.phone);
+		expect(payload.template.variables.subject).toBe(validPayload.subject);
+		expect(payload.template.variables.message).toBe(validPayload.message);
+		expect(payload.template.variables.submitted_at).toBeDefined();
+	});
+
+	it("includes phone number in template data when provided", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		await worker.fetch(request, emailEnv);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeDefined();
+		const payload = JSON.parse(resendCall[1].body);
+		expect(payload.template.variables.sender_phone).toBe(validPayload.phone);
+	});
+
+	it("sends empty phone in template data when phone is not provided", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const { phone, ...payloadWithoutPhone } = validPayload;
+		const request = buildRequest("POST", ALLOWED_ORIGIN, payloadWithoutPhone);
+		await worker.fetch(request, emailEnv);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeDefined();
+		const payload = JSON.parse(resendCall[1].body);
+		expect(payload.template.variables.sender_phone).toBe("");
+	});
+
+	it("returns 502 when Resend API returns an error", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ error: "Invalid API key" }), {
+				status: 403,
+			}),
+		);
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		const response = await worker.fetch(request, emailEnv);
+		const data = await response.json();
+
+		expect(response.status).toBe(502);
+		expect(data.error).toBe(
+			"Unable to deliver your message. Please try again later.",
+		);
+	});
+
+	it("uses default from email noreply@contact.hassanraza.us", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		await worker.fetch(request, emailEnv);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeDefined();
+		const payload = JSON.parse(resendCall[1].body);
+		expect(payload.from).toContain("noreply@contact.hassanraza.us");
+	});
+
+	it("uses custom FROM_EMAIL when configured", async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(
+				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+			);
+
+		const customEnv = { ...emailEnv, FROM_EMAIL: "custom@example.com" };
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		await worker.fetch(request, customEnv);
+
+		const resendCall = fetchSpy.mock.calls.find(
+			(call) => call[0] === "https://api.resend.com/emails",
+		);
+		expect(resendCall).toBeDefined();
+		const payload = JSON.parse(resendCall[1].body);
+		expect(payload.from).toContain("custom@example.com");
+	});
+
+	it("returns 503 when RESEND_API_KEY is missing", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(503);
+		expect(data.error).toBe(
+			"Service temporarily unavailable. Please try again later.",
+		);
 	});
 });

@@ -14,4 +14,10 @@
     "ORIGIN": "https://hassanraza.us",
     "REPO_BASE_PATH": ""
   }
+  // Secrets (set via `wrangler secret put`):
+  //   GITHUB_CLIENT_ID      – GitHub OAuth app client ID
+  //   GITHUB_CLIENT_SECRET   – GitHub OAuth app client secret
+  //   RESEND_API_KEY         – API key from https://resend.com
+  //   CONTACT_EMAIL          – Inbox address for contact form submissions
+  //   FROM_EMAIL (optional)  – Sender address verified in Resend (default: noreply@contact.hassanraza.us)
 }

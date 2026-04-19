@@ -18,6 +18,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_REPOSITORY_NAME: repositoryName,
+    NEXT_PUBLIC_CONTACT_WORKER_URL: process.env.NEXT_PUBLIC_CONTACT_WORKER_URL || "https://personal-portfolio.hassanraza632.workers.dev",
   },
   images: {
     unoptimized: true,

@@ -1,5 +1,53 @@
 import { z } from "zod";
 
+async function sendEmail(body, env) {
+	const apiKey = env.RESEND_API_KEY;
+	const toEmail = env.CONTACT_EMAIL;
+
+	if (!apiKey || !toEmail) {
+		return { sent: false, skipped: true };
+	}
+
+	const fromEmail = env.FROM_EMAIL || "noreply@contact.hassanraza.us";
+
+	const response = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify({
+			from: `Contact - Hassan Raza <${fromEmail}>`,
+			to: [toEmail],
+			reply_to: body.email,
+			subject: `[Contact] ${body.subject}`,
+			template: {
+				id: "contact-form-submission",
+				variables: {
+					sender_name: body.name,
+					sender_email: body.email,
+					sender_phone: body.phone || "",
+					subject: body.subject,
+					message: body.message,
+					submitted_at: new Date().toISOString(),
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		console.error("Resend email request failed", {
+			status: response.status,
+			statusText: response.statusText,
+			responseText: errorText,
+		});
+		return { sent: false, skipped: false };
+	}
+
+	return { sent: true, skipped: false };
+}
+
 function parseCookies(cookieHeader) {
 	return String(cookieHeader || "")
 		.split(";")
@@ -372,6 +420,27 @@ export default {
 				return jsonResponse(
 					{ error: "Validation failed", fields: errors },
 					422,
+					corsHeaders(origin),
+				);
+			}
+
+			const email = await sendEmail(body, env);
+
+			if (email.skipped) {
+				console.error(
+					"Email delivery skipped: RESEND_API_KEY or CONTACT_EMAIL is not configured",
+				);
+				return jsonResponse(
+					{ error: "Service temporarily unavailable. Please try again later." },
+					503,
+					corsHeaders(origin),
+				);
+			}
+
+			if (!email.sent) {
+				return jsonResponse(
+					{ error: "Unable to deliver your message. Please try again later." },
+					502,
 					corsHeaders(origin),
 				);
 			}
