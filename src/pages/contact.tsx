@@ -11,7 +11,9 @@ import {
 	toast,
 } from "@heroui/react";
 import type { GetStaticProps } from "next";
+import Script from "next/script";
 import { useTheme } from "next-themes";
+import { useCallback, useRef, useState } from "react";
 import { InlineWidget } from "react-calendly";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { FaLinkedin } from "react-icons/fa6";
@@ -53,6 +55,24 @@ export default function Contact({ settings }: ContactPageProps) {
 	const isDark = activeTheme === "dark";
 	// const toastTheme = activeTheme as "light" | "dark" | "system";
 
+	const [turnstileToken, setTurnstileToken] = useState("");
+	const turnstileRef = useRef<HTMLDivElement>(null);
+	const turnstileWidgetId = useRef<string | undefined>(undefined);
+	const honeypotRef = useRef<HTMLInputElement>(null);
+	const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+	const onTurnstileReady = useCallback(() => {
+		if (!turnstileRef.current || !turnstileSiteKey || !window.turnstile) {
+			return;
+		}
+
+		turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+			sitekey: turnstileSiteKey,
+			callback: (token: string) => setTurnstileToken(token),
+			"expired-callback": () => setTurnstileToken(""),
+		});
+	}, [turnstileSiteKey]);
+
 	const {
 		control,
 		handleSubmit,
@@ -80,7 +100,11 @@ export default function Contact({ settings }: ContactPageProps) {
 			const response = await fetch(new URL("/contact", workerUrl).toString(), {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(data),
+				body: JSON.stringify({
+					...data,
+					_hp: honeypotRef.current?.value ?? "",
+					...(turnstileToken ? { turnstileToken } : {}),
+				}),
 			});
 
 			if (!response.ok) {
@@ -92,6 +116,11 @@ export default function Contact({ settings }: ContactPageProps) {
 				`Thanks for reaching out, ${data.name}! I will get back to you soon.`,
 			);
 			reset();
+			setTurnstileToken("");
+
+			if (window.turnstile && turnstileWidgetId.current) {
+				window.turnstile.reset(turnstileWidgetId.current);
+			}
 		} catch {
 			toast.danger(`Oops! Something went wrong. Please try again later.`);
 		}
@@ -285,6 +314,34 @@ export default function Contact({ settings }: ContactPageProps) {
 							</TextField>
 						)}
 					/>
+
+					<div
+						aria-hidden="true"
+						style={{ position: "absolute", left: "-9999px" }}
+					>
+						<label htmlFor="_hp">
+							Leave this empty
+							<input
+								autoComplete="off"
+								id="_hp"
+								name="_hp"
+								ref={honeypotRef}
+								tabIndex={-1}
+								type="text"
+							/>
+						</label>
+					</div>
+
+					{turnstileSiteKey ? (
+						<>
+							<Script
+								onReady={onTurnstileReady}
+								src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+								strategy="afterInteractive"
+							/>
+							<div ref={turnstileRef} />
+						</>
+					) : null}
 
 					<div className="flex justify-start pt-2">
 						<button

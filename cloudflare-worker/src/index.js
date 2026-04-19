@@ -148,6 +148,108 @@ function jsonResponse(body, status, extraHeaders = {}) {
 	});
 }
 
+async function verifyTurnstile(token, ip, secretKey) {
+	const form = new URLSearchParams();
+	form.append("secret", secretKey);
+	form.append("response", token);
+
+	if (ip) {
+		form.append("remoteip", ip);
+	}
+
+	try {
+		const response = await fetch(
+			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
+			{ method: "POST", body: form },
+		);
+
+		if (!response.ok) {
+			console.error("Turnstile verification request failed", {
+				status: response.status,
+				statusText: response.statusText,
+			});
+			return false;
+		}
+
+		const contentType = response.headers.get("content-type") || "";
+		if (!contentType.toLowerCase().includes("application/json")) {
+			console.error("Turnstile verification returned non-JSON response", {
+				contentType,
+			});
+			return false;
+		}
+
+		const result = await response.json();
+		return result.success === true;
+	} catch (error) {
+		console.error("Turnstile verification failed", error);
+		return false;
+	}
+}
+
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_MAX_ENTRIES = 10000;
+const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
+const rateLimitMap = new Map();
+let lastPruneTime = 0;
+
+function pruneExpiredEntries(now) {
+	if (now - lastPruneTime < RATE_LIMIT_PRUNE_INTERVAL_MS) {
+		return;
+	}
+	lastPruneTime = now;
+
+	for (const [ip, entry] of rateLimitMap) {
+		const valid = entry.timestamps.filter(
+			(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
+		);
+		if (valid.length === 0) {
+			rateLimitMap.delete(ip);
+		} else {
+			entry.timestamps = valid;
+		}
+	}
+
+	if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
+		const excess = rateLimitMap.size - RATE_LIMIT_MAX_ENTRIES;
+		const iter = rateLimitMap.keys();
+		for (let i = 0; i < excess; i++) {
+			rateLimitMap.delete(iter.next().value);
+		}
+	}
+}
+
+function isRateLimited(ip) {
+	const now = Date.now();
+
+	pruneExpiredEntries(now);
+
+	const entry = rateLimitMap.get(ip);
+
+	if (!entry) {
+		rateLimitMap.set(ip, { timestamps: [now] });
+		return false;
+	}
+
+	entry.timestamps = entry.timestamps.filter(
+		(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
+	);
+
+	if (entry.timestamps.length === 0) {
+		rateLimitMap.delete(ip);
+		rateLimitMap.set(ip, { timestamps: [now] });
+		return false;
+	}
+
+	if (entry.timestamps.length >= RATE_LIMIT_MAX) {
+		return true;
+	}
+
+	entry.timestamps.push(now);
+	return false;
+}
+
 const contactSchema = z.object({
 	name: z
 		.string({ error: "name is required" })
@@ -220,6 +322,13 @@ function getRequestOrigin(request, url) {
 		return null;
 	}
 }
+
+function resetRateLimitState() {
+	rateLimitMap.clear();
+	lastPruneTime = 0;
+}
+
+export { rateLimitMap, resetRateLimitState };
 
 export default {
 	async fetch(request, env) {
@@ -412,6 +521,51 @@ export default {
 					400,
 					corsHeaders(origin),
 				);
+			}
+
+			if (body && typeof body === "object" && body._hp) {
+				return jsonResponse(
+					{ success: true, message: "Message received" },
+					200,
+					corsHeaders(origin),
+				);
+			}
+
+			const clientIp = request.headers.get("CF-Connecting-IP") || null;
+
+			if (clientIp && isRateLimited(clientIp)) {
+				return jsonResponse(
+					{ error: "Too many requests. Please try again later." },
+					429,
+					corsHeaders(origin),
+				);
+			}
+
+			const turnstileToken =
+				body && typeof body === "object" ? body.turnstileToken : undefined;
+
+			if (env.TURNSTILE_SECRET_KEY) {
+				if (!turnstileToken) {
+					return jsonResponse(
+						{ error: "Bot verification is required" },
+						403,
+						corsHeaders(origin),
+					);
+				}
+
+				const turnstileValid = await verifyTurnstile(
+					turnstileToken,
+					clientIp,
+					env.TURNSTILE_SECRET_KEY,
+				);
+
+				if (!turnstileValid) {
+					return jsonResponse(
+						{ error: "Bot verification failed" },
+						403,
+						corsHeaders(origin),
+					);
+				}
 			}
 
 			const { valid, errors } = validateContactPayload(body);
