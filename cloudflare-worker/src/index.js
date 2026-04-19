@@ -189,10 +189,42 @@ async function verifyTurnstile(token, ip, secretKey) {
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_MAX_ENTRIES = 10000;
+const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
 const rateLimitMap = new Map();
+let lastPruneTime = 0;
+
+function pruneExpiredEntries(now) {
+	if (now - lastPruneTime < RATE_LIMIT_PRUNE_INTERVAL_MS) {
+		return;
+	}
+	lastPruneTime = now;
+
+	for (const [ip, entry] of rateLimitMap) {
+		const valid = entry.timestamps.filter(
+			(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
+		);
+		if (valid.length === 0) {
+			rateLimitMap.delete(ip);
+		} else {
+			entry.timestamps = valid;
+		}
+	}
+
+	if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
+		const excess = rateLimitMap.size - RATE_LIMIT_MAX_ENTRIES;
+		const iter = rateLimitMap.keys();
+		for (let i = 0; i < excess; i++) {
+			rateLimitMap.delete(iter.next().value);
+		}
+	}
+}
 
 function isRateLimited(ip) {
 	const now = Date.now();
+
+	pruneExpiredEntries(now);
+
 	const entry = rateLimitMap.get(ip);
 
 	if (!entry) {
@@ -291,7 +323,12 @@ function getRequestOrigin(request, url) {
 	}
 }
 
-export { rateLimitMap };
+function resetRateLimitState() {
+	rateLimitMap.clear();
+	lastPruneTime = 0;
+}
+
+export { rateLimitMap, resetRateLimitState };
 
 export default {
 	async fetch(request, env) {

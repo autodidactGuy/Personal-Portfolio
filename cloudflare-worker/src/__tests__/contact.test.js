@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import worker, { rateLimitMap } from "../index.js";
+import worker, { rateLimitMap, resetRateLimitState } from "../index.js";
 
 const ALLOWED_ORIGIN = "https://hassanraza.us";
 
@@ -633,7 +633,7 @@ describe("/contact rate limiting", () => {
 	};
 
 	beforeEach(() => {
-		rateLimitMap.clear();
+		resetRateLimitState();
 		vi.spyOn(globalThis, "fetch").mockResolvedValue(
 			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
 		);
@@ -641,7 +641,7 @@ describe("/contact rate limiting", () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		rateLimitMap.clear();
+		resetRateLimitState();
 	});
 
 	it("returns 429 after exceeding rate limit from same IP", async () => {
@@ -697,5 +697,28 @@ describe("/contact rate limiting", () => {
 			const response = await worker.fetch(request, fullEnv);
 			expect(response.status).toBe(200);
 		}
+	});
+
+	it("prunes expired entries from other IPs during global sweep", async () => {
+		const now = Date.now();
+		vi.spyOn(Date, "now").mockReturnValue(now);
+
+		rateLimitMap.set("expired-ip-1", { timestamps: [now - 11 * 60 * 1000] });
+		rateLimitMap.set("expired-ip-2", { timestamps: [now - 20 * 60 * 1000] });
+
+		expect(rateLimitMap.has("expired-ip-1")).toBe(true);
+		expect(rateLimitMap.has("expired-ip-2")).toBe(true);
+
+		const request = buildRequestWithHeaders(
+			"POST",
+			ALLOWED_ORIGIN,
+			validPayload,
+			{ "CF-Connecting-IP": "10.0.0.50" },
+		);
+		await worker.fetch(request, fullEnv);
+
+		expect(rateLimitMap.has("expired-ip-1")).toBe(false);
+		expect(rateLimitMap.has("expired-ip-2")).toBe(false);
+		expect(rateLimitMap.has("10.0.0.50")).toBe(true);
 	});
 });
