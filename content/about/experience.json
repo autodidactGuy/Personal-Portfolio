@@ -24,6 +24,7 @@
         "BullMQ",
         "AWS ECS",
         "AWS S3",
+        "AWS SQS",
         "AWS DynamoDB",
         "AWS CloudWatch",
         "Docker",
