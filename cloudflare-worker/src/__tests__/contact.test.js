@@ -326,7 +326,9 @@ describe("/contact email delivery", () => {
 
 		const payload = JSON.parse(resendCall[1].body);
 		expect(payload.to).toEqual(["inbox@example.com"]);
-		expect(payload.subject).toBe(`[Contact] ${validPayload.subject}`);
+		expect(payload.subject).toBe(
+			`[Message from ${validPayload.name}] ${validPayload.subject}`,
+		);
 		expect(payload.reply_to).toBe(validPayload.email);
 		expect(payload.template.id).toBe("contact-form-submission");
 		expect(payload.template.variables.sender_name).toBe(validPayload.name);
