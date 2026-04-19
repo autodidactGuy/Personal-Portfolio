@@ -77,7 +77,7 @@ export default function Contact({ settings }: ContactPageProps) {
 				throw new Error("Missing contact worker URL");
 			}
 
-			const response = await fetch(`${workerUrl}/contact`, {
+			const response = await fetch(new URL("/contact", workerUrl).toString(), {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(data),
