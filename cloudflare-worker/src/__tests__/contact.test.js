@@ -225,4 +225,40 @@ describe("/contact", () => {
 		expect(response.status).toBe(422);
 		expect(data.fields).toContain("message must be at least 10 characters");
 	});
+
+	it("returns 422 when name exceeds max length", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			name: "a".repeat(101),
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(422);
+		expect(data.fields).toContain("name must not exceed 100 characters");
+	});
+
+	it("returns 422 when subject exceeds max length", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			subject: "a".repeat(201),
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(422);
+		expect(data.fields).toContain("subject must not exceed 200 characters");
+	});
+
+	it("returns 422 when message exceeds max length", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			message: "a".repeat(5001),
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(422);
+		expect(data.fields).toContain("message must not exceed 5000 characters");
+	});
 });

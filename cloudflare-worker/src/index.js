@@ -137,6 +137,8 @@ function validateContactPayload(data) {
 
 	if (!data.name || typeof data.name !== "string" || !data.name.trim()) {
 		errors.push("name is required");
+	} else if (data.name.length > 100) {
+		errors.push("name must not exceed 100 characters");
 	}
 
 	if (
@@ -154,6 +156,8 @@ function validateContactPayload(data) {
 		data.subject.trim().length < 10
 	) {
 		errors.push("subject must be at least 10 characters");
+	} else if (data.subject.length > 200) {
+		errors.push("subject must not exceed 200 characters");
 	}
 
 	if (
@@ -162,6 +166,8 @@ function validateContactPayload(data) {
 		data.message.trim().length < 10
 	) {
 		errors.push("message must be at least 10 characters");
+	} else if (data.message.length > 5000) {
+		errors.push("message must not exceed 5000 characters");
 	}
 
 	if (data.phone !== undefined && data.phone !== null && data.phone !== "") {
