@@ -351,7 +351,7 @@ export default {
 		}
 
 		if (url.pathname === "/contact") {
-			const origin = sanitizeOriginCandidate(request.headers.get("Origin"));
+			const origin = getRequestOrigin(request, url);
 
 			if (!origin || !isAllowedOrigin(origin, env)) {
 				return jsonResponse({ error: "Invalid origin" }, 403);

@@ -62,13 +62,30 @@ describe("/contact", () => {
 		expect((await response.json()).success).toBe(true);
 	});
 
-	it("returns 403 when Origin header is missing", async () => {
+	it("returns 403 when no origin can be determined", async () => {
 		const request = buildRequest("POST", null, validPayload);
 		const response = await worker.fetch(request, env);
 		const data = await response.json();
 
 		expect(response.status).toBe(403);
 		expect(data.error).toBe("Invalid origin");
+	});
+
+	it("accepts origin from Referer header when Origin is absent", async () => {
+		const headers = new Headers();
+		headers.set("Referer", `${ALLOWED_ORIGIN}/some-page`);
+		headers.set("Content-Type", "application/json");
+
+		const request = new Request("https://worker.test/contact", {
+			method: "POST",
+			headers,
+			body: JSON.stringify(validPayload),
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
 	});
 
 	it("returns 403 for a disallowed origin", async () => {
