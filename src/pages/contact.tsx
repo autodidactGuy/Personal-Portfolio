@@ -110,7 +110,10 @@ export default function Contact({ settings }: ContactPageProps) {
 			}
 
 			toast.success(
-				`Thanks for reaching out, ${data.name}! I will get back to you soon.`,
+				`Hey, ${data.name}! Thanks for reaching out. I will get back to you soon.`,
+				{
+					timeout: 3000,
+				},
 			);
 			reset();
 			setTurnstileToken("");
@@ -119,7 +122,9 @@ export default function Contact({ settings }: ContactPageProps) {
 				window.turnstile.reset(turnstileWidgetId.current);
 			}
 		} catch {
-			toast.danger(`Oops! Something went wrong. Please try again later.`);
+			toast.danger(`Oops! Something went wrong. Please try again later.`, {
+				timeout: 3000,
+			});
 		}
 	};
 
