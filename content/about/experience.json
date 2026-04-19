@@ -28,7 +28,8 @@
         "AWS DynamoDB",
         "AWS CloudWatch",
         "Docker",
-        "Event-Driven Architecture",
+        "Clean Architecture",
+        "Event-Driven",
         "Payments (Adyen/Stripe)"
       ],
       "image": "/experience/overflow.png"
