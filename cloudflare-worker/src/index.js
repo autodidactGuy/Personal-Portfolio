@@ -36,6 +36,12 @@ async function sendEmail(body, env) {
 	});
 
 	if (!response.ok) {
+		const errorText = await response.text();
+		console.error("Resend email request failed", {
+			status: response.status,
+			statusText: response.statusText,
+			responseText: errorText,
+		});
 		return { sent: false, skipped: false };
 	}
 
