@@ -111,7 +111,7 @@ function validateContactPayload(data) {
 	if (
 		!data.email ||
 		typeof data.email !== "string" ||
-		!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
+		!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(data.email)
 	) {
 		errors.push("A valid email is required");
 	}
@@ -132,7 +132,7 @@ function validateContactPayload(data) {
 		errors.push("message must be at least 10 characters");
 	}
 
-	if (data.phone != null && data.phone !== "") {
+	if (data.phone !== undefined && data.phone !== null && data.phone !== "") {
 		if (typeof data.phone !== "string" || !/^\d{10}$/.test(data.phone)) {
 			errors.push("phone must be a 10-digit number");
 		}
