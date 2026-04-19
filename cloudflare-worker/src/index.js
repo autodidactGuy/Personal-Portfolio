@@ -21,14 +21,16 @@ async function sendEmail(body, env) {
 			to: [toEmail],
 			reply_to: body.email,
 			subject: `[Contact] ${body.subject}`,
-			template_id: "contact-form-submission",
-			template_data: {
-				sender_name: body.name,
-				sender_email: body.email,
-				sender_phone: body.phone || "",
-				subject: body.subject,
-				message: body.message,
-				submitted_at: new Date().toISOString(),
+			template: {
+				id: "contact-form-submission",
+				variables: {
+					sender_name: body.name,
+					sender_email: body.email,
+					sender_phone: body.phone || "",
+					subject: body.subject,
+					message: body.message,
+					submitted_at: new Date().toISOString(),
+				},
 			},
 		}),
 	});

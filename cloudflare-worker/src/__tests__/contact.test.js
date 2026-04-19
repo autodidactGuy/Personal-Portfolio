@@ -297,13 +297,13 @@ describe("/contact email delivery", () => {
 		expect(payload.to).toEqual(["inbox@example.com"]);
 		expect(payload.subject).toBe(`[Contact] ${validPayload.subject}`);
 		expect(payload.reply_to).toBe(validPayload.email);
-		expect(payload.template_id).toBe("contact-form-submission");
-		expect(payload.template_data.sender_name).toBe(validPayload.name);
-		expect(payload.template_data.sender_email).toBe(validPayload.email);
-		expect(payload.template_data.sender_phone).toBe(validPayload.phone);
-		expect(payload.template_data.subject).toBe(validPayload.subject);
-		expect(payload.template_data.message).toBe(validPayload.message);
-		expect(payload.template_data.submitted_at).toBeDefined();
+		expect(payload.template.id).toBe("contact-form-submission");
+		expect(payload.template.variables.sender_name).toBe(validPayload.name);
+		expect(payload.template.variables.sender_email).toBe(validPayload.email);
+		expect(payload.template.variables.sender_phone).toBe(validPayload.phone);
+		expect(payload.template.variables.subject).toBe(validPayload.subject);
+		expect(payload.template.variables.message).toBe(validPayload.message);
+		expect(payload.template.variables.submitted_at).toBeDefined();
 	});
 
 	it("includes phone number in template data when provided", async () => {
@@ -320,7 +320,7 @@ describe("/contact email delivery", () => {
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
 		const payload = JSON.parse(resendCall[1].body);
-		expect(payload.template_data.sender_phone).toBe(validPayload.phone);
+		expect(payload.template.variables.sender_phone).toBe(validPayload.phone);
 	});
 
 	it("sends empty phone in template data when phone is not provided", async () => {
@@ -338,7 +338,7 @@ describe("/contact email delivery", () => {
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
 		const payload = JSON.parse(resendCall[1].body);
-		expect(payload.template_data.sender_phone).toBe("");
+		expect(payload.template.variables.sender_phone).toBe("");
 	});
 
 	it("returns 502 when Resend API returns an error", async () => {
