@@ -261,14 +261,13 @@ const contactSchema = z.object({
 		.max(254, "A valid email is required")
 		.email("A valid email is required"),
 	subject: z
-		.string({ error: "subject must be at least 10 characters" })
+		.string({ error: "subject is required" })
 		.trim()
-		.min(10, "subject must be at least 10 characters")
-		.max(200, "subject must not exceed 200 characters"),
+		.min(1, "subject is required"),
 	message: z
-		.string({ error: "message must be at least 10 characters" })
+		.string({ error: "message is required" })
 		.trim()
-		.min(10, "message must be at least 10 characters")
+		.min(1, "message is required")
 		.max(5000, "message must not exceed 5000 characters"),
 	phone: z
 		.string()
