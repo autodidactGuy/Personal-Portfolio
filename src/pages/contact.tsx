@@ -80,10 +80,9 @@ export default function Contact({ settings }: ContactPageProps) {
 					body: JSON.stringify(data),
 				});
 
-				const result = await response.json();
-
 				if (!response.ok) {
-					throw new Error(result.error || "Something went wrong");
+					const result = await response.json().catch(() => null);
+					throw new Error(result?.error || "Failed to submit contact form");
 				}
 			}
 
