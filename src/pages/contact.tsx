@@ -469,7 +469,11 @@ export default function Contact({ settings }: ContactPageProps) {
 				</section>
 
 				<section className="lg:hidden">
-					<Accordion className="space-y-4" hideSeparator>
+					<Accordion
+						className="space-y-4"
+						defaultExpandedKeys={["contact-form"]}
+						hideSeparator
+					>
 						<Accordion.Item
 							className="overflow-hidden rounded-3xl border border-default-200/80 bg-background/80 shadow-sm"
 							id="contact-form"
