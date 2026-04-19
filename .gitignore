@@ -38,3 +38,4 @@ next-env.d.ts
 cloudflare-worker/.wrangler/
 cloudflare-worker/.dev.vars*
 cloudflare-worker/node_modules/
+cloudflare-worker/package-lock.json
