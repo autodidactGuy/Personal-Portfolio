@@ -193,8 +193,8 @@ describe("/contact", () => {
 		expect(data.error).toBe("Validation failed");
 		expect(data.fields).toContain("name is required");
 		expect(data.fields).toContain("A valid email is required");
-		expect(data.fields).toContain("subject must be at least 10 characters");
-		expect(data.fields).toContain("message must be at least 10 characters");
+		expect(data.fields).toContain("subject is required");
+		expect(data.fields).toContain("message is required");
 	});
 
 	it("returns 422 for invalid email format", async () => {
@@ -231,30 +231,6 @@ describe("/contact", () => {
 
 		expect(response.status).toBe(422);
 		expect(data.fields).toContain("phone must be a 10-digit number");
-	});
-
-	it("returns 422 when subject is too short", async () => {
-		const request = buildRequest("POST", ALLOWED_ORIGIN, {
-			...validPayload,
-			subject: "Hi",
-		});
-		const response = await worker.fetch(request, env);
-		const data = await response.json();
-
-		expect(response.status).toBe(422);
-		expect(data.fields).toContain("subject must be at least 10 characters");
-	});
-
-	it("returns 422 when message is too short", async () => {
-		const request = buildRequest("POST", ALLOWED_ORIGIN, {
-			...validPayload,
-			message: "Hi",
-		});
-		const response = await worker.fetch(request, env);
-		const data = await response.json();
-
-		expect(response.status).toBe(422);
-		expect(data.fields).toContain("message must be at least 10 characters");
 	});
 
 	it("returns 422 when name exceeds max length", async () => {

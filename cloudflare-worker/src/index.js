@@ -263,7 +263,8 @@ const contactSchema = z.object({
 	subject: z
 		.string({ error: "subject is required" })
 		.trim()
-		.min(1, "subject is required"),
+		.min(1, "subject is required")
+		.max(200, "subject must not exceed 200 characters"),
 	message: z
 		.string({ error: "message is required" })
 		.trim()
