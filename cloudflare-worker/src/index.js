@@ -1,14 +1,5 @@
 import { z } from "zod";
 
-function escapeHtml(text) {
-	return String(text)
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
-}
-
 async function sendEmail(body, env) {
 	const apiKey = env.RESEND_API_KEY;
 	const toEmail = env.CONTACT_EMAIL;
@@ -17,22 +8,7 @@ async function sendEmail(body, env) {
 		return { sent: false, skipped: true };
 	}
 
-	const fromEmail = env.FROM_EMAIL || "contact@hassanraza.us";
-	const phoneLine = body.phone
-		? `<p><strong>Phone:</strong> ${escapeHtml(body.phone)}</p>`
-		: "";
-
-	const html = [
-		"<h2>New Contact Form Submission</h2>",
-		`<p><strong>Name:</strong> ${escapeHtml(body.name)}</p>`,
-		`<p><strong>Email:</strong> ${escapeHtml(body.email)}</p>`,
-		phoneLine,
-		`<p><strong>Subject:</strong> ${escapeHtml(body.subject)}</p>`,
-		"<hr />",
-		`<p>${escapeHtml(body.message).replace(/\n/g, "<br />")}</p>`,
-	]
-		.filter(Boolean)
-		.join("\n");
+	const fromEmail = env.FROM_EMAIL || "noreply@contact.hassanraza.us";
 
 	const response = await fetch("https://api.resend.com/emails", {
 		method: "POST",
@@ -43,9 +19,17 @@ async function sendEmail(body, env) {
 		body: JSON.stringify({
 			from: `Portfolio Contact <${fromEmail}>`,
 			to: [toEmail],
-			subject: `[Contact] ${body.subject}`,
 			reply_to: body.email,
-			html,
+			subject: `[Contact] ${body.subject}`,
+			template_id: "contact-form-submission",
+			template_data: {
+				sender_name: body.name,
+				sender_email: body.email,
+				sender_phone: body.phone || "",
+				subject: body.subject,
+				message: body.message,
+				submitted_at: new Date().toISOString(),
+			},
 		}),
 	});
 

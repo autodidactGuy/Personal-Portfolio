@@ -274,7 +274,7 @@ describe("/contact email delivery", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("sends email via Resend when secrets are configured", async () => {
+	it("sends email via Resend template when secrets are configured", async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockResolvedValue(
@@ -297,11 +297,16 @@ describe("/contact email delivery", () => {
 		expect(payload.to).toEqual(["inbox@example.com"]);
 		expect(payload.subject).toBe(`[Contact] ${validPayload.subject}`);
 		expect(payload.reply_to).toBe(validPayload.email);
-		expect(payload.html).toContain(validPayload.name);
-		expect(payload.html).toContain(validPayload.message);
+		expect(payload.template_id).toBe("contact-form-submission");
+		expect(payload.template_data.sender_name).toBe(validPayload.name);
+		expect(payload.template_data.sender_email).toBe(validPayload.email);
+		expect(payload.template_data.sender_phone).toBe(validPayload.phone);
+		expect(payload.template_data.subject).toBe(validPayload.subject);
+		expect(payload.template_data.message).toBe(validPayload.message);
+		expect(payload.template_data.submitted_at).toBeDefined();
 	});
 
-	it("includes phone number in email when provided", async () => {
+	it("includes phone number in template data when provided", async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockResolvedValue(
@@ -315,10 +320,10 @@ describe("/contact email delivery", () => {
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
 		const payload = JSON.parse(resendCall[1].body);
-		expect(payload.html).toContain(validPayload.phone);
+		expect(payload.template_data.sender_phone).toBe(validPayload.phone);
 	});
 
-	it("omits phone line when phone is not provided", async () => {
+	it("sends empty phone in template data when phone is not provided", async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockResolvedValue(
@@ -333,7 +338,7 @@ describe("/contact email delivery", () => {
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
 		const payload = JSON.parse(resendCall[1].body);
-		expect(payload.html).not.toContain("Phone:");
+		expect(payload.template_data.sender_phone).toBe("");
 	});
 
 	it("returns 502 when Resend API returns an error", async () => {
@@ -353,31 +358,21 @@ describe("/contact email delivery", () => {
 		);
 	});
 
-	it("escapes HTML entities in email body", async () => {
+	it("uses default from email noreply@contact.hassanraza.us", async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockResolvedValue(
 				new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
 			);
 
-		const xssPayload = {
-			...validPayload,
-			name: '<script>alert("xss")</script>',
-			subject: "Test subject for escaping",
-			message: 'Message with <b>bold</b> & "quotes"',
-		};
-
-		const request = buildRequest("POST", ALLOWED_ORIGIN, xssPayload);
+		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
 		await worker.fetch(request, emailEnv);
 
 		const resendCall = fetchSpy.mock.calls.find(
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
 		const payload = JSON.parse(resendCall[1].body);
-		expect(payload.html).not.toContain("<script>");
-		expect(payload.html).toContain("&lt;script&gt;");
-		expect(payload.html).toContain("&amp;");
-		expect(payload.html).toContain("&quot;quotes&quot;");
+		expect(payload.from).toContain("noreply@contact.hassanraza.us");
 	});
 
 	it("uses custom FROM_EMAIL when configured", async () => {
