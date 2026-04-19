@@ -183,6 +183,12 @@ function isRateLimited(ip) {
 		(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
 	);
 
+	if (entry.timestamps.length === 0) {
+		rateLimitMap.delete(ip);
+		rateLimitMap.set(ip, { timestamps: [now] });
+		return false;
+	}
+
 	if (entry.timestamps.length >= RATE_LIMIT_MAX) {
 		return true;
 	}
@@ -447,10 +453,7 @@ export default {
 				);
 			}
 
-			const clientIp =
-				request.headers.get("CF-Connecting-IP") ||
-				request.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ||
-				null;
+			const clientIp = request.headers.get("CF-Connecting-IP") || null;
 
 			if (clientIp && isRateLimited(clientIp)) {
 				return jsonResponse(
