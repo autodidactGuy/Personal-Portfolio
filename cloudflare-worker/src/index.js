@@ -20,7 +20,7 @@ async function sendEmail(body, env) {
 			from: `Contact - Hassan Raza <${fromEmail}>`,
 			to: [toEmail],
 			reply_to: body.email,
-			subject: `[Contact] ${body.subject}`,
+			subject: `[Message from ${body.name}] ${body.subject}`,
 			template: {
 				id: "contact-form-submission",
 				variables: {
