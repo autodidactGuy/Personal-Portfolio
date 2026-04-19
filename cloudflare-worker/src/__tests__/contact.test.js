@@ -548,7 +548,10 @@ describe("/contact Turnstile verification", () => {
 
 	it("returns 403 when Turnstile verification fails", async () => {
 		vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(JSON.stringify({ success: false }), { status: 200 }),
+			new Response(JSON.stringify({ success: false }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			}),
 		);
 
 		const request = buildRequest("POST", ALLOWED_ORIGIN, {
@@ -571,6 +574,7 @@ describe("/contact Turnstile verification", () => {
 				) {
 					return new Response(JSON.stringify({ success: true }), {
 						status: 200,
+						headers: { "Content-Type": "application/json" },
 					});
 				}
 
