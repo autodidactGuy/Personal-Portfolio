@@ -40,9 +40,22 @@ const validPayload = {
 };
 
 describe("/contact", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it("returns 200 for a valid POST from an allowed origin", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 		const data = await response.json();
 
 		expect(response.status).toBe(200);
@@ -54,9 +67,18 @@ describe("/contact", () => {
 	});
 
 	it("returns 200 when phone is omitted", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const { phone, ...payload } = validPayload;
 		const request = buildRequest("POST", ALLOWED_ORIGIN, payload);
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 
 		expect(response.status).toBe(200);
 		expect((await response.json()).success).toBe(true);
@@ -72,6 +94,15 @@ describe("/contact", () => {
 	});
 
 	it("accepts origin from Referer header when Origin is absent", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ id: "email_123" }), { status: 200 }),
+		);
+
+		const fullEnv = {
+			...env,
+			RESEND_API_KEY: "re_test_key",
+			CONTACT_EMAIL: "inbox@example.com",
+		};
 		const headers = new Headers();
 		headers.set("Referer", `${ALLOWED_ORIGIN}/some-page`);
 		headers.set("Content-Type", "application/json");
@@ -81,7 +112,7 @@ describe("/contact", () => {
 			headers,
 			body: JSON.stringify(validPayload),
 		});
-		const response = await worker.fetch(request, env);
+		const response = await worker.fetch(request, fullEnv);
 		const data = await response.json();
 
 		expect(response.status).toBe(200);
@@ -397,12 +428,14 @@ describe("/contact email delivery", () => {
 		expect(payload.from).toContain("custom@example.com");
 	});
 
-	it("skips email and returns 200 when RESEND_API_KEY is missing", async () => {
+	it("returns 503 when RESEND_API_KEY is missing", async () => {
 		const request = buildRequest("POST", ALLOWED_ORIGIN, validPayload);
 		const response = await worker.fetch(request, env);
 		const data = await response.json();
 
-		expect(response.status).toBe(200);
-		expect(data.success).toBe(true);
+		expect(response.status).toBe(503);
+		expect(data.error).toBe(
+			"Service temporarily unavailable. Please try again later.",
+		);
 	});
 });

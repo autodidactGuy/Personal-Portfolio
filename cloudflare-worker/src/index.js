@@ -426,7 +426,18 @@ export default {
 
 			const email = await sendEmail(body, env);
 
-			if (!email.sent && !email.skipped) {
+			if (email.skipped) {
+				console.error(
+					"Email delivery skipped: RESEND_API_KEY or CONTACT_EMAIL is not configured",
+				);
+				return jsonResponse(
+					{ error: "Service temporarily unavailable. Please try again later." },
+					503,
+					corsHeaders(origin),
+				);
+			}
+
+			if (!email.sent) {
 				return jsonResponse(
 					{ error: "Unable to deliver your message. Please try again later." },
 					502,
