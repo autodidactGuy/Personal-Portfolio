@@ -78,6 +78,69 @@ function sanitizeOriginCandidate(value) {
 	}
 }
 
+function corsHeaders(origin) {
+	return {
+		"Access-Control-Allow-Origin": origin,
+		"Access-Control-Allow-Methods": "POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type",
+		"Access-Control-Max-Age": "86400",
+	};
+}
+
+function jsonResponse(body, status, extraHeaders = {}) {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: {
+			"Content-Type": "application/json; charset=utf-8",
+			...extraHeaders,
+		},
+	});
+}
+
+function validateContactPayload(data) {
+	const errors = [];
+
+	if (!data || typeof data !== "object") {
+		return { valid: false, errors: ["Invalid request body"] };
+	}
+
+	if (!data.name || typeof data.name !== "string" || !data.name.trim()) {
+		errors.push("name is required");
+	}
+
+	if (
+		!data.email ||
+		typeof data.email !== "string" ||
+		!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
+	) {
+		errors.push("A valid email is required");
+	}
+
+	if (
+		!data.subject ||
+		typeof data.subject !== "string" ||
+		data.subject.trim().length < 10
+	) {
+		errors.push("subject must be at least 10 characters");
+	}
+
+	if (
+		!data.message ||
+		typeof data.message !== "string" ||
+		data.message.trim().length < 10
+	) {
+		errors.push("message must be at least 10 characters");
+	}
+
+	if (data.phone != null && data.phone !== "") {
+		if (typeof data.phone !== "string" || !/^\d{10}$/.test(data.phone)) {
+			errors.push("phone must be a 10-digit number");
+		}
+	}
+
+	return { valid: errors.length === 0, errors };
+}
+
 function getRequestOrigin(request, url) {
 	const explicitOrigin = sanitizeOriginCandidate(
 		url.searchParams.get("origin"),
@@ -252,6 +315,67 @@ export default {
 				{
 					headers,
 				},
+			);
+		}
+
+		if (url.pathname === "/contact") {
+			const origin = sanitizeOriginCandidate(request.headers.get("Origin"));
+
+			if (!origin || !isAllowedOrigin(origin, env)) {
+				return jsonResponse({ error: "Invalid origin" }, 403);
+			}
+
+			if (request.method === "OPTIONS") {
+				return new Response(null, {
+					status: 204,
+					headers: corsHeaders(origin),
+				});
+			}
+
+			if (request.method !== "POST") {
+				return jsonResponse(
+					{ error: "Method not allowed" },
+					405,
+					corsHeaders(origin),
+				);
+			}
+
+			const contentType = request.headers.get("Content-Type") || "";
+
+			if (!contentType.includes("application/json")) {
+				return jsonResponse(
+					{ error: "Content-Type must be application/json" },
+					415,
+					corsHeaders(origin),
+				);
+			}
+
+			let body;
+
+			try {
+				body = await request.json();
+			} catch {
+				return jsonResponse(
+					{ error: "Invalid JSON body" },
+					400,
+					corsHeaders(origin),
+				);
+			}
+
+			const { valid, errors } = validateContactPayload(body);
+
+			if (!valid) {
+				return jsonResponse(
+					{ error: "Validation failed", fields: errors },
+					422,
+					corsHeaders(origin),
+				);
+			}
+
+			return jsonResponse(
+				{ success: true, message: "Message received" },
+				200,
+				corsHeaders(origin),
 			);
 		}
 
