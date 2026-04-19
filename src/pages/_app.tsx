@@ -3,6 +3,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { fontMono, fontSans } from "@/config/fonts";
 import "@/styles/globals.css";
 import "animate.css";
+import { Toast } from "@heroui/react";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -12,6 +13,7 @@ export default function App({ Component, pageProps }: AppProps) {
 			disableTransitionOnChange
 		>
 			<div className="min-h-screen bg-background text-foreground">
+				<Toast.Provider />
 				<Component {...pageProps} />
 			</div>
 		</NextThemesProvider>

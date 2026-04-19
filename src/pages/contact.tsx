@@ -8,6 +8,7 @@ import {
 	Label,
 	TextArea,
 	TextField,
+	toast,
 } from "@heroui/react";
 import type { GetStaticProps } from "next";
 import { useTheme } from "next-themes";
@@ -15,7 +16,6 @@ import { InlineWidget } from "react-calendly";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { FaLinkedin } from "react-icons/fa6";
 import { MdMail } from "react-icons/md";
-import { Toaster, toast } from "sonner";
 import { z } from "zod";
 import { SocialLinkButton } from "@/components/social-link-button";
 import { siteConfig } from "@/config/site";
@@ -54,9 +54,10 @@ function getErrorMessage(message: unknown) {
 
 export default function Contact({ settings }: ContactPageProps) {
 	const { resolvedTheme, theme } = useTheme();
+
 	const activeTheme = resolvedTheme || theme || "light";
 	const isDark = activeTheme === "dark";
-	const toastTheme = activeTheme as "light" | "dark" | "system";
+	// const toastTheme = activeTheme as "light" | "dark" | "system";
 
 	const {
 		control,
@@ -78,10 +79,12 @@ export default function Contact({ settings }: ContactPageProps) {
 		try {
 			await wait(400);
 			console.log(data);
-			toast.success("Contact message successfully sent!");
+			toast.success(
+				`Thanks for reaching out, ${data.name}! I will get back to you soon.`,
+			);
 			reset();
 		} catch {
-			toast.error("Contact message failed to send.");
+			toast.danger(`Oops! Something went wrong. Please try again later.`);
 		}
 	};
 
@@ -130,7 +133,7 @@ export default function Contact({ settings }: ContactPageProps) {
 					noValidate
 					onSubmit={handleSubmit(onSubmit)}
 				>
-					<Toaster position="bottom-left" richColors theme={toastTheme} />
+					{/* <Toaster position="bottom-left" richColors theme={toastTheme} /> */}
 
 					<div className="grid gap-4 md:grid-cols-2">
 						<Controller

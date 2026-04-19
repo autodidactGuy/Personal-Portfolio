@@ -24,7 +24,6 @@ updates:
           - "react-hook-form"
           - "@hookform/resolvers"
           - "react-calendly"
-          - "sonner"
       tooling-and-build:
         patterns:
           - "typescript"
