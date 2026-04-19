@@ -11,7 +11,6 @@ import { basePath, siteConfig } from "@/config/site";
 const SEARCH_SYNC_EVENT = "portfolio-search-query-change";
 
 export const Navbar = () => {
-	const [_isScrolled, setIsScrolled] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [menuTop, setMenuTop] = useState(0);
@@ -21,22 +20,6 @@ export const Navbar = () => {
 
 	useEffect(() => {
 		setIsMounted(true);
-		let frameId = 0;
-
-		const handleScroll = () => {
-			cancelAnimationFrame(frameId);
-			frameId = window.requestAnimationFrame(() => {
-				setIsScrolled(window.scrollY > 12);
-			});
-		};
-
-		handleScroll();
-		window.addEventListener("scroll", handleScroll, { passive: true });
-
-		return () => {
-			cancelAnimationFrame(frameId);
-			window.removeEventListener("scroll", handleScroll);
-		};
 	}, []);
 
 	useEffect(() => {

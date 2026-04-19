@@ -32,6 +32,7 @@ export function ContentCover({
 					alt={title}
 					className="h-full w-full object-cover"
 					height={175}
+					sizes="(min-width: 1024px) 50vw, 100vw"
 					src={withBasePath(coverImage as string)}
 					width={1200}
 				/>
