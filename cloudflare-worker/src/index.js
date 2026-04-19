@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 function parseCookies(cookieHeader) {
 	return String(cookieHeader || "")
 		.split(";")
@@ -119,64 +121,49 @@ function isValidEmail(value) {
 	);
 }
 
-function isPlainObject(value) {
-	if (!value || typeof value !== "object" || Array.isArray(value)) {
-		return false;
-	}
-
-	const prototype = Object.getPrototypeOf(value);
-	return prototype === Object.prototype || prototype === null;
-}
+const contactSchema = z.object({
+	name: z
+		.string({ error: "name is required" })
+		.trim()
+		.min(1, "name is required")
+		.max(100, "name must not exceed 100 characters"),
+	email: z
+		.string({ error: "A valid email is required" })
+		.max(254, "A valid email is required")
+		.refine(isValidEmail, "A valid email is required"),
+	subject: z
+		.string({ error: "subject must be at least 10 characters" })
+		.trim()
+		.min(10, "subject must be at least 10 characters")
+		.max(200, "subject must not exceed 200 characters"),
+	message: z
+		.string({ error: "message must be at least 10 characters" })
+		.trim()
+		.min(10, "message must be at least 10 characters")
+		.max(5000, "message must not exceed 5000 characters"),
+	phone: z
+		.string()
+		.regex(/^\d{10}$/, "phone must be a 10-digit number")
+		.optional(),
+});
 
 function validateContactPayload(data) {
-	const errors = [];
+	const result = contactSchema.safeParse(data);
 
-	if (!isPlainObject(data)) {
+	if (result.success) {
+		return { valid: true, errors: [] };
+	}
+
+	const isTypeError = result.error.issues.some(
+		(issue) => issue.code === "invalid_type" && issue.path.length === 0,
+	);
+
+	if (isTypeError) {
 		return { valid: false, errors: ["Invalid request body"] };
 	}
 
-	if (!data.name || typeof data.name !== "string" || !data.name.trim()) {
-		errors.push("name is required");
-	} else if (data.name.length > 100) {
-		errors.push("name must not exceed 100 characters");
-	}
-
-	if (
-		!data.email ||
-		typeof data.email !== "string" ||
-		data.email.length > 254 ||
-		!isValidEmail(data.email)
-	) {
-		errors.push("A valid email is required");
-	}
-
-	if (
-		!data.subject ||
-		typeof data.subject !== "string" ||
-		data.subject.trim().length < 10
-	) {
-		errors.push("subject must be at least 10 characters");
-	} else if (data.subject.length > 200) {
-		errors.push("subject must not exceed 200 characters");
-	}
-
-	if (
-		!data.message ||
-		typeof data.message !== "string" ||
-		data.message.trim().length < 10
-	) {
-		errors.push("message must be at least 10 characters");
-	} else if (data.message.length > 5000) {
-		errors.push("message must not exceed 5000 characters");
-	}
-
-	if (data.phone !== undefined && data.phone !== null && data.phone !== "") {
-		if (typeof data.phone !== "string" || !/^\d{10}$/.test(data.phone)) {
-			errors.push("phone must be a 10-digit number");
-		}
-	}
-
-	return { valid: errors.length === 0, errors };
+	const errors = result.error.issues.map((issue) => issue.message);
+	return { valid: false, errors };
 }
 
 function getRequestOrigin(request, url) {
