@@ -73,17 +73,19 @@ export default function Contact({ settings }: ContactPageProps) {
 		try {
 			const workerUrl = process.env.NEXT_PUBLIC_CONTACT_WORKER_URL;
 
-			if (workerUrl) {
-				const response = await fetch(`${workerUrl}/contact`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(data),
-				});
+			if (!workerUrl) {
+				throw new Error("Missing contact worker URL");
+			}
 
-				if (!response.ok) {
-					const result = await response.json().catch(() => null);
-					throw new Error(result?.error || "Failed to submit contact form");
-				}
+			const response = await fetch(`${workerUrl}/contact`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(data),
+			});
+
+			if (!response.ok) {
+				const result = await response.json().catch(() => null);
+				throw new Error(result?.error || "Failed to submit contact form");
 			}
 
 			toast.success(
