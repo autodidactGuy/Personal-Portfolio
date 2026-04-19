@@ -319,6 +319,7 @@ describe("/contact email delivery", () => {
 		const resendCall = fetchSpy.mock.calls.find(
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
+		expect(resendCall).toBeDefined();
 		const payload = JSON.parse(resendCall[1].body);
 		expect(payload.template.variables.sender_phone).toBe(validPayload.phone);
 	});
@@ -337,6 +338,7 @@ describe("/contact email delivery", () => {
 		const resendCall = fetchSpy.mock.calls.find(
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
+		expect(resendCall).toBeDefined();
 		const payload = JSON.parse(resendCall[1].body);
 		expect(payload.template.variables.sender_phone).toBe("");
 	});
@@ -371,6 +373,7 @@ describe("/contact email delivery", () => {
 		const resendCall = fetchSpy.mock.calls.find(
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
+		expect(resendCall).toBeDefined();
 		const payload = JSON.parse(resendCall[1].body);
 		expect(payload.from).toContain("noreply@contact.hassanraza.us");
 	});
@@ -389,6 +392,7 @@ describe("/contact email delivery", () => {
 		const resendCall = fetchSpy.mock.calls.find(
 			(call) => call[0] === "https://api.resend.com/emails",
 		);
+		expect(resendCall).toBeDefined();
 		const payload = JSON.parse(resendCall[1].body);
 		expect(payload.from).toContain("custom@example.com");
 	});
