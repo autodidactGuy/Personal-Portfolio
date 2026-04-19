@@ -171,6 +171,14 @@ async function verifyTurnstile(token, ip, secretKey) {
 			return false;
 		}
 
+		const contentType = response.headers.get("content-type") || "";
+		if (!contentType.toLowerCase().includes("application/json")) {
+			console.error("Turnstile verification returned non-JSON response", {
+				contentType,
+			});
+			return false;
+		}
+
 		const result = await response.json();
 		return result.success === true;
 	} catch (error) {
