@@ -97,6 +97,27 @@ function jsonResponse(body, status, extraHeaders = {}) {
 	});
 }
 
+function isValidEmail(value) {
+	const atIndex = value.indexOf("@");
+
+	if (atIndex < 1) {
+		return false;
+	}
+
+	const local = value.slice(0, atIndex);
+	const domain = value.slice(atIndex + 1);
+
+	if (!local || !domain || /\s/.test(value)) {
+		return false;
+	}
+
+	const domainParts = domain.split(".");
+
+	return (
+		domainParts.length >= 2 && domainParts.every((part) => part.length > 0)
+	);
+}
+
 function validateContactPayload(data) {
 	const errors = [];
 
@@ -111,7 +132,8 @@ function validateContactPayload(data) {
 	if (
 		!data.email ||
 		typeof data.email !== "string" ||
-		!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(data.email)
+		data.email.length > 254 ||
+		!isValidEmail(data.email)
 	) {
 		errors.push("A valid email is required");
 	}
