@@ -12,13 +12,13 @@
     "ALLOWED_GITHUB_USERS": "autodidactGuy",
     "ALLOWED_ORIGINS": "https://hassanraza.us",
     "ORIGIN": "https://hassanraza.us",
-    "REPO_BASE_PATH": ""
+    "REPO_BASE_PATH": "",
+    "CONTACT_EMAIL": "hassanraza632@gmail.com",
+    "FROM_EMAIL": "noreply@contact.hassanraza.us"
   }
   // Secrets (set via `wrangler secret put`):
   //   GITHUB_CLIENT_ID      – GitHub OAuth app client ID
   //   GITHUB_CLIENT_SECRET   – GitHub OAuth app client secret
   //   RESEND_API_KEY         – API key from https://resend.com
-  //   CONTACT_EMAIL          – Inbox address for contact form submissions
-  //   FROM_EMAIL (optional)  – Sender address verified in Resend (default: noreply@contact.hassanraza.us)
   //   TURNSTILE_SECRET_KEY (optional) – Cloudflare Turnstile secret key for bot verification
 }

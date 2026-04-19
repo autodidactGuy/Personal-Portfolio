@@ -19,15 +19,13 @@ Set these via `wrangler secret put <NAME>` from the `cloudflare-worker/` directo
 | Secret | Description |
 |---|---|
 | `RESEND_API_KEY` | API key from [resend.com](https://resend.com). Required for email delivery. |
-| `CONTACT_EMAIL` | Inbox email address where submissions are delivered. |
 
-Without both of these secrets the worker returns **503 Service Unavailable** for every contact submission.
+Without `RESEND_API_KEY` and `CONTACT_EMAIL` the worker returns **503 Service Unavailable** for every contact submission. `CONTACT_EMAIL` and `FROM_EMAIL` are set as vars in `wrangler.jsonc` (see below) so they deploy automatically, but can be overridden with secrets if needed.
 
 ## Optional Cloudflare Worker Secrets
 
 | Secret | Description | Default |
 |---|---|---|
-| `FROM_EMAIL` | Verified sender address in Resend. | `noreply@contact.hassanraza.us` |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key for bot verification. When set, every submission must include a valid Turnstile token. | _(Turnstile check skipped)_ |
 
 ## Worker Environment Variables (wrangler.jsonc)
@@ -38,6 +36,8 @@ These are already configured in `cloudflare-worker/wrangler.jsonc`:
 |---|---|
 | `ALLOWED_ORIGINS` | Comma-separated list of origins allowed to call the `/contact` endpoint. |
 | `ORIGIN` | Fallback origin (used by the OAuth flow and as a secondary origin check). |
+| `CONTACT_EMAIL` | Inbox email address where contact form submissions are delivered. |
+| `FROM_EMAIL` | Verified sender address in Resend (default: `noreply@contact.hassanraza.us`). |
 
 ## Required Frontend Environment Variables
 
@@ -96,9 +96,7 @@ Each client IP is limited to **5 submissions per 10-minute window**. Exceeding t
 cd cloudflare-worker
 yarn install
 wrangler secret put RESEND_API_KEY
-wrangler secret put CONTACT_EMAIL
 # Optional:
-# wrangler secret put FROM_EMAIL
 # wrangler secret put TURNSTILE_SECRET_KEY
 wrangler deploy
 ```
@@ -154,7 +152,7 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=your-site-key \
 
 | Symptom | Likely Cause |
 |---|---|
-| 503 on every submission | `RESEND_API_KEY` or `CONTACT_EMAIL` secret is missing. Run `wrangler secret put` for both. |
+| 503 on every submission | `RESEND_API_KEY` secret is missing (run `wrangler secret put RESEND_API_KEY`), or `CONTACT_EMAIL` var was removed from `wrangler.jsonc`. |
 | 502 on submission | Resend rejected the request. Check that the API key is valid, the sender domain is verified, and the `contact-form-submission` template exists. |
 | 403 "Invalid origin" | The site origin is not in `ALLOWED_ORIGINS`. Update `wrangler.jsonc` and redeploy. |
 | 403 "Bot verification required/failed" | `TURNSTILE_SECRET_KEY` is set but the frontend is not sending a token. Ensure `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set at build time. |
