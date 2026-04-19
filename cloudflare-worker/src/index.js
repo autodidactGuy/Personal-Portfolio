@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 function parseCookies(cookieHeader) {
 	return String(cookieHeader || "")
 		.split(";")
@@ -76,6 +78,71 @@ function sanitizeOriginCandidate(value) {
 	} catch {
 		return null;
 	}
+}
+
+function corsHeaders(origin) {
+	return {
+		"Access-Control-Allow-Origin": origin,
+		"Access-Control-Allow-Methods": "POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type",
+		"Access-Control-Max-Age": "86400",
+		Vary: "Origin",
+	};
+}
+
+function jsonResponse(body, status, extraHeaders = {}) {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: {
+			"Content-Type": "application/json; charset=utf-8",
+			...extraHeaders,
+		},
+	});
+}
+
+const contactSchema = z.object({
+	name: z
+		.string({ error: "name is required" })
+		.trim()
+		.min(1, "name is required")
+		.max(100, "name must not exceed 100 characters"),
+	email: z
+		.string({ error: "A valid email is required" })
+		.max(254, "A valid email is required")
+		.email("A valid email is required"),
+	subject: z
+		.string({ error: "subject must be at least 10 characters" })
+		.trim()
+		.min(10, "subject must be at least 10 characters")
+		.max(200, "subject must not exceed 200 characters"),
+	message: z
+		.string({ error: "message must be at least 10 characters" })
+		.trim()
+		.min(10, "message must be at least 10 characters")
+		.max(5000, "message must not exceed 5000 characters"),
+	phone: z
+		.string()
+		.regex(/^\d{10}$/, "phone must be a 10-digit number")
+		.optional(),
+});
+
+function validateContactPayload(data) {
+	const result = contactSchema.safeParse(data);
+
+	if (result.success) {
+		return { valid: true, errors: [] };
+	}
+
+	const isTypeError = result.error.issues.some(
+		(issue) => issue.code === "invalid_type" && issue.path.length === 0,
+	);
+
+	if (isTypeError) {
+		return { valid: false, errors: ["Invalid request body"] };
+	}
+
+	const errors = result.error.issues.map((issue) => issue.message);
+	return { valid: false, errors };
 }
 
 function getRequestOrigin(request, url) {
@@ -252,6 +319,67 @@ export default {
 				{
 					headers,
 				},
+			);
+		}
+
+		if (url.pathname === "/contact") {
+			const origin = getRequestOrigin(request, url);
+
+			if (!origin || !isAllowedOrigin(origin, env)) {
+				return jsonResponse({ error: "Invalid origin" }, 403);
+			}
+
+			if (request.method === "OPTIONS") {
+				return new Response(null, {
+					status: 204,
+					headers: corsHeaders(origin),
+				});
+			}
+
+			if (request.method !== "POST") {
+				return jsonResponse(
+					{ error: "Method not allowed" },
+					405,
+					corsHeaders(origin),
+				);
+			}
+
+			const contentType = request.headers.get("Content-Type") || "";
+
+			if (!contentType.includes("application/json")) {
+				return jsonResponse(
+					{ error: "Content-Type must be application/json" },
+					415,
+					corsHeaders(origin),
+				);
+			}
+
+			let body;
+
+			try {
+				body = await request.json();
+			} catch {
+				return jsonResponse(
+					{ error: "Invalid JSON body" },
+					400,
+					corsHeaders(origin),
+				);
+			}
+
+			const { valid, errors } = validateContactPayload(body);
+
+			if (!valid) {
+				return jsonResponse(
+					{ error: "Validation failed", fields: errors },
+					422,
+					corsHeaders(origin),
+				);
+			}
+
+			return jsonResponse(
+				{ success: true, message: "Message received" },
+				200,
+				corsHeaders(origin),
 			);
 		}
 
