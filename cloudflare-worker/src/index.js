@@ -119,10 +119,19 @@ function isValidEmail(value) {
 	);
 }
 
+function isPlainObject(value) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return false;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
+}
+
 function validateContactPayload(data) {
 	const errors = [];
 
-	if (!data || typeof data !== "object") {
+	if (!isPlainObject(data)) {
 		return { valid: false, errors: ["Invalid request body"] };
 	}
 
