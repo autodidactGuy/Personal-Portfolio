@@ -17,7 +17,7 @@ async function sendEmail(body, env) {
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify({
-			from: `Portfolio Contact <${fromEmail}>`,
+			from: `Contact - Hassan Raza <${fromEmail}>`,
 			to: [toEmail],
 			reply_to: body.email,
 			subject: `[Contact] ${body.subject}`,
