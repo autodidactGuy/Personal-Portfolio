@@ -161,6 +161,18 @@ describe("/contact", () => {
 		expect(data.fields).toContain("A valid email is required");
 	});
 
+	it("returns 422 for email with multiple @ characters", async () => {
+		const request = buildRequest("POST", ALLOWED_ORIGIN, {
+			...validPayload,
+			email: "a@b@c.com",
+		});
+		const response = await worker.fetch(request, env);
+		const data = await response.json();
+
+		expect(response.status).toBe(422);
+		expect(data.fields).toContain("A valid email is required");
+	});
+
 	it("returns 422 for invalid phone number", async () => {
 		const request = buildRequest("POST", ALLOWED_ORIGIN, {
 			...validPayload,

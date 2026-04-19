@@ -101,7 +101,7 @@ function jsonResponse(body, status, extraHeaders = {}) {
 function isValidEmail(value) {
 	const atIndex = value.indexOf("@");
 
-	if (atIndex < 1) {
+	if (atIndex < 1 || value.lastIndexOf("@") !== atIndex) {
 		return false;
 	}
 
