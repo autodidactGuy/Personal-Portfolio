@@ -34,7 +34,10 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 				<NextImage
 					alt={siteConfig.name}
 					className="animate__animated animate__fadeInUp "
+					fetchPriority="high"
 					height={220}
+					priority
+					sizes="(min-width: 1024px) 220px, 180px"
 					src={withBasePath(hero.image)}
 					width={220}
 				/>

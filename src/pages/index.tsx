@@ -56,7 +56,7 @@ export default function IndexPage({
 	featuredProjects,
 	featuredPosts,
 }: HomePageProps) {
-	const pageDescription = hero.supportingText || siteConfig.description;
+	const pageDescription = siteConfig.description;
 
 	return (
 		<DefaultLayout

@@ -145,7 +145,10 @@ export const Navbar = () => {
 						</Avatar>
 						<p className="truncate font-bold text-inherit">{siteConfig.name}</p>
 					</NextLink>
-					<ul className="hidden items-center gap-4 xl:flex">
+					<ul
+						aria-label="Primary navigation"
+						className="hidden items-center gap-4 xl:flex"
+					>
 						{siteConfig.navItems.map((item) =>
 							item.href ===
 							siteConfig.navigation.headerQuickLink.href ? null : (
@@ -231,28 +234,31 @@ export const Navbar = () => {
 					>
 						<div className="mx-auto max-w-7xl space-y-4">
 							{renderSearchInput("w-full")}
-							<div className="space-y-3">
+							<ul aria-label="Mobile navigation" className="space-y-3">
 								{siteConfig.navMenuItems.map((item) =>
 									item.href ===
 									siteConfig.navigation.headerQuickLink.href ? null : (
-										<NextLink
-											key={item.href}
-											className="block text-md text-foreground"
-											href={item.href}
-											onClick={() => setIsMenuOpen(false)}
-										>
-											{item.label}
-										</NextLink>
+										<li key={item.href}>
+											<NextLink
+												className="block text-md text-foreground"
+												href={item.href}
+												onClick={() => setIsMenuOpen(false)}
+											>
+												{item.label}
+											</NextLink>
+										</li>
 									),
 								)}
-								<NextLink
-									className="block text-md text-foreground"
-									href={siteConfig.navigation.headerQuickLink.href}
-									onClick={() => setIsMenuOpen(false)}
-								>
-									{siteConfig.navigation.headerQuickLink.label}
-								</NextLink>
-							</div>
+								<li>
+									<NextLink
+										className="block text-md text-foreground"
+										href={siteConfig.navigation.headerQuickLink.href}
+										onClick={() => setIsMenuOpen(false)}
+									>
+										{siteConfig.navigation.headerQuickLink.label}
+									</NextLink>
+								</li>
+							</ul>
 						</div>
 					</div>
 				</div>

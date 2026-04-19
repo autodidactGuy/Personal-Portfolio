@@ -31,8 +31,8 @@ const contactFormSchema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	email: z.string().email({ message: "Invalid email address" }),
 	phone: z.string().regex(/^\d{10}$/, "Invalid Phone Number"),
-	subject: z.string().min(10, "Subject should be at least 10 characters."),
-	message: z.string().min(10, "Message should be at least 10 characters."),
+	subject: z.string().min(1, "Subject is required"),
+	message: z.string().min(1, "Message is required"),
 });
 
 type ContactPageProps = {
@@ -222,6 +222,7 @@ export default function Contact({ settings }: ContactPageProps) {
 										onChange={field.onChange}
 										placeholder="Email"
 										ref={field.ref}
+										type="email"
 										variant="secondary"
 									/>
 									<FieldError className={fieldErrorClassName}>
@@ -252,6 +253,7 @@ export default function Contact({ settings }: ContactPageProps) {
 										onChange={field.onChange}
 										placeholder="Phone"
 										ref={field.ref}
+										type="tel"
 										variant="secondary"
 									/>
 									<FieldError className={fieldErrorClassName}>
