@@ -1,5 +1,61 @@
 import { z } from "zod";
 
+function escapeHtml(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
+async function sendEmail(body, env) {
+	const apiKey = env.RESEND_API_KEY;
+	const toEmail = env.CONTACT_EMAIL;
+
+	if (!apiKey || !toEmail) {
+		return { sent: false, skipped: true };
+	}
+
+	const fromEmail = env.FROM_EMAIL || "contact@hassanraza.us";
+	const phoneLine = body.phone
+		? `<p><strong>Phone:</strong> ${escapeHtml(body.phone)}</p>`
+		: "";
+
+	const html = [
+		"<h2>New Contact Form Submission</h2>",
+		`<p><strong>Name:</strong> ${escapeHtml(body.name)}</p>`,
+		`<p><strong>Email:</strong> ${escapeHtml(body.email)}</p>`,
+		phoneLine,
+		`<p><strong>Subject:</strong> ${escapeHtml(body.subject)}</p>`,
+		"<hr />",
+		`<p>${escapeHtml(body.message).replace(/\n/g, "<br />")}</p>`,
+	]
+		.filter(Boolean)
+		.join("\n");
+
+	const response = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify({
+			from: `Portfolio Contact <${fromEmail}>`,
+			to: [toEmail],
+			subject: `[Contact] ${body.subject}`,
+			reply_to: body.email,
+			html,
+		}),
+	});
+
+	if (!response.ok) {
+		return { sent: false, skipped: false };
+	}
+
+	return { sent: true, skipped: false };
+}
+
 function parseCookies(cookieHeader) {
 	return String(cookieHeader || "")
 		.split(";")
@@ -372,6 +428,16 @@ export default {
 				return jsonResponse(
 					{ error: "Validation failed", fields: errors },
 					422,
+					corsHeaders(origin),
+				);
+			}
+
+			const email = await sendEmail(body, env);
+
+			if (!email.sent && !email.skipped) {
+				return jsonResponse(
+					{ error: "Unable to deliver your message. Please try again later." },
+					502,
 					corsHeaders(origin),
 				);
 			}

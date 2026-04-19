@@ -42,12 +42,6 @@ type ContactPageProps = {
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
 
-function wait(ms: number) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-}
-
 function getErrorMessage(message: unknown) {
 	return typeof message === "string" ? message : undefined;
 }
@@ -77,8 +71,22 @@ export default function Contact({ settings }: ContactPageProps) {
 
 	const onSubmit: SubmitHandler<ContactFormValues> = async (data) => {
 		try {
-			await wait(400);
-			console.log(data);
+			const workerUrl = process.env.NEXT_PUBLIC_CONTACT_WORKER_URL;
+
+			if (workerUrl) {
+				const response = await fetch(`${workerUrl}/contact`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(data),
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || "Something went wrong");
+				}
+			}
+
 			toast.success(
 				`Thanks for reaching out, ${data.name}! I will get back to you soon.`,
 			);
