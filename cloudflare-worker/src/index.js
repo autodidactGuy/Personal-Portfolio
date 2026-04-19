@@ -100,27 +100,6 @@ function jsonResponse(body, status, extraHeaders = {}) {
 	});
 }
 
-function isValidEmail(value) {
-	const atIndex = value.indexOf("@");
-
-	if (atIndex < 1 || value.lastIndexOf("@") !== atIndex) {
-		return false;
-	}
-
-	const local = value.slice(0, atIndex);
-	const domain = value.slice(atIndex + 1);
-
-	if (!local || !domain || /\s/.test(value)) {
-		return false;
-	}
-
-	const domainParts = domain.split(".");
-
-	return (
-		domainParts.length >= 2 && domainParts.every((part) => part.length > 0)
-	);
-}
-
 const contactSchema = z.object({
 	name: z
 		.string({ error: "name is required" })
@@ -130,7 +109,7 @@ const contactSchema = z.object({
 	email: z
 		.string({ error: "A valid email is required" })
 		.max(254, "A valid email is required")
-		.refine(isValidEmail, "A valid email is required"),
+		.email("A valid email is required"),
 	subject: z
 		.string({ error: "subject must be at least 10 characters" })
 		.trim()
