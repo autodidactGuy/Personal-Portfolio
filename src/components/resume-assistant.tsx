@@ -41,7 +41,12 @@ type EmbeddingStatus = "idle" | "loading" | "ready" | "fallback";
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
-		return ["Payments?", "Guardrails?", "Platform?", "Architecture?"];
+		return [
+			"What payment work has he done?",
+			"How does he handle guardrails?",
+			"What platform work has he led?",
+			"How does he approach architecture?",
+		];
 	}
 
 	const currentExperience = resume.experience?.find(
@@ -49,12 +54,12 @@ function buildQuestionSuggestions(resume: ResumePayload | null) {
 	);
 
 	return [
-		"Payments?",
-		"Guardrails?",
+		"What payment work has he done?",
+		"How does he handle guardrails?",
 		currentExperience?.company
-			? `${currentExperience.company.split(" ")[0]} impact?`
-			: "Platform?",
-		"Architecture?",
+			? `What did he do at ${currentExperience.company.split(" ")[0]}?`
+			: "What platform work has he led?",
+		"How does he approach architecture?",
 	];
 }
 
