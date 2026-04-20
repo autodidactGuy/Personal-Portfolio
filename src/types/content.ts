@@ -225,6 +225,22 @@ export type ResumeApiResponse = {
 	title: string;
 	headline: string;
 	summary: string;
+	hero: {
+		eyebrow: string;
+		headline: string;
+		highlightedText: string;
+		supportingText: string;
+		primaryCta: {
+			label: string;
+			href: string;
+			external?: boolean;
+		};
+		secondaryCta: {
+			label: string;
+			href: string;
+			external?: boolean;
+		};
+	};
 	about: {
 		label: string;
 		title: string;
@@ -232,6 +248,24 @@ export type ResumeApiResponse = {
 		headline: string;
 		summary: string;
 		body: string[];
+	};
+	featuredFocus: {
+		sectionLabel: string;
+		title: string;
+		summary: string;
+		pillars: string[];
+		cta: {
+			label: string;
+			href: string;
+		};
+	};
+	homeStats: {
+		title: string;
+		badgeLabel: string;
+		items: Array<{
+			label: string;
+			value: string;
+		}>;
 	};
 	interests: string[];
 	skills: string[];
@@ -252,6 +286,18 @@ export type ResumeApiResponse = {
 			label: string;
 			href: string;
 		};
+	};
+	recommendations: {
+		title: string;
+		items: Array<{
+			name: string;
+			role: string;
+			relationship?: string;
+			quote: string;
+			highlight?: string;
+			featured: boolean;
+			linkedin?: string;
+		}>;
 	};
 	experience: Array<{
 		title: string;
@@ -280,6 +326,32 @@ export type ResumeApiResponse = {
 		summary: string;
 		tags: string[];
 		featured: boolean;
+		contentType?: string;
+		excerpt?: string;
+		coverImage: string;
+		url: string;
+		date?: string;
+	}>;
+	articles: Array<{
+		slug: string;
+		title: string;
+		summary: string;
+		tags: string[];
+		featured: boolean;
+		contentType?: string;
+		excerpt?: string;
+		coverImage: string;
+		url: string;
+		date?: string;
+	}>;
+	caseStudies: Array<{
+		slug: string;
+		title: string;
+		summary: string;
+		tags: string[];
+		featured: boolean;
+		contentType?: string;
+		excerpt?: string;
 		coverImage: string;
 		url: string;
 		date?: string;

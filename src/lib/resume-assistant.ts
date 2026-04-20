@@ -61,8 +61,25 @@ export type ResumeProject = {
 	summary: string;
 	tags?: string[];
 	featured?: boolean;
+	contentType?: string;
+	excerpt?: string;
 	url?: string;
 	date?: string;
+};
+
+export type ResumeRecommendation = {
+	name: string;
+	role: string;
+	relationship?: string;
+	quote: string;
+	highlight?: string;
+	featured?: boolean;
+	linkedin?: string;
+};
+
+export type ResumeStat = {
+	label: string;
+	value: string;
 };
 
 export type ResumePayload = {
@@ -70,6 +87,22 @@ export type ResumePayload = {
 	title: string;
 	headline: string;
 	summary: string;
+	hero?: {
+		eyebrow?: string;
+		headline?: string;
+		highlightedText?: string;
+		supportingText?: string;
+		primaryCta?: {
+			label?: string;
+			href?: string;
+			external?: boolean;
+		};
+		secondaryCta?: {
+			label?: string;
+			href?: string;
+			external?: boolean;
+		};
+	};
 	about?: {
 		label?: string;
 		title?: string;
@@ -77,6 +110,21 @@ export type ResumePayload = {
 		headline?: string;
 		summary?: string;
 		body?: string[];
+	};
+	featuredFocus?: {
+		sectionLabel?: string;
+		title?: string;
+		summary?: string;
+		pillars?: string[];
+		cta?: {
+			label?: string;
+			href?: string;
+		};
+	};
+	homeStats?: {
+		title?: string;
+		badgeLabel?: string;
+		items?: ResumeStat[];
 	};
 	interests?: string[];
 	skills?: string[];
@@ -91,9 +139,15 @@ export type ResumePayload = {
 			href?: string;
 		};
 	};
+	recommendations?: {
+		title?: string;
+		items?: ResumeRecommendation[];
+	};
 	experience?: ResumeExperience[];
 	education?: ResumeEducation[];
 	projects?: ResumeProject[];
+	articles?: ResumeProject[];
+	caseStudies?: ResumeProject[];
 };
 
 export type ResumeSnippet = {
@@ -105,9 +159,15 @@ export type ResumeSnippet = {
 		| "skills"
 		| "links"
 		| "contact"
+		| "hero"
+		| "focus"
+		| "stats"
 		| "experience"
 		| "education"
-		| "project";
+		| "project"
+		| "article"
+		| "case-study"
+		| "recommendation";
 	text: string;
 	keywords: string[];
 };
@@ -186,6 +246,21 @@ const builtInAllowedKeywords = [
 	"university",
 	"project",
 	"projects",
+	"case study",
+	"case studies",
+	"blog",
+	"blogs",
+	"article",
+	"articles",
+	"writing",
+	"recommendation",
+	"recommendations",
+	"testimonial",
+	"testimonials",
+	"stats",
+	"metrics",
+	"focus",
+	"featured",
 	"contact",
 	"email",
 	"github",
@@ -348,6 +423,96 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 		});
 	}
 
+	if (resume.hero) {
+		snippets.push({
+			id: "hero",
+			title: "Homepage Hero",
+			category: "hero",
+			text: [
+				resume.hero.eyebrow || "",
+				resume.hero.headline || "",
+				resume.hero.highlightedText || "",
+				resume.hero.supportingText || "",
+				resume.hero.primaryCta?.label
+					? `Primary CTA: ${resume.hero.primaryCta.label} (${resume.hero.primaryCta.href || ""}).`
+					: "",
+				resume.hero.secondaryCta?.label
+					? `Secondary CTA: ${resume.hero.secondaryCta.label} (${resume.hero.secondaryCta.href || ""}).`
+					: "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique(
+				tokenize(
+					[
+						resume.hero.eyebrow,
+						resume.hero.headline,
+						resume.hero.highlightedText,
+						resume.hero.supportingText,
+						resume.hero.primaryCta?.label,
+						resume.hero.secondaryCta?.label,
+					]
+						.filter(Boolean)
+						.join(" "),
+				),
+			),
+		});
+	}
+
+	if (resume.featuredFocus) {
+		snippets.push({
+			id: "featured-focus",
+			title: resume.featuredFocus.title || "Featured Focus",
+			category: "focus",
+			text: [
+				resume.featuredFocus.sectionLabel || "",
+				resume.featuredFocus.summary || "",
+				...(resume.featuredFocus.pillars || []),
+				resume.featuredFocus.cta?.label
+					? `CTA: ${resume.featuredFocus.cta.label} (${resume.featuredFocus.cta.href || ""}).`
+					: "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique(
+				tokenize(
+					[
+						resume.featuredFocus.sectionLabel,
+						resume.featuredFocus.title,
+						resume.featuredFocus.summary,
+						...(resume.featuredFocus.pillars || []),
+						resume.featuredFocus.cta?.label,
+					]
+						.filter(Boolean)
+						.join(" "),
+				),
+			),
+		});
+	}
+
+	if (resume.homeStats?.items?.length) {
+		snippets.push({
+			id: "home-stats",
+			title: resume.homeStats.title || "Homepage Stats",
+			category: "stats",
+			text: [
+				resume.homeStats.badgeLabel || "",
+				...(resume.homeStats.items || []).map(
+					(item) => `${item.label}: ${item.value}.`,
+				),
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(resume.homeStats.title || ""),
+				...tokenize(resume.homeStats.badgeLabel || ""),
+				...(resume.homeStats.items || []).flatMap((item) =>
+					tokenize(`${item.label} ${item.value}`),
+				),
+			]),
+		});
+	}
+
 	if (resume.skills?.length) {
 		snippets.push({
 			id: "skills",
@@ -472,9 +637,90 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 			keywords: unique([
 				...tokenize(item.title),
 				...tokenize(item.summary),
+				...tokenize(item.excerpt || ""),
 				...(item.tags || []).flatMap((tag) => tokenize(tag)),
 				...tokenize(item.date || ""),
 			]),
+		});
+	}
+
+	for (const item of resume.caseStudies || []) {
+		snippets.push({
+			id: `case-study:${item.slug}`,
+			title: item.title,
+			category: "case-study",
+			text: [
+				item.title,
+				item.summary,
+				item.excerpt || "",
+				item.tags?.length ? `Tags: ${item.tags.join(", ")}.` : "",
+				item.date ? `Date: ${item.date}.` : "",
+				item.url ? `URL: ${item.url}` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(item.title),
+				...tokenize(item.summary),
+				...tokenize(item.excerpt || ""),
+				...(item.tags || []).flatMap((tag) => tokenize(tag)),
+				...tokenize(item.date || ""),
+				"case",
+				"study",
+			]),
+		});
+	}
+
+	for (const item of resume.articles || []) {
+		snippets.push({
+			id: `article:${item.slug}`,
+			title: item.title,
+			category: "article",
+			text: [
+				item.title,
+				item.summary,
+				item.excerpt || "",
+				item.tags?.length ? `Tags: ${item.tags.join(", ")}.` : "",
+				item.date ? `Date: ${item.date}.` : "",
+				item.url ? `URL: ${item.url}` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(item.title),
+				...tokenize(item.summary),
+				...tokenize(item.excerpt || ""),
+				...(item.tags || []).flatMap((tag) => tokenize(tag)),
+				...tokenize(item.date || ""),
+				"blog",
+				"article",
+				"writing",
+			]),
+		});
+	}
+
+	for (const item of resume.recommendations?.items || []) {
+		snippets.push({
+			id: `recommendation:${item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+			title: `Recommendation from ${item.name}`,
+			category: "recommendation",
+			text: [
+				item.name,
+				item.role,
+				item.relationship || "",
+				item.highlight || "",
+				item.quote,
+				item.linkedin ? `LinkedIn: ${item.linkedin}` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique(
+				tokenize(
+					[item.name, item.role, item.relationship, item.highlight, item.quote]
+						.filter(Boolean)
+						.join(" "),
+				),
+			),
 		});
 	}
 

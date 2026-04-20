@@ -3,6 +3,22 @@
   "title": "Senior Software Engineer",
   "headline": "Designing systems that move money, data, and decisions at scale",
   "summary": "Senior software engineer with 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms. My work centers on designing backend systems that process high-volume transactions, power data pipelines, and support real-world financial operations at scale.",
+  "hero": {
+    "eyebrow": "Financial Infrastructure • Distributed Systems • AI-Driven Systems",
+    "headline": "Designing systems that move money, data, and decisions at scale",
+    "highlightedText": "money, data, and decisions",
+    "supportingText": "I build systems that handle money, data, and scale reliably and at production depth.",
+    "primaryCta": {
+      "label": "View Projects",
+      "href": "https://hassanraza.us/projects",
+      "external": false
+    },
+    "secondaryCta": {
+      "label": "View Resume",
+      "href": "https://hassanraza.us/HassanRaza-Resume.pdf",
+      "external": true
+    }
+  },
   "about": {
     "label": "About",
     "title": "Building Financial Systems at Scale",
@@ -12,6 +28,42 @@
     "body": [
       "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
       "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
+    ]
+  },
+  "featuredFocus": {
+    "sectionLabel": "Featured Focus",
+    "title": "Systems Behind Money, Data, and Decisions",
+    "summary": "I design systems that move money, process data at scale, and enable intelligent decision-making across modern financial platforms.",
+    "pillars": [
+      "High-throughput payment and financial processing systems.",
+      "Scalable data pipelines and distributed job orchestration.",
+      "AI-driven data access and analytics with strong isolation guarantees."
+    ],
+    "cta": {
+      "label": "Explore Projects",
+      "href": "https://hassanraza.us/projects"
+    }
+  },
+  "homeStats": {
+    "title": "Financial Systems at Scale",
+    "badgeLabel": "Snapshot",
+    "items": [
+      {
+        "label": "Annual Transaction Volume",
+        "value": "$1B+"
+      },
+      {
+        "label": "Organizations Supported",
+        "value": "1,000+"
+      },
+      {
+        "label": "Transactions Processed",
+        "value": "15M+"
+      },
+      {
+        "label": "Records Migrated",
+        "value": "5M+"
+      }
     ]
   },
   "interests": [
@@ -81,6 +133,100 @@
       "label": "Contact",
       "href": "https://hassanraza.us/contact"
     }
+  },
+  "recommendations": {
+    "title": "Recommendations",
+    "items": [
+      {
+        "name": "Feng Wei",
+        "role": "Senior Engineering Manager, Amazon Inc",
+        "relationship": "Direct Manager @ Amazon",
+        "quote": "Hassan was a contract SDE on my team, and he has been a great resource. One of his super power is learning way faster than you expected and taking full ownership of all projects from end to end. He has provided concise, timely and long term solutions for the features he worked on. Hassan is always keen to understand more about product and AWS technologies that the team uses. Hassan is a true team player.",
+        "highlight": "Ownership and fast ramp-up in AWS systems",
+        "featured": true,
+        "linkedin": "https://www.linkedin.com/in/feng-wei-ba452814/"
+      },
+      {
+        "name": "Peter Chen",
+        "role": "Sr. Software Development Engineer, Amazon Inc",
+        "relationship": "Team Lead @ Amazon",
+        "quote": "Hassan was nothing short of amazing. During his tenure at Amazon, He consistently demonstrated technical skills and a self driven mindset. His deep understanding of AWS was not accelerated project timelines but also enhanced our overall efficiency. His collaborative work ethic made him a central figure in most of our team projects, and enhanced our team's capabilities at Amazon. I am confident that Hassan will be an extraordinary addition wherever he goes.",
+        "highlight": "AWS expertise and impact on team efficiency",
+        "featured": true,
+        "linkedin": "https://www.linkedin.com/in/peterch/"
+      },
+      {
+        "name": "Vishal Kumar",
+        "role": "Senior Android Engineer, Walmart Labs",
+        "relationship": "Academic Peer and Collaborator",
+        "quote": "Hassan Raza is an exceptionally smart individual, he has experience with multiple technologies from Web to Backend to Mobile. Java, Node, React, Angular, AWS, Python and more just name the technology and this guy has it in his Tech Stack. A very good problem solver, quick to learn, embrace challenges and get the work done. I highly recommend Hassan for Software Engineer position in any company that needs the top talent.",
+        "highlight": "Broad technical depth across systems",
+        "featured": true,
+        "linkedin": "https://www.linkedin.com/in/vishalkumarmotwani/"
+      },
+      {
+        "name": "Danyal Javed",
+        "role": "Software Engineer, Deliotte",
+        "relationship": "Academic Peer and Collaborator",
+        "quote": "I highly recommend Hassan Raza for his outstanding skills and expertise in the field of software development. I had the pleasure of working with Hassan at the National Solutions Convention (NaSCon’18) in Pakistan, where we participated in a software development competition as a team of three and emerged as the winners. During the 24-hour long competition, Hassan displayed remarkable dedication, hard work, and a forward-thinking approach. His ability to work non-stop and deliver quality work within the given time frame was truly impressive. I was amazed by his level of productivity and his attention to detail. Hassan is an intelligent, ambitious, energetic, and proactive perfectionist. His quest for proficiency and excellence makes him an invaluable asset to any team. He is a careful, proactive, self-motivated, and a great team player. Working with him is always a pleasure, and his contributions are always significant. In conclusion, I highly recommend Hassan Raza for any software development projects. His skills, professionalism, and dedication to excellence are unmatched, and his contributions to any project will undoubtedly lead to success.",
+        "highlight": "High-performance execution under tight deadlines",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/dj0/"
+      },
+      {
+        "name": "Talha Tahir",
+        "role": "Technical Leader, Co-Founder & CTO at Horizam Private Limited",
+        "relationship": "Teammate @ ThinkGeniux",
+        "quote": "Let me tell everyone \"you are such an inspiration, how good of a problem solver you are, how quickly you adopt to different technologies, it has been inspiring for me since we started this journey together in 2015\". Thank you for that.",
+        "highlight": "Fast learner with strong execution",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/talhatahirb/"
+      },
+      {
+        "name": "Zahid Ali",
+        "role": "Principal Android Engineer",
+        "relationship": "Teammate @ ThinkGeniux",
+        "quote": "Hassan has worked as a Full Stack developer at ThinkGeniux. He also provided us with good problem solving skills I have known Hassan since the day I joined the organization, and have worked with him on several projects over the time. He distinguished himself in every way due to his exceptional insight into handling core programming skills and coming out with good and easy solutions even when things seem very complicated. Hassan a great learner. He has not let go of a single opportunity to better himself professionall. As his colleague, I have never seen anybody complain, as all his deadlines are met way before time, and He works diligently to ensure that no stones are left unturned when handling crises situations.",
+        "highlight": "Strong problem-solving in complex systems",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/zahid-ali-b09822a0/"
+      },
+      {
+        "name": "Muhammad Ali",
+        "role": "UX Engineer",
+        "relationship": "Cross-functional collaborator",
+        "quote": "Hassan consistently impressed us with his technical abilities and dedication to his work. Strong work ethic, attention to detail, and a commitment to delivering high-quality work and his communication skills were also top-notch, always able to clearly articulate complex technical concepts to both technical and non-technical team members. He will be an asset to any organization he work for.",
+        "highlight": "Explains complex systems clearly",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/muhammadalich069/"
+      },
+      {
+        "name": "Tosief Ahmad",
+        "role": "Software Engineer",
+        "quote": "I have had the pleasure of working with as a Full Stack Developer for ThinkGeniux for the past 3 years. During this time, I have been impressed with Hassan's exceptional technical skills and ability to effectively manage our IT infrastructure. Hassan has demonstrated a deep understanding of various software and hardware systems, and is adept at identifying and addressing technical issues before they escalate. I highly recommend Hassan for his qualities  mentioned above.",
+        "highlight": "Proactive problem-solving and system ownership",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/tosief-ahmad-165837204/"
+      },
+      {
+        "name": "Hamza Khan",
+        "role": "Full Stack Developer",
+        "relationship": "Academic Peer and Collaborator",
+        "quote": "He had excellent time management skills and had a knack for keeping everyone calm and productive during intense crunch periods. Any team would be lucky to have Hassan, I highly recommend.",
+        "highlight": "Execution and stability during high-pressure work",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/hamza-k08/"
+      },
+      {
+        "name": "M. Noman Akram",
+        "role": "SQA Engineer",
+        "relationship": "Teammate @ ThinkGeniux",
+        "quote": "As I know you as a colleague in the past just want to say about you \"You were really a motivation for us at that times.  Learn a lot from your problem solving and leadership qualities. Have good working and professional ethics\". Highly Recommended.",
+        "highlight": "Leadership and strong professional discipline",
+        "featured": false,
+        "linkedin": "https://www.linkedin.com/in/nomanakram08/"
+      }
+    ]
   },
   "experience": [
     {
@@ -266,23 +412,9 @@
       "featured": true,
       "coverImage": "",
       "url": "https://hassanraza.us/project/building-financial-infrastructure-for-modern-nonprofits",
-      "date": "2026-02-17"
-    },
-    {
-      "slug": "designing-a-content-system-that-scales-beyond-a-portoflio",
-      "title": "Designing a Content System That Scales Beyond a Portfolio",
-      "summary": "Building a Git-based CMS architecture using static generation, structured content, and a clean separation between content and UI.",
-      "tags": [
-        "architecture",
-        "nextjs",
-        "cms",
-        "systems-design",
-        "decap-cms"
-      ],
-      "featured": true,
-      "coverImage": "https://hassanraza.us/decap.jpg",
-      "url": "https://hassanraza.us/project/designing-a-content-system-that-scales-beyond-a-portoflio",
-      "date": "2026-03-10T00:00:00.000Z"
+      "date": "2026-02-17",
+      "contentType": "project",
+      "excerpt": "Context Nonprofit organizations operate in an environment where financial systems are often fragmented, outdated, and difficult to scale. Many still rely on disconnected tools for payments, reporting, and donor management, which limits their ability to operate efficiently and make informed decisions. At the same time, expectations around digital experiences have changed. Donors expect seamless payment flows, real-time confirmations, and support for modern channels such as mobile wallets and non-cash assets. This creates a gap between how nonprofits operate and what modern financial infrastructure can enable. The Problem Most existing systems fall short in three key areas: Fragmented financial workflows Payments, reporting, and donor data are often handled across multiple systems with limited integration. Limited support for modern payment methods Non-cash assets like stock, cryptocurrenc..."
     },
     {
       "slug": "etl-data-migration-at-scale",
@@ -297,7 +429,132 @@
       "featured": true,
       "coverImage": "",
       "url": "https://hassanraza.us/project/etl-data-migration-at-scale",
-      "date": "2024-12-13"
+      "date": "2024-12-13",
+      "contentType": "project",
+      "excerpt": "Context Data migration sounds simple until it isn’t. When dealing with large datasets, even small inconsistencies can lead to incorrect records, duplication, or partial failures that are difficult to recover from. The Problem Typical migration challenges include: inconsistent source data partial failures mid-processing duplicate records lack of visibility into progress At scale, these issues compound quickly. Approach Break Work Into Small Units Instead of processing large datasets in one pass: split into smaller jobs track progress per unit allow retries at a granular level Parent-Child Job Model Use a structured execution model: parent job tracks overall progress child jobs process smaller chunks This enables: parallel execution controlled retries finalization after completion Idempotency by Design Every operation should be safe to run multiple times: use unique identifiers enforce ded..."
+    }
+  ],
+  "articles": [
+    {
+      "slug": "building-reliable-async-systems",
+      "title": "Building Reliable Asynchronous Systems with Queues",
+      "summary": "Designing background processing systems that handle retries, failures, and high throughput reliably.",
+      "tags": [
+        "backend",
+        "distributed-systems",
+        "queues",
+        "architecture"
+      ],
+      "featured": false,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/building-reliable-async-systems",
+      "date": "2024-06-18",
+      "contentType": "article",
+      "excerpt": "Context As systems grow, not all work can happen synchronously. Background processing becomes essential for scalability. The Problem Naive async systems often fail due to: duplicate processing race conditions lack of retry strategies missing failure handling Approach Idempotent Jobs Ensure each job can safely run multiple times. Retry Strategies Define: retry limits backoff strategies Concurrency Control Avoid race conditions: use locks where necessary prevent duplicate execution Job State Tracking Track: pending processing completed failed Tradeoffs more infrastructure overhead additional complexity in state management Why This Matters Async systems are critical for scaling modern applications. Without proper design, they introduce instability instead of solving it. Closing Thoughts Reliability in async systems comes from careful handling of failure, not just successful execution."
+    },
+    {
+      "slug": "designing-multi-tenant-systems-safely",
+      "title": "Designing Multi-Tenant Systems Without Compromising Data Safety",
+      "summary": "Ensuring strict data isolation while enabling shared infrastructure and scalable architecture.",
+      "tags": [
+        "architecture",
+        "backend",
+        "security",
+        "multi-tenant"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/designing-multi-tenant-systems-safely",
+      "date": "2025-06-02",
+      "contentType": "article",
+      "excerpt": "Context Multi-tenant systems allow multiple organizations to share infrastructure while maintaining strict separation of data. This model improves efficiency but introduces risk. --- The Problem Without strong safeguards: data leakage can occur across tenants queries may return unintended results access control becomes complex Approach Explicit Tenant Scoping Every query must include tenant boundaries: enforced at the data layer not left to application assumptions Policy-Based Access Control Use structured authorization: define permissions clearly evaluate access at request boundaries Guardrails in Data Access Introduce safeguards: restrict cross-tenant queries validate query inputs enforce schema-level constraints Observability for Violations Track: unauthorized access attempts unusual query patterns Tradeoffs additional complexity in query handling stricter validation requirements pote..."
+    },
+    {
+      "slug": "designing-observability-for-distributed-systems",
+      "title": "Designing Observability for Distributed Systems",
+      "summary": "Building monitoring systems that provide meaningful insight into high-throughput, event-driven architectures.",
+      "tags": [
+        "observability",
+        "distributed-systems",
+        "backend",
+        "architecture"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/designing-observability-for-distributed-systems",
+      "date": "2026-02-23",
+      "contentType": "article",
+      "excerpt": "Context As systems grow in complexity, understanding their behavior becomes significantly harder. Distributed architectures introduce multiple layers of abstraction—queues, workers, services, and external integrations—all interacting asynchronously. Traditional logging is not enough. Systems need observability: the ability to understand internal state through external signals. The Problem In many systems, monitoring is treated as an afterthought: Logs are scattered and difficult to correlate Metrics are collected but not actionable Failures are detected late or not at all Debugging requires manual tracing across multiple services This creates a reactive environment where issues are discovered only after they impact users. What Observability Should Provide A well-designed observability system should answer: What is happening right now? Where are failures occurring? How is the system behav..."
+    },
+    {
+      "slug": "designing-systems-for-explainability",
+      "title": "Designing Systems That Are Easy to Understand",
+      "summary": "Why clarity in system design is as important as scalability and performance.",
+      "tags": [
+        "architecture",
+        "engineering",
+        "communication"
+      ],
+      "featured": false,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/designing-systems-for-explainability",
+      "date": "2023-03-09",
+      "contentType": "article",
+      "excerpt": "Context As systems grow, complexity increases. Without clarity, even well-built systems become difficult to maintain. The Problem Complex systems often suffer from: unclear data flow lack of documentation difficult onboarding Approach Clear Boundaries Define system components clearly. Consistent Patterns Use predictable structures across services. Documentation Through Design Make systems understandable through structure, not just documents. Communication Explain decisions clearly: diagrams written explanations structured case studies Tradeoffs requires additional effort upfront slower initial development Why This Matters Systems that are easy to understand: scale better with teams reduce long-term complexity Closing Thoughts Good engineering is not just about building systems—it is about making them understandable."
+    },
+    {
+      "slug": "modernizing-a-platform-without-breaking-what-works",
+      "title": "Modernizing a Platform Without Breaking What Works",
+      "summary": "A practical approach to evolving legacy systems into scalable architectures while maintaining reliability and continuity.",
+      "tags": [
+        "architecture",
+        "backend",
+        "systems-design",
+        "platform"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/modernizing-a-platform-without-breaking-what-works",
+      "date": "2025-12-01",
+      "contentType": "article",
+      "excerpt": "Context Most systems are not built from scratch. They evolve over time, accumulating decisions, constraints, and technical debt. Modernization is not about rewriting everything. It is about improving the system without disrupting what already works. The Problem Legacy systems often exhibit common issues: tightly coupled components unclear ownership boundaries scaling limitations fragile deployments A full rewrite is rarely feasible due to risk, cost, and operational impact. Approach The goal is controlled evolution, not replacement. Identify Critical Boundaries The first step is understanding where the system can be safely separated: services with clear responsibilities high-change vs low-change areas performance bottlenecks This allows incremental improvements without affecting the entire system. Introduce Modular Architecture Rather than rewriting everything, introduce structure gradua..."
+    },
+    {
+      "slug": "payment-systems-integration-at-scale",
+      "title": "Integrating Payment Systems in Real-World Applications",
+      "summary": "Designing backend systems that handle multiple payment methods with reliability and consistency.",
+      "tags": [
+        "fintech",
+        "backend",
+        "payments",
+        "systems-design"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/blog/payment-systems-integration-at-scale",
+      "date": "2025-08-23",
+      "contentType": "article",
+      "excerpt": "Context Payment systems are critical infrastructure. They require correctness, reliability, and seamless integration with external providers. The Problem Payment systems introduce challenges: multiple external integrations inconsistent provider responses failure handling across systems reconciliation complexities Approach Abstraction Layer Create a unified interface: isolate provider-specific logic simplify integration Event-Driven Processing Handle payments asynchronously: process events reliably ensure eventual consistency Error Handling Plan for: network failures partial transactions retries Data Consistency Maintain: accurate transaction states reconciliation workflows Tradeoffs increased system complexity dependency on external systems Why This Matters Payment failures directly impact users and businesses. Systems must prioritize correctness and reliability. Closing Thoughts A well-..."
+    }
+  ],
+  "caseStudies": [
+    {
+      "slug": "designing-a-content-system-that-scales-beyond-a-portoflio",
+      "title": "Designing a Content System That Scales Beyond a Portfolio",
+      "summary": "Building a Git-based CMS architecture using static generation, structured content, and a clean separation between content and UI.",
+      "tags": [
+        "architecture",
+        "nextjs",
+        "cms",
+        "systems-design",
+        "decap-cms"
+      ],
+      "featured": true,
+      "coverImage": "https://hassanraza.us/decap.jpg",
+      "url": "https://hassanraza.us/project/designing-a-content-system-that-scales-beyond-a-portoflio",
+      "date": "2026-03-10T00:00:00.000Z",
+      "contentType": "case-study",
+      "excerpt": "Context Most personal websites start with hardcoded content directly inside components. This works initially, but quickly becomes difficult to maintain as the site grows. Updating content requires code changes, deployments, and careful coordination between structure and presentation. Over time, even simple updates become unnecessarily complex. This problem is not unique to portfolios. It appears in any system where content needs to evolve independently from application logic. The Problem Traditional approaches often introduce friction: Content tightly coupled with UI components No clear structure for managing different content types Difficult to scale into blogs, case studies, or structured narratives Lack of flexibility for non-developer editing The result is a system that works early but slows down iteration over time. Design Goals The system was designed with a few clear goals: Separa..."
     }
   ]
 }

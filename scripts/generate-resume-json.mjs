@@ -54,7 +54,7 @@ function getInterests(eyebrow) {
 }
 
 function listProjects() {
-  const postsDir = path.join(contentRoot, "posts");
+	const postsDir = path.join(contentRoot, "posts");
 
   return fs
     .readdirSync(postsDir)
@@ -77,22 +77,109 @@ function listProjects() {
     );
 }
 
+function listPosts() {
+  const postsDir = path.join(contentRoot, "posts");
+
+  return fs
+    .readdirSync(postsDir)
+    .filter((fileName) => fileName.endsWith(".mdx"))
+    .map((fileName) => {
+      const slug = fileName.replace(/\.mdx$/, "");
+      const source = fs.readFileSync(path.join(postsDir, fileName), "utf8");
+      const { data, content } = matter(source);
+
+      return {
+        slug,
+        frontmatter: data,
+        content,
+      };
+    })
+    .filter((entry) => entry.frontmatter?.published !== false);
+}
+
+function stripMarkdown(value) {
+  return String(value || "")
+    .replace(/^---[\s\S]*?---/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
+function takeExcerpt(value, maxLength = 900) {
+  const normalized = stripMarkdown(value).replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trim()}...`;
+}
+
 function buildResumePayload() {
   const site = readJson("settings/site.json");
   const hero = readJson("home/hero.json");
+  const stats = readJson("home/stats.json");
+  const featuredFocus = readJson("home/featured-focus.json");
+  const recommendations = readJson("recommendations/index.json");
   const contact = readJson("settings/contact.json");
   const profile = readJson("about/profile.json");
   const experience = readJson("about/experience.json").items;
   const education = readJson("about/education.json").items;
-  const projects = listProjects();
+  const posts = listPosts();
+  const projects = posts.filter(
+    (entry) => entry.frontmatter?.contentType === "project",
+  );
+  const articles = posts.filter(
+    (entry) => entry.frontmatter?.contentType === "article",
+  );
+  const caseStudies = posts.filter(
+    (entry) => entry.frontmatter?.contentType === "case-study",
+  );
   const siteUrl = trimTrailingSlash(site.siteUrl);
   const skills = uniqueOrdered(experience.flatMap((item) => item.tech || []));
+
+  const mapContentEntry = (entry) => ({
+    slug: entry.slug,
+    title: entry.frontmatter.title,
+    summary: entry.frontmatter.summary,
+    tags: entry.frontmatter.tags || [],
+    featured: Boolean(entry.frontmatter.featured),
+    coverImage: getAbsoluteUrl(siteUrl, entry.frontmatter.coverImage || ""),
+    url:
+      entry.frontmatter.contentType === "project" ||
+      entry.frontmatter.contentType === "case-study"
+        ? new URL(`/project/${entry.slug}`, siteUrl).toString()
+        : new URL(`/blog/${entry.slug}`, siteUrl).toString(),
+    date: entry.frontmatter.date || undefined,
+    contentType: entry.frontmatter.contentType,
+    excerpt: takeExcerpt(entry.content),
+  });
 
   return {
     name: site.name,
     title: site.title,
     headline: hero.headline,
     summary: profile.summary,
+    hero: {
+      eyebrow: hero.eyebrow,
+      headline: hero.headline,
+      highlightedText: hero.highlightedText,
+      supportingText: hero.supportingText,
+      primaryCta: {
+        ...hero.primaryCta,
+        href: getAbsoluteUrl(siteUrl, hero.primaryCta.href),
+      },
+      secondaryCta: {
+        ...hero.secondaryCta,
+        href: getAbsoluteUrl(siteUrl, hero.secondaryCta.href),
+      },
+    },
     about: {
       label: profile.pageLabel,
       title: profile.pageTitle,
@@ -100,6 +187,21 @@ function buildResumePayload() {
       headline: profile.headline,
       summary: profile.summary,
       body: profile.body,
+    },
+    featuredFocus: {
+      sectionLabel: featuredFocus.sectionLabel,
+      title: featuredFocus.title,
+      summary: featuredFocus.summary,
+      pillars: featuredFocus.pillars,
+      cta: {
+        label: featuredFocus.cta.label,
+        href: getAbsoluteUrl(siteUrl, featuredFocus.cta.href),
+      },
+    },
+    homeStats: {
+      title: stats.title,
+      badgeLabel: stats.badgeLabel,
+      items: stats.items,
     },
     interests: getInterests(hero.eyebrow),
     skills,
@@ -120,6 +222,18 @@ function buildResumePayload() {
         label: site.navigation.headerQuickLink.label,
         href: getAbsoluteUrl(siteUrl, site.navigation.headerQuickLink.href),
       },
+    },
+    recommendations: {
+      title: recommendations.title,
+      items: recommendations.items.map((item) => ({
+        name: item.name,
+        role: item.role,
+        relationship: item.relationship || undefined,
+        quote: item.quote,
+        highlight: item.highlight || undefined,
+        featured: Boolean(item.featured),
+        linkedin: item.linkedin || undefined,
+      })),
     },
     experience: experience.map((item) => ({
       title: item.title,
@@ -142,16 +256,9 @@ function buildResumePayload() {
       result: item.result || undefined,
       image: getAbsoluteUrl(siteUrl, item.image),
     })),
-    projects: projects.map((project) => ({
-      slug: project.slug,
-      title: project.frontmatter.title,
-      summary: project.frontmatter.summary,
-      tags: project.frontmatter.tags || [],
-      featured: Boolean(project.frontmatter.featured),
-      coverImage: getAbsoluteUrl(siteUrl, project.frontmatter.coverImage || ""),
-      url: new URL(`/project/${project.slug}`, siteUrl).toString(),
-      date: project.frontmatter.date || undefined,
-    })),
+    projects: projects.map(mapContentEntry),
+    articles: articles.map(mapContentEntry),
+    caseStudies: caseStudies.map(mapContentEntry),
   };
 }
 

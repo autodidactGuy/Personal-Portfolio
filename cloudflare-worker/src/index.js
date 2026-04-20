@@ -224,6 +224,8 @@ async function verifyTurnstile(token, ip, secretKey) {
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
+const ASSISTANT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const ASSISTANT_RATE_LIMIT_MAX = 40;
 const RATE_LIMIT_MAX_ENTRIES = 10000;
 const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
 const rateLimitMap = new Map();
@@ -255,7 +257,8 @@ function pruneExpiredEntries(now) {
 	}
 }
 
-function isRateLimited(ip) {
+function isRateLimited(ip, options = {}) {
+	const { windowMs = RATE_LIMIT_WINDOW_MS, max = RATE_LIMIT_MAX } = options;
 	const now = Date.now();
 
 	pruneExpiredEntries(now);
@@ -267,9 +270,7 @@ function isRateLimited(ip) {
 		return false;
 	}
 
-	entry.timestamps = entry.timestamps.filter(
-		(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
-	);
+	entry.timestamps = entry.timestamps.filter((ts) => now - ts < windowMs);
 
 	if (entry.timestamps.length === 0) {
 		rateLimitMap.delete(ip);
@@ -277,7 +278,7 @@ function isRateLimited(ip) {
 		return false;
 	}
 
-	if (entry.timestamps.length >= RATE_LIMIT_MAX) {
+	if (entry.timestamps.length >= max) {
 		return true;
 	}
 
@@ -721,7 +722,13 @@ export default {
 
 			const clientIp = request.headers.get("CF-Connecting-IP") || null;
 
-			if (clientIp && isRateLimited(`assistant:${clientIp}`)) {
+			if (
+				clientIp &&
+				isRateLimited(`assistant:${clientIp}`, {
+					windowMs: ASSISTANT_RATE_LIMIT_WINDOW_MS,
+					max: ASSISTANT_RATE_LIMIT_MAX,
+				})
+			) {
 				return jsonResponse(
 					{ error: "Too many requests. Please try again later." },
 					429,
