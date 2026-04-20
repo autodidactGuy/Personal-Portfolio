@@ -240,19 +240,19 @@ const unsupportedResumeScopePatterns = [
 ];
 
 const SMALL_TALK_GREETING_PATTERN =
-	/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))[!.,?]?$/i;
+	/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))(?:[!.,?]+)?$/i;
 const SMALL_TALK_FAREWELL_PATTERN =
-	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))[!.,?]?$/i;
+	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))(?:[!.,?]+)?$/i;
 const SMALL_TALK_THANKS_PATTERN =
-	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)[!.,?]?$/i;
+	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)(?:[!.,?]+)?$/i;
 
 const smallTalkPatterns = [
 	SMALL_TALK_GREETING_PATTERN,
 	SMALL_TALK_FAREWELL_PATTERN,
 	SMALL_TALK_THANKS_PATTERN,
-	/^(nice|amazing|awesome|great|cool|wow|wonderful|excellent|fantastic|brilliant|perfect|love it|incredible|superb|impressive|good job|well done|that'?s (great|amazing|awesome|cool|nice|good))[!.,?]?$/i,
-	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand)[!.,?]?$/i,
-	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)[!.,?]?$/i,
+	/^(nice|amazing|awesome|great|cool|wow|wonderful|excellent|fantastic|brilliant|perfect|love it|incredible|superb|impressive|good job|well done|that'?s (great|amazing|awesome|cool|nice|good))(?:[!.,?]+)?$/i,
+	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand)(?:[!.,?]+)?$/i,
+	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)(?:[!.,?]+)?$/i,
 ];
 
 const builtInAllowedKeywords = [
