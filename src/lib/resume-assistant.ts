@@ -239,12 +239,19 @@ const unsupportedResumeScopePatterns = [
 	/\brepository activity\b/i,
 ];
 
+const SMALL_TALK_GREETING_PATTERN =
+	/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))[!.,?]?$/i;
+const SMALL_TALK_FAREWELL_PATTERN =
+	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))[!.,?]?$/i;
+const SMALL_TALK_THANKS_PATTERN =
+	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)[!.,?]?$/i;
+
 const smallTalkPatterns = [
-	/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))[!.,?]?$/i,
-	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))[!.,?]?$/i,
-	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)[!.,?]?$/i,
+	SMALL_TALK_GREETING_PATTERN,
+	SMALL_TALK_FAREWELL_PATTERN,
+	SMALL_TALK_THANKS_PATTERN,
 	/^(nice|amazing|awesome|great|cool|wow|wonderful|excellent|fantastic|brilliant|perfect|love it|incredible|superb|impressive|good job|well done|that'?s (great|amazing|awesome|cool|nice|good))[!.,?]?$/i,
-	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand|makes sense)[!.,?]?$/i,
+	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand)[!.,?]?$/i,
 	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)[!.,?]?$/i,
 ];
 
@@ -1175,11 +1182,7 @@ export function generateLocalResumeAnswer(
 	}
 
 	if (isSmallTalk(normalizedQuestion)) {
-		if (
-			/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))[!.,?]?$/i.test(
-				normalizedQuestion,
-			)
-		) {
+		if (SMALL_TALK_FAREWELL_PATTERN.test(normalizedQuestion)) {
 			return {
 				status: "answered",
 				answer: `Goodbye! Feel free to come back if you have more questions about ${personName}.`,
@@ -1187,11 +1190,7 @@ export function generateLocalResumeAnswer(
 			};
 		}
 
-		if (
-			/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)[!.,?]?$/i.test(
-				normalizedQuestion,
-			)
-		) {
+		if (SMALL_TALK_THANKS_PATTERN.test(normalizedQuestion)) {
 			return {
 				status: "answered",
 				answer: `You're welcome! Let me know if there's anything else you'd like to know about ${personName}.`,
@@ -1199,11 +1198,7 @@ export function generateLocalResumeAnswer(
 			};
 		}
 
-		if (
-			/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))[!.,?]?$/i.test(
-				normalizedQuestion,
-			)
-		) {
+		if (SMALL_TALK_GREETING_PATTERN.test(normalizedQuestion)) {
 			return {
 				status: "answered",
 				answer: `Hello! Feel free to ask me anything about ${personPossessiveName} experience, projects, skills, or background.`,
