@@ -2,6 +2,7 @@
 
 import { Button, Chip, Drawer, ScrollShadow, Spinner } from "@heroui/react";
 import clsx from "clsx";
+import NextLink from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	HiMiniSparkles,
@@ -271,6 +272,23 @@ export function ResumeAssistant() {
 	const resolveCitations = (citationIds: string[]) =>
 		snippets.filter((snippet) => citationIds.includes(snippet.id));
 
+	const getCitationHref = (citation: ResumeSnippet) => {
+		if (!citation.url) {
+			return null;
+		}
+
+		try {
+			const parsedUrl = new URL(citation.url);
+			return withBasePath(
+				`${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`,
+			);
+		} catch {
+			return citation.url.startsWith("/")
+				? withBasePath(citation.url)
+				: citation.url;
+		}
+	};
+
 	const getRelevantSnippets = async (question: string) => {
 		if (
 			embeddingStatus === "ready" &&
@@ -283,6 +301,7 @@ export function ResumeAssistant() {
 			);
 
 			return rankSnippetsByEmbeddings(
+				question,
 				questionEmbedding,
 				snippets,
 				snippetEmbeddings,
@@ -413,18 +432,35 @@ export function ResumeAssistant() {
 									<p className="break-words">{message.content}</p>
 									{message.citations?.length ? (
 										<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
-											{message.citations.map((citation) => (
-												<Chip
-													className="max-w-full border border-primary/15 bg-primary/8 text-primary"
-													key={citation.id}
-													size="sm"
-													variant="secondary"
-												>
-													<Chip.Label className="max-w-full truncate">
-														{citation.title}
-													</Chip.Label>
-												</Chip>
-											))}
+											{message.citations.map((citation) => {
+												const href = getCitationHref(citation);
+
+												return href ? (
+													<Chip
+														as={NextLink}
+														className="max-w-full border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
+														href={href}
+														key={citation.id}
+														size="sm"
+														variant="secondary"
+													>
+														<Chip.Label className="max-w-full truncate">
+															{citation.title}
+														</Chip.Label>
+													</Chip>
+												) : (
+													<Chip
+														className="max-w-full border border-primary/15 bg-primary/8 text-primary"
+														key={citation.id}
+														size="sm"
+														variant="secondary"
+													>
+														<Chip.Label className="max-w-full truncate">
+															{citation.title}
+														</Chip.Label>
+													</Chip>
+												);
+											})}
 										</div>
 									) : null}
 								</div>

@@ -170,6 +170,7 @@ export type ResumeSnippet = {
 		| "recommendation";
 	text: string;
 	keywords: string[];
+	url?: string;
 };
 
 export type GuardrailResult =
@@ -302,6 +303,30 @@ function scoreKeywordOverlap(questionTokens: string[], snippet: ResumeSnippet) {
 	}, 0);
 }
 
+function isCareerTimelineQuestion(question: string) {
+	return [
+		/\bwhen\b.*\bstart(ed|ing)?\b.*\bwork(ing)?\b/i,
+		/\bwhen\b.*\bstart(ed|ing)?\b.*\bcareer\b/i,
+		/\bwhen\b.*\bprofessional(ly)?\b/i,
+		/\bfirst job\b/i,
+		/\bearliest role\b/i,
+		/\bbegan\b.*\bcareer\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function normalizeQuestionForRetrieval(question: string) {
+	return tokenize(
+		question
+			.replace(/\bstarted\b/gi, "start")
+			.replace(/\bstarting\b/gi, "start")
+			.replace(/\bworked\b/gi, "work")
+			.replace(/\bworking\b/gi, "work")
+			.replace(/\bprofessionally\b/gi, "professional")
+			.replace(/\bprofessionaly\b/gi, "professional")
+			.replace(/\bbegan\b/gi, "start"),
+	);
+}
+
 function sentenceCaseJoin(items: string[]) {
 	return items.filter(Boolean).join(" ");
 }
@@ -334,6 +359,104 @@ function takeFirstSentence(value: string) {
 	const match = trimmedValue.match(/^[^.!?]+[.!?]?/);
 
 	return (match?.[0] || trimmedValue).trim();
+}
+
+function parseMonthYear(value: string) {
+	const trimmedValue = value.trim();
+
+	if (!trimmedValue) {
+		return null;
+	}
+
+	const match = trimmedValue.match(/^([A-Za-z]{3,9}),\s*(\d{4})$/);
+
+	if (!match) {
+		return null;
+	}
+
+	const monthName = match[1].toLowerCase();
+	const year = Number(match[2]);
+	const monthMap: Record<string, number> = {
+		jan: 0,
+		january: 0,
+		feb: 1,
+		february: 1,
+		mar: 2,
+		march: 2,
+		apr: 3,
+		april: 3,
+		may: 4,
+		jun: 5,
+		june: 5,
+		jul: 6,
+		july: 6,
+		aug: 7,
+		august: 7,
+		sep: 8,
+		sept: 8,
+		september: 8,
+		oct: 9,
+		october: 9,
+		nov: 10,
+		november: 10,
+		dec: 11,
+		december: 11,
+	};
+	const month = monthMap[monthName];
+
+	if (month === undefined || Number.isNaN(year)) {
+		return null;
+	}
+
+	return new Date(Date.UTC(year, month, 1));
+}
+
+function extractSnippetStartDate(snippet: ResumeSnippet) {
+	const match = snippet.text.match(/([A-Za-z]{3,9},\s*\d{4})\s+to\s+/i);
+
+	if (!match) {
+		return null;
+	}
+
+	return parseMonthYear(match[1]);
+}
+
+function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
+	if (isCareerTimelineQuestion(question) && snippet.category === "experience") {
+		return 6;
+	}
+
+	return 0;
+}
+
+function compareSnippetsForQuestion(
+	question: string,
+	a: { snippet: ResumeSnippet; score: number },
+	b: { snippet: ResumeSnippet; score: number },
+) {
+	if (b.score !== a.score) {
+		return b.score - a.score;
+	}
+
+	if (isCareerTimelineQuestion(question)) {
+		const aIsExperience = a.snippet.category === "experience";
+		const bIsExperience = b.snippet.category === "experience";
+
+		if (aIsExperience !== bIsExperience) {
+			return aIsExperience ? -1 : 1;
+		}
+
+		if (aIsExperience && bIsExperience) {
+			const aStart = extractSnippetStartDate(a.snippet);
+			const bStart = extractSnippetStartDate(b.snippet);
+
+			if (aStart && bStart) {
+				return aStart.getTime() - bStart.getTime();
+			}
+		}
+	}
+
+	return a.snippet.title.localeCompare(b.snippet.title);
 }
 
 function topRepeatedValues(items: string[], maxItems = 8) {
@@ -591,9 +714,26 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				...tokenize(item.company),
 				...tokenize(item.companyComments || ""),
 				...tokenize(item.location),
+				...tokenize(item.from),
+				...tokenize(item.to),
 				...tokenize(item.highlight),
 				...(item.details || []).flatMap((detail) => tokenize(detail)),
 				...(item.tech || []).flatMap((tech) => tokenize(tech)),
+				"experience",
+				"work",
+				"worked",
+				"working",
+				"job",
+				"jobs",
+				"role",
+				"career",
+				"employment",
+				"professional",
+				"professionally",
+				"timeline",
+				"start",
+				"started",
+				"began",
 			]),
 		});
 	}
@@ -628,6 +768,7 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 			text: [
 				item.title,
 				item.summary,
+				item.excerpt || "",
 				item.tags?.length ? `Tags: ${item.tags.join(", ")}.` : "",
 				item.date ? `Date: ${item.date}.` : "",
 				item.url ? `URL: ${item.url}` : "",
@@ -640,7 +781,12 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				...tokenize(item.excerpt || ""),
 				...(item.tags || []).flatMap((tag) => tokenize(tag)),
 				...tokenize(item.date || ""),
+				"project",
+				"projects",
+				"portfolio",
+				"work",
 			]),
+			url: item.url,
 		});
 	}
 
@@ -668,6 +814,7 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				"case",
 				"study",
 			]),
+			url: item.url,
 		});
 	}
 
@@ -696,6 +843,7 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				"article",
 				"writing",
 			]),
+			url: item.url,
 		});
 	}
 
@@ -780,17 +928,20 @@ export function rankSnippetsByKeywords(
 	snippets: ResumeSnippet[],
 	limit = MAX_CONTEXT_CHUNKS,
 ) {
-	const questionTokens = tokenize(question);
+	const questionTokens = normalizeQuestionForRetrieval(question);
 
 	return [...snippets]
 		.map((snippet) => ({
 			snippet,
 			score:
 				scoreKeywordOverlap(questionTokens, snippet) +
-				(normalizeText(snippet.text).includes(normalizeText(question)) ? 8 : 0),
+				(normalizeText(snippet.text).includes(normalizeText(question))
+					? 8
+					: 0) +
+				applySnippetIntentBoost(question, snippet),
 		}))
 		.filter((entry) => entry.score > 0)
-		.sort((a, b) => b.score - a.score)
+		.sort((a, b) => compareSnippetsForQuestion(question, a, b))
 		.slice(0, limit)
 		.map((entry) => entry.snippet);
 }
@@ -1047,6 +1198,7 @@ export function cosineSimilarity(a: number[], b: number[]) {
 }
 
 export function rankSnippetsByEmbeddings(
+	question: string,
 	questionEmbedding: number[],
 	snippets: ResumeSnippet[],
 	snippetEmbeddings: number[][],
@@ -1055,12 +1207,11 @@ export function rankSnippetsByEmbeddings(
 	return snippets
 		.map((snippet, index) => ({
 			snippet,
-			score: cosineSimilarity(
-				questionEmbedding,
-				snippetEmbeddings[index] || [],
-			),
+			score:
+				cosineSimilarity(questionEmbedding, snippetEmbeddings[index] || []) +
+				applySnippetIntentBoost(question, snippet),
 		}))
-		.sort((a, b) => b.score - a.score)
+		.sort((a, b) => compareSnippetsForQuestion(question, a, b))
 		.slice(0, limit)
 		.map((entry) => entry.snippet);
 }
@@ -1190,6 +1341,7 @@ export async function fetchAssistantResponse(args: {
 						`If the question is unrelated to the person described in the resume, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
 						"Do not infer, invent, generalize, or use outside knowledge.",
 						"Every factual answer must be grounded in the snippet IDs you cite.",
+						"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer.",
 						"Keep the answer concise and friendly.",
 						"",
 						`RECENT_CHAT_CONTEXT:\n${recentContext}`,
