@@ -20,7 +20,7 @@
     "lint:fix": "biome check --write src cloudflare-worker/src"
   },
   "dependencies": {
-    "@heroui/react": "3.0.2",
+    "@heroui/react": "3.0.3",
     "@heroui/styles": "^3.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/postcss": "^4.2.2",
