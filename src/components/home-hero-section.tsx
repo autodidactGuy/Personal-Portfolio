@@ -32,7 +32,7 @@ export function HomeHeroSection({ hero }: HomeHeroSectionProps) {
 		<div className="animate__animated animate__fadeInUp grid items-center gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
 			<div className="flex justify-center">
 				<NextImage
-					alt={siteConfig.name}
+					alt={`${siteConfig.name} - ${siteConfig.title}`}
 					className="animate__animated animate__fadeInUp "
 					fetchPriority="high"
 					height={220}
