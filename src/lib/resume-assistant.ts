@@ -239,6 +239,22 @@ const unsupportedResumeScopePatterns = [
 	/\brepository activity\b/i,
 ];
 
+const SMALL_TALK_GREETING_PATTERN =
+	/^(hi|hey|hello|howdy|greetings|hiya|yo|sup|what'?s up|good (morning|afternoon|evening|day))(?:[!.,?]+)?$/i;
+const SMALL_TALK_FAREWELL_PATTERN =
+	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))(?:[!.,?]+)?$/i;
+const SMALL_TALK_THANKS_PATTERN =
+	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)(?:[!.,?]+)?$/i;
+
+const smallTalkPatterns = [
+	SMALL_TALK_GREETING_PATTERN,
+	SMALL_TALK_FAREWELL_PATTERN,
+	SMALL_TALK_THANKS_PATTERN,
+	/^(nice|amazing|awesome|great|cool|wow|wonderful|excellent|fantastic|brilliant|perfect|love it|incredible|superb|impressive|good job|well done|that'?s (great|amazing|awesome|cool|nice|good))(?:[!.,?]+)?$/i,
+	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand)(?:[!.,?]+)?$/i,
+	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)(?:[!.,?]+)?$/i,
+];
+
 const builtInAllowedKeywords = [
 	"resume",
 	"portfolio",
@@ -631,6 +647,11 @@ function findExperienceSnippetByCompany(
 
 function hasQuestionMatch(question: string, patterns: RegExp[]) {
 	return patterns.some((pattern) => pattern.test(question));
+}
+
+function isSmallTalk(question: string) {
+	const trimmed = question.trim();
+	return smallTalkPatterns.some((pattern) => pattern.test(trimmed));
 }
 
 export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
@@ -1048,6 +1069,10 @@ export function checkQuestionGuardrails(
 		};
 	}
 
+	if (isSmallTalk(normalizedQuestion)) {
+		return { allowed: true };
+	}
+
 	const tokens = tokenize(normalizedQuestion);
 	const allowedKeywords = new Set([
 		...builtInAllowedKeywords,
@@ -1152,6 +1177,38 @@ export function generateLocalResumeAnswer(
 		return {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
+			citations: [],
+		};
+	}
+
+	if (isSmallTalk(normalizedQuestion)) {
+		if (SMALL_TALK_FAREWELL_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `Goodbye! Feel free to come back if you have more questions about ${personName}.`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_THANKS_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `You're welcome! Let me know if there's anything else you'd like to know about ${personName}.`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_GREETING_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `Hello! Feel free to ask me anything about ${personPossessiveName} experience, projects, skills, or background.`,
+				citations: [],
+			};
+		}
+
+		return {
+			status: "answered",
+			answer: `Thanks! Is there anything you'd like to know about ${personName}?`,
 			citations: [],
 		};
 	}
