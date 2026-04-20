@@ -214,10 +214,11 @@ High-level lifecycle:
 1. Build time generates `public/api/resume.json` from portfolio JSON and MDX content.
 2. The client loads that payload and converts it into normalized snippets.
 3. Common questions are answered locally first using deterministic rules.
-4. If a model is needed, the client retrieves the most relevant snippets using embeddings or keyword fallback.
-5. The client sends only the selected snippets to the Cloudflare Worker `/assistant` endpoint.
-6. The worker validates origin, schema, content type, and rate limits before proxying to GitHub Models.
-7. The client validates the structured JSON response and renders answers with citations.
+4. If a model is needed, the client builds a retrieval query from the current message plus a small recent conversation window.
+5. The client retrieves the most relevant snippets using embeddings or keyword fallback.
+6. The client sends only the selected snippets to the Cloudflare Worker `/assistant` endpoint.
+7. The worker validates origin, schema, content type, and rate limits before proxying to GitHub Models.
+8. The client validates the structured JSON response and renders answers with citations.
 
 Important properties of this design:
 
@@ -225,7 +226,11 @@ Important properties of this design:
 - no frontend exposure of the GitHub Models token
 - graceful fallback when embeddings are unavailable
 - deterministic handling for high-confidence question patterns
+- conversation-aware retrieval for follow-up questions
 - citation-aware rendering to keep answers inspectable
+- direct links for cited projects, posts, and case studies when the snippet has a URL
+- client-side embedding cache invalidation through content hash, cache version, and TTL
+- closest-match fallback when generation fails but retrieval still found strong evidence
 
 Related article:
 `https://hassanraza.us/project/building-a-resume-native-ai-assistant`
@@ -379,6 +384,8 @@ Worker responsibilities:
 - isolate secrets that must never be exposed to the browser
 - apply request validation and basic rate limiting to public endpoints
 
+For the assistant specifically, the worker is intentionally narrow. Retrieval, snippet construction, local guardrails, cache management, and response rendering all stay in the frontend. The worker exists to enforce a safe server boundary for GitHub Models access.
+
 Local worker commands:
 
 ```bash
@@ -432,6 +439,12 @@ The assistant currently defaults to:
 - chat model: `openai/gpt-4o-mini`
 - embedding model: `openai/text-embedding-3-small`
 
+The client caches snippet embeddings in local storage and invalidates them through three signals:
+
+- content hash, so changed resume content gets a new embedding cache key
+- cache version, so retrieval logic changes can invalidate old client caches
+- TTL, so stale embeddings do not live forever in returning visitors' browsers
+
 ## Linting and Formatting
 
 Biome is used for linting and formatting in:
@@ -479,16 +492,23 @@ This matters for GitHub Pages and other prefixed deployments because generated a
 The assistant uses a retrieval-first architecture rather than sending the entire resume to a model:
 
 - build a normalized snippet set from `resume.json`
-- embed and cache snippets client-side using a content hash
-- embed the incoming question when embeddings are available
+- persist conversation history locally with message roles intact
+- build retrieval intent from the current question plus recent conversation turns
+- embed and cache snippets client-side using a content hash, cache version, and TTL
+- embed the conversation-aware retrieval query when embeddings are available
 - rank snippets semantically with cosine similarity
 - fall back to keyword overlap when embeddings are unavailable
+- prefer timeline-relevant snippets for chronology-style questions
 - send only the highest-signal snippets to the model
+- attach snippet URLs so cited projects, posts, and case studies can link back to their pages
+- if the model path fails but retrieval confidence is strong, return a closest-match fallback instead of immediately collapsing to "missing"
 
 The core implementation lives in:
 
 - [src/lib/resume-assistant.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/lib/resume-assistant.ts)
 - [src/components/resume-assistant.tsx](/Users/hassanraza/Projects/Personal-Portfolio/src/components/resume-assistant.tsx)
+
+During local development, the assistant UI also exposes a debug panel that shows retrieval mode, the generated retrieval query, top-ranked snippets, and whether the closest-match fallback was used. This is useful for debugging why a question failed or why the wrong evidence was selected.
 
 ### Tailwind and styling
 
@@ -507,6 +527,12 @@ This repository has had a number of structural and UX fixes recently. The import
 - added Biome linting and formatting commands for application and worker source code
 - introduced generated static `resume.json` instead of a runtime API route, because static export does not support Next API routes
 - added a resume-native AI assistant that uses retrieval, deterministic shortcuts, and worker-proxied GitHub Models calls
+- improved assistant retrieval for chronology and "early vs recent work" style questions by making snippet ranking more date-aware
+- made assistant retrieval conversation-aware so follow-up questions can reuse recent context instead of acting like isolated prompts
+- added assistant citation links for projects, blog posts, and case studies referenced in answers
+- added client-side embedding cache versioning and TTL to avoid overly stale vectors in local storage
+- added a closest-match fallback path when retrieval succeeds but generation fails upstream
+- added a dev-only assistant debug panel to inspect retrieval inputs, ranking, and fallback behavior
 - introduced generated static `search-index.json` for site search
 - expanded the Cloudflare Worker beyond CMS OAuth to also support `/contact` and `/assistant`
 - fixed the lazy search-index loading loop on the search page
