@@ -4,6 +4,9 @@ Personal portfolio and publishing platform built as a static-first Next.js appli
 
 Live site: `https://hassanraza.us`
 
+Featured project write-up:
+`https://hassanraza.us/project/building-a-resume-native-ai-assistant`
+
 ## Overview
 
 This repository is designed to do more than render a resume. It combines:
@@ -14,6 +17,13 @@ This repository is designed to do more than render a resume. It combines:
 - a Git-backed CMS workflow for editing and publishing
 
 The site is intentionally built like a small product surface rather than a one-off landing page.
+
+Recent notable product features:
+
+- resume-native AI assistant grounded in published site content
+- generated search index for static client-side search
+- contact workflow backed by a Cloudflare Worker and Resend
+- Git-backed CMS editing through Decap CMS + GitHub OAuth
 
 ## Tech Stack
 
@@ -26,7 +36,7 @@ The site is intentionally built like a small product surface rather than a one-o
 - `Zod 4` for content validation
 - `React Hook Form`
 - `Decap CMS`
-- `Cloudflare Workers` for CMS OAuth
+- `Cloudflare Workers` for OAuth, contact handling, and AI proxying
 - `Biome` for linting and formatting
 - `GitHub Actions` for build and deployment
 
@@ -42,6 +52,12 @@ The main app uses:
 - `images.unoptimized = true` so the export works cleanly on static hosting
 
 Because the site is exported statically, anything that behaves like an API is generated at build time and emitted into `public/`.
+
+Examples:
+
+- `public/api/resume.json` for the assistant knowledge base
+- `public/search-index.json` for site search
+- generated SEO assets under `public/`
 
 ### Content system
 
@@ -80,7 +96,7 @@ Current post grouping rules:
 Some derived files are generated during development and build:
 
 - `public/api/resume.json`
-  generated structured resume-style payload
+  generated structured resume-style payload used by the assistant
 - `public/search-index.json`
   generated search index used by the site search page
 - `src/generated/content-icons.json`
@@ -149,6 +165,12 @@ Main pages:
 - `/cms-admin/`
   Decap CMS admin interface
 
+Interactive UI surfaces:
+
+- footer assistant launcher opens the resume-grounded AI assistant drawer
+- contact page submits to the worker-backed `/contact` endpoint
+- search page consumes the generated static search index
+
 ## Listing and Search Behavior
 
 ### Projects and blog
@@ -182,6 +204,31 @@ This keeps the client-side search page fast and avoids shipping the full content
 - education items
 - recommendations
 - taxonomy terms and section keywords such as `education`, `experience`, `projects`, and `blog`
+
+## AI Assistant
+
+The portfolio includes a resume-native AI assistant embedded in the footer launcher. It is designed to answer only from content already published on the site rather than from unstated knowledge or repository activity.
+
+High-level lifecycle:
+
+1. Build time generates `public/api/resume.json` from portfolio JSON and MDX content.
+2. The client loads that payload and converts it into normalized snippets.
+3. Common questions are answered locally first using deterministic rules.
+4. If a model is needed, the client retrieves the most relevant snippets using embeddings or keyword fallback.
+5. The client sends only the selected snippets to the Cloudflare Worker `/assistant` endpoint.
+6. The worker validates origin, schema, content type, and rate limits before proxying to GitHub Models.
+7. The client validates the structured JSON response and renders answers with citations.
+
+Important properties of this design:
+
+- grounded only in published site content
+- no frontend exposure of the GitHub Models token
+- graceful fallback when embeddings are unavailable
+- deterministic handling for high-confidence question patterns
+- citation-aware rendering to keep answers inspectable
+
+Related article:
+`https://hassanraza.us/project/building-a-resume-native-ai-assistant`
 
 ## Commands
 
@@ -228,6 +275,8 @@ Serve exported output:
 ```bash
 yarn start
 ```
+
+`yarn dev` regenerates `resume.json` and `search-index.json` before starting Next.js so local development reflects the latest content-derived artifacts.
 
 ### Individual generation scripts
 
@@ -283,6 +332,12 @@ That means the build:
 4. regenerates the public search index
 5. runs `next build` for static export
 
+Local development follows the same static-data philosophy:
+
+- `yarn dev` regenerates `resume.json` and `search-index.json` before booting the app
+- `yarn dev:clean` also removes `.next` and `out` first
+- generated artifacts are part of the expected working tree for the app
+
 Deployment is handled by [deploy.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/workflows/deploy.yml), which:
 
 - runs on pushes to `main`
@@ -304,7 +359,13 @@ Because the main site is static, CMS authentication is handled by the companion 
 
 ## Cloudflare Worker
 
-The worker is only for Decap CMS authentication. It is not required to render the public site.
+The worker now supports three public-facing capabilities:
+
+- `/auth` and `/callback` for Decap CMS GitHub OAuth
+- `/contact` for contact form validation and email delivery
+- `/assistant` for a safe GitHub Models proxy used by the resume-native AI assistant
+
+The public site shell is still statically rendered, but these workflows rely on the worker for server-only behavior.
 
 Worker responsibilities:
 
@@ -313,6 +374,10 @@ Worker responsibilities:
 - exchange OAuth code for a token
 - fetch the authenticated GitHub profile
 - allow only configured GitHub usernames
+- validate contact submissions and forward email through Resend
+- validate assistant requests and proxy them to GitHub Models
+- isolate secrets that must never be exposed to the browser
+- apply request validation and basic rate limiting to public endpoints
 
 Local worker commands:
 
@@ -320,6 +385,13 @@ Local worker commands:
 cd cloudflare-worker
 yarn install
 yarn dev
+```
+
+Run worker tests:
+
+```bash
+cd cloudflare-worker
+yarn test
 ```
 
 Deploy worker:
@@ -331,6 +403,34 @@ yarn deploy
 ```
 
 Do not commit secrets. Configure OAuth values and allowed-user settings through Cloudflare secrets and environment configuration instead.
+
+Companion docs:
+
+- [docs/contact-form.md](/Users/hassanraza/Projects/Personal-Portfolio/docs/contact-form.md)
+- [docs/decap-auth.md](/Users/hassanraza/Projects/Personal-Portfolio/docs/decap-auth.md)
+
+## Environment and Configuration
+
+Public client configuration defaults live in [config/public-env.defaults.json](/Users/hassanraza/Projects/Personal-Portfolio/config/public-env.defaults.json). They cover:
+
+- base path and repository name
+- contact worker URL
+- assistant worker URL
+- Turnstile site key
+- default GitHub Models chat model
+- default GitHub Models embedding model
+
+The runtime accessor is [src/config/public-env.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/config/public-env.ts), which resolves environment overrides first and then falls back to those defaults.
+
+Two especially important frontend-facing values are:
+
+- `NEXT_PUBLIC_CONTACT_WORKER_URL`
+- `NEXT_PUBLIC_ASSISTANT_WORKER_URL`
+
+The assistant currently defaults to:
+
+- chat model: `openai/gpt-4o-mini`
+- embedding model: `openai/text-embedding-3-small`
 
 ## Linting and Formatting
 
@@ -359,6 +459,9 @@ This app uses static export, so Next.js API routes are not available in producti
 Example:
 
 - `resume.json` is generated by [generate-resume-json.mjs](/Users/hassanraza/Projects/Personal-Portfolio/scripts/generate-resume-json.mjs) and served as a static file
+- `search-index.json` is generated by [generate-search-index.mjs](/Users/hassanraza/Projects/Personal-Portfolio/scripts/generate-search-index.mjs) and served as a static file
+
+When true server-only behavior is needed, the repo uses the companion Cloudflare Worker instead of Next.js API routes.
 
 ### Base path support
 
@@ -368,6 +471,24 @@ The app supports a configurable base path through:
 - `BASE_PATH`
 
 This is wired through [base-path.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/lib/base-path.ts) and used for images, admin routing, and static asset links.
+
+This matters for GitHub Pages and other prefixed deployments because generated asset URLs and client fetches need to resolve correctly both locally and in production.
+
+### Assistant retrieval strategy
+
+The assistant uses a retrieval-first architecture rather than sending the entire resume to a model:
+
+- build a normalized snippet set from `resume.json`
+- embed and cache snippets client-side using a content hash
+- embed the incoming question when embeddings are available
+- rank snippets semantically with cosine similarity
+- fall back to keyword overlap when embeddings are unavailable
+- send only the highest-signal snippets to the model
+
+The core implementation lives in:
+
+- [src/lib/resume-assistant.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/lib/resume-assistant.ts)
+- [src/components/resume-assistant.tsx](/Users/hassanraza/Projects/Personal-Portfolio/src/components/resume-assistant.tsx)
 
 ### Tailwind and styling
 
@@ -385,7 +506,9 @@ This repository has had a number of structural and UX fixes recently. The import
 - updated the deployment workflow to use `yarn install --frozen-lockfile`
 - added Biome linting and formatting commands for application and worker source code
 - introduced generated static `resume.json` instead of a runtime API route, because static export does not support Next API routes
+- added a resume-native AI assistant that uses retrieval, deterministic shortcuts, and worker-proxied GitHub Models calls
 - introduced generated static `search-index.json` for site search
+- expanded the Cloudflare Worker beyond CMS OAuth to also support `/contact` and `/assistant`
 - fixed the lazy search-index loading loop on the search page
 - added static pagination for `/blog` and `/projects` at 20 items per page
 - aligned project and blog grouping so projects include `project` and `case-study`, while blog contains the remaining post types
@@ -438,6 +561,13 @@ This is a public repository. Keep these boundaries in mind:
 - do not commit private API keys
 - do not commit personal access tokens
 - do not hardcode sensitive environment values in source
+
+For this repository specifically, treat these as secret material:
+
+- `GITHUB_CLIENT_SECRET`
+- `GITHUB_MODELS_TOKEN`
+- `RESEND_API_KEY`
+- `TURNSTILE_SECRET_KEY`
 
 Public site metadata, public profile links, public content, and deployment configuration intended for GitHub Pages are expected to be visible.
 

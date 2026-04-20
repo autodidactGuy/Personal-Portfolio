@@ -30,6 +30,7 @@ The result is an AI assistant embedded directly into the portfolio experience th
 
 - loads a generated static resume dataset from the site itself  
 - converts that content into searchable snippets  
+- answers common questions locally when a deterministic path is safer and faster  
 - ranks the most relevant context using embeddings and keyword fallback  
 - calls GitHub Models through a Cloudflare Worker proxy  
 - returns concise answers with citations tied to the underlying portfolio content  
@@ -97,6 +98,88 @@ Structured JSON response + citations
 Grounded answer rendered in the portfolio
 ```
 
+## Request Lifecycle Diagram
+
+The full request path is a little more interesting than the high-level diagram suggests, because there are several control points before the model is ever asked to answer.
+
+```text
+1. Visitor opens the footer assistant drawer
+   |
+   v
+2. Client loads /api/resume.json
+   |
+   +--> generated at build time from content/about, content/home,
+   |    content/settings, content/recommendations, and content/posts
+   |
+   v
+3. Client normalizes content into snippets
+   |
+   +--> summary, about, skills, links, contact
+   +--> experience and education entries
+   +--> projects, articles, case studies, recommendations
+   |
+   v
+4. Client computes a content hash
+   |
+   +--> used as the cache key for snippet embeddings
+   |
+   v
+5. Visitor submits a question
+   |
+   +--> local guardrails check scope and reject off-topic or adversarial prompts
+   |
+   +--> local deterministic answer path tries known patterns first
+   |    - current role
+   |    - education
+   |    - common links
+   |    - top technologies
+   |    - payment-related experience
+   |
+   +--> if local answer exists, return immediately with citations
+   |
+   v
+6. Retrieval phase selects supporting evidence
+   |
+   +--> embeddings ready
+   |    - embed the user question
+   |    - score all snippets by cosine similarity
+   |
+   +--> embeddings unavailable
+   |    - fall back to keyword overlap scoring
+   |
+   v
+7. Top-ranked snippets only are sent to the model
+   |
+   +--> recent chat context is included
+   +--> response is constrained to a JSON schema
+   |
+   v
+8. Cloudflare Worker /assistant
+   |
+   +--> validate allowed origin
+   +--> enforce POST + application/json
+   +--> parse and validate request payload
+   +--> apply per-IP rate limiting
+   +--> keep GitHub Models token on the server boundary
+   |
+   v
+9. GitHub Models
+   |
+   +--> embeddings endpoint for semantic retrieval
+   +--> chat completions endpoint for grounded answer generation
+   |
+   v
+10. Client validates model output
+    |
+    +--> parse JSON
+    +--> enforce answer shape
+    +--> discard invalid citation IDs
+    +--> downgrade unsupported answers to "missing"
+    |
+    v
+11. UI renders final answer + snippet citations
+```
+
 ## Why the Resume API Matters
 
 The assistant is powered by a generated `resume.json` representation of the site content. That payload aggregates the information that actually matters to a recruiter, hiring manager, or engineering leader:
@@ -144,6 +227,8 @@ This does two things well:
 1. it improves answer quality because the model is given the most relevant evidence instead of the whole resume  
 2. it keeps the design efficient by avoiding unnecessary repeated embedding work for unchanged content  
 
+The hash-based cache boundary matters more than it may seem. It means embeddings are tied to the exact published content state. If the resume changes, the cache key changes too, so the assistant does not accidentally reuse vectors generated for older content.
+
 I also added a keyword-based fallback path. If embeddings are unavailable for any reason, the assistant still works by ranking snippets through lexical overlap. That is an important operational detail: degraded mode is still useful mode.
 
 ## A Safer Model Boundary with Cloudflare Workers
@@ -159,6 +244,8 @@ The worker handles:
 - **rate limiting** to prevent abuse, with a bounded per-IP request window  
 - **secret isolation** so the GitHub Models token never leaves the server boundary  
 - **uniform response handling** across embeddings and chat completions  
+
+In practical terms, the Worker is not trying to become an AI orchestration layer. It is intentionally narrow. The frontend decides what context to send, and the Worker decides whether the request is valid and safe to proxy.
 
 This is a simple pattern, but it is the right one. It turns a frontend AI feature into a controlled service interface rather than an open client-side experiment.
 
@@ -193,6 +280,8 @@ This improves latency, reduces token usage, and tightens correctness.
 
 It also gives the assistant a more senior-engineered feel: use the model where it adds value, not where a clear rule-based answer already exists.
 
+There is another important constraint in the implementation: even when the model is used, an answer is only accepted as a real answer if it comes back with valid citations that map to the provided snippet IDs. If the model returns an unsupported answer shape or cites content outside the retrieved context, the client treats that as a missing-information case instead of trusting it.
+
 ## Engineering Tradeoffs
 
 There are a few deliberate tradeoffs in this design.
@@ -212,6 +301,10 @@ If embeddings fail, the assistant does not disappear. It falls back gracefully a
 ### 4. Structured output over free-form generation
 
 The response is expected in a constrained JSON shape with answer status and citations. That gives the UI something deterministic to render and makes failure modes easier to manage.
+
+### 5. Thin worker over backend sprawl
+
+I deliberately kept the backend boundary small. The Worker does not own retrieval, snippet construction, or portfolio-specific business logic. That keeps the moving parts understandable and makes the production surface easier to secure.
 
 ## What I Like About This Build
 
