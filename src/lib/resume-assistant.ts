@@ -11,6 +11,8 @@ export const DEFAULT_CHAT_MODEL =
 export const DEFAULT_EMBEDDING_MODEL =
 	publicEnv.NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL;
 export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
+export const EMBEDDINGS_CACHE_VERSION = "v2";
+export const EMBEDDINGS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_CONTEXT_CHUNKS = 5;
 
 export const MISSING_INFORMATION_MESSAGE =
@@ -314,6 +316,25 @@ function isCareerTimelineQuestion(question: string) {
 	].some((pattern) => pattern.test(question));
 }
 
+function isContentTimelineQuestion(question: string) {
+	return [
+		/\bearly\b.*\b(project|projects|work|article|articles|post|posts|case study|case studies)\b/i,
+		/\brecent\b.*\b(project|projects|work|article|articles|post|posts|case study|case studies)\b/i,
+		/\blatest\b.*\b(project|projects|work|article|articles|post|posts|case study|case studies)\b/i,
+		/\bnewest\b.*\b(project|projects|work|article|articles|post|posts|case study|case studies)\b/i,
+		/\bfirst\b.*\b(project|projects|article|articles|post|posts|case study|case studies)\b/i,
+		/\bearliest\b.*\b(project|projects|article|articles|post|posts|case study|case studies)\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function prefersEarliestContent(question: string) {
+	return /\b(early|earlier|earliest|first)\b/i.test(question);
+}
+
+function prefersLatestContent(question: string) {
+	return /\b(recent|latest|newest|current)\b/i.test(question);
+}
+
 function normalizeQuestionForRetrieval(question: string) {
 	return tokenize(
 		question
@@ -323,7 +344,11 @@ function normalizeQuestionForRetrieval(question: string) {
 			.replace(/\bworking\b/gi, "work")
 			.replace(/\bprofessionally\b/gi, "professional")
 			.replace(/\bprofessionaly\b/gi, "professional")
-			.replace(/\bbegan\b/gi, "start"),
+			.replace(/\bbegan\b/gi, "start")
+			.replace(/\brecent\b/gi, "latest")
+			.replace(/\bnewest\b/gi, "latest")
+			.replace(/\bearlier\b/gi, "early")
+			.replace(/\bearliest\b/gi, "early"),
 	);
 }
 
@@ -421,9 +446,48 @@ function extractSnippetStartDate(snippet: ResumeSnippet) {
 	return parseMonthYear(match[1]);
 }
 
+function extractSnippetContentDate(snippet: ResumeSnippet) {
+	const match = snippet.text.match(
+		/Date:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}(?:T[^.\s]+(?:\.\d+Z)?)?)/i,
+	);
+
+	if (!match) {
+		return null;
+	}
+
+	const date = new Date(match[1]);
+
+	return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
 	if (isCareerTimelineQuestion(question) && snippet.category === "experience") {
 		return 6;
+	}
+
+	if (
+		isContentTimelineQuestion(question) &&
+		["project", "article", "case-study"].includes(snippet.category)
+	) {
+		return 6;
+	}
+
+	if (/\bproject(s)?\b/i.test(question) && snippet.category === "project") {
+		return 3;
+	}
+
+	if (
+		/\b(article|articles|blog|blogs|post|posts|writing)\b/i.test(question) &&
+		snippet.category === "article"
+	) {
+		return 3;
+	}
+
+	if (
+		/\b(case study|case studies)\b/i.test(question) &&
+		snippet.category === "case-study"
+	) {
+		return 3;
 	}
 
 	return 0;
@@ -452,6 +516,34 @@ function compareSnippetsForQuestion(
 
 			if (aStart && bStart) {
 				return aStart.getTime() - bStart.getTime();
+			}
+		}
+	}
+
+	if (isContentTimelineQuestion(question)) {
+		const aIsContent = ["project", "article", "case-study"].includes(
+			a.snippet.category,
+		);
+		const bIsContent = ["project", "article", "case-study"].includes(
+			b.snippet.category,
+		);
+
+		if (aIsContent !== bIsContent) {
+			return aIsContent ? -1 : 1;
+		}
+
+		if (aIsContent && bIsContent) {
+			const aDate = extractSnippetContentDate(a.snippet);
+			const bDate = extractSnippetContentDate(b.snippet);
+
+			if (aDate && bDate) {
+				if (prefersEarliestContent(question)) {
+					return aDate.getTime() - bDate.getTime();
+				}
+
+				if (prefersLatestContent(question)) {
+					return bDate.getTime() - aDate.getTime();
+				}
 			}
 		}
 	}
@@ -785,6 +877,10 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				"projects",
 				"portfolio",
 				"work",
+				"early",
+				"recent",
+				"latest",
+				"first",
 			]),
 			url: item.url,
 		});
@@ -813,6 +909,10 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				...tokenize(item.date || ""),
 				"case",
 				"study",
+				"early",
+				"recent",
+				"latest",
+				"first",
 			]),
 			url: item.url,
 		});
@@ -842,6 +942,12 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				"blog",
 				"article",
 				"writing",
+				"post",
+				"posts",
+				"early",
+				"recent",
+				"latest",
+				"first",
 			]),
 			url: item.url,
 		});
@@ -1226,7 +1332,7 @@ export async function hashResumePayload(resume: ResumePayload) {
 }
 
 export function getEmbeddingsCacheKey(hash: string, model: string) {
-	return `${RESPONSE_CACHE_PREFIX}:${model}:${hash}`;
+	return `${RESPONSE_CACHE_PREFIX}:${EMBEDDINGS_CACHE_VERSION}:${model}:${hash}`;
 }
 
 export function getAssistantWorkerUrl() {
@@ -1342,6 +1448,7 @@ export async function fetchAssistantResponse(args: {
 						"Do not infer, invent, generalize, or use outside knowledge.",
 						"Every factual answer must be grounded in the snippet IDs you cite.",
 						"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer.",
+						"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering.",
 						"Keep the answer concise and friendly.",
 						"",
 						`RECENT_CHAT_CONTEXT:\n${recentContext}`,

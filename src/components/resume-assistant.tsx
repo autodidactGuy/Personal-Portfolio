@@ -22,6 +22,7 @@ import {
 	checkQuestionGuardrails,
 	DEFAULT_CHAT_MODEL,
 	DEFAULT_EMBEDDING_MODEL,
+	EMBEDDINGS_CACHE_TTL_MS,
 	fetchAssistantResponse,
 	fetchEmbeddings,
 	type GuardrailResult,
@@ -46,6 +47,11 @@ type ChatMessage = {
 };
 
 type EmbeddingStatus = "idle" | "loading" | "ready" | "fallback";
+
+type EmbeddingsCachePayload = {
+	createdAt: number;
+	embeddings: number[][];
+};
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
@@ -218,11 +224,24 @@ export function ResumeAssistant() {
 						: null;
 
 				if (cachedValue) {
-					const parsed = JSON.parse(cachedValue) as number[][];
+					const parsed = JSON.parse(cachedValue) as
+						| number[][]
+						| EmbeddingsCachePayload;
+					const parsedEmbeddings = Array.isArray(parsed)
+						? parsed
+						: parsed.embeddings;
+					const cacheAge = Array.isArray(parsed)
+						? Number.POSITIVE_INFINITY
+						: Date.now() - parsed.createdAt;
+					const cacheIsFresh = cacheAge <= EMBEDDINGS_CACHE_TTL_MS;
 
-					if (parsed.length === snippets.length) {
+					if (
+						cacheIsFresh &&
+						Array.isArray(parsedEmbeddings) &&
+						parsedEmbeddings.length === snippets.length
+					) {
 						if (!isCancelled) {
-							setSnippetEmbeddings(parsed);
+							setSnippetEmbeddings(parsedEmbeddings);
 							setEmbeddingStatus("ready");
 						}
 
@@ -247,7 +266,10 @@ export function ResumeAssistant() {
 				if (typeof window !== "undefined") {
 					window.localStorage.setItem(
 						getEmbeddingsCacheKey(resumeHash, DEFAULT_EMBEDDING_MODEL),
-						JSON.stringify(embeddings),
+						JSON.stringify({
+							createdAt: Date.now(),
+							embeddings,
+						} satisfies EmbeddingsCachePayload),
 					);
 				}
 			} catch {
