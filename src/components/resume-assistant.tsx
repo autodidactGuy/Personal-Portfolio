@@ -570,7 +570,7 @@ export function FooterAssistantLauncher() {
 									</div>
 									<Drawer.CloseTrigger
 										aria-label="Close portfolio assistant"
-										className="rounded-full border border-danger/40 bg-red-600 p-2 text-white shadow-sm shadow-danger/20 transition-colors hover:bg-red-500"
+										className="!h-12 !w-12 rounded-full border border-danger/40 bg-red-600 text-white shadow-sm shadow-danger/20 transition-colors hover:bg-red-500 [&_svg]:!size-6"
 									/>
 								</div>
 							</Drawer.Header>
