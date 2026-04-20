@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	Button,
-	Chip,
-	Drawer,
-	ScrollShadow,
-	Spinner,
-	Tooltip,
-} from "@heroui/react";
+import { Button, Chip, Drawer, ScrollShadow, Tooltip } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -676,8 +669,18 @@ export function ResumeAssistant() {
 
 						{isSending ? (
 							<div className="flex justify-start">
-								<div className="flex items-center gap-3 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
-									<Spinner color="accent" size="sm" />
+								<div className="flex items-center gap-2.5 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
+									<span className="flex items-end gap-0.5 text-primary">
+										<HiMiniSparkles className="animate-spark" size={14} />
+										<HiMiniSparkles
+											className="animate-spark-delay-1"
+											size={11}
+										/>
+										<HiMiniSparkles
+											className="animate-spark-delay-2"
+											size={14}
+										/>
+									</span>
 									<span>Thinking...</span>
 								</div>
 							</div>
