@@ -14,6 +14,7 @@ export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
 export const EMBEDDINGS_CACHE_VERSION = "v2";
 export const EMBEDDINGS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_CONTEXT_CHUNKS = 5;
+export const MAX_RETRIEVAL_CONTEXT_MESSAGES = 4;
 
 export const MISSING_INFORMATION_MESSAGE =
 	"I don't have that information available.";
@@ -185,6 +186,17 @@ export type AssistantResponse = {
 	citations: string[];
 };
 
+export type RetrievalEntry = {
+	snippet: ResumeSnippet;
+	score: number;
+};
+
+export type RetrievalResult = {
+	query: string;
+	mode: "embeddings" | "keywords";
+	entries: RetrievalEntry[];
+};
+
 const assistantResponseSchema = z.object({
 	status: z.enum(["answered", "missing", "rejected"]),
 	answer: z.string().trim().min(1),
@@ -303,6 +315,38 @@ function scoreKeywordOverlap(questionTokens: string[], snippet: ResumeSnippet) {
 
 		return score + (snippet.title.toLowerCase().includes(token) ? 3 : 1);
 	}, 0);
+}
+
+function countKeywordOverlap(questionTokens: string[], snippet: ResumeSnippet) {
+	const keywordSet = buildKeywordSet(snippet);
+
+	return questionTokens.filter((token) => keywordSet.has(token)).length;
+}
+
+function isConversationDependentQuestion(question: string) {
+	const questionTokens = tokenize(question);
+
+	return (
+		questionTokens.length <= 4 ||
+		questionTokens.every((token) =>
+			[
+				"he",
+				"him",
+				"his",
+				"it",
+				"its",
+				"that",
+				"those",
+				"them",
+				"there",
+				"one",
+				"ones",
+				"this",
+				"these",
+			].includes(token),
+		) ||
+		/\b(it|that|those|them|one|ones|this|these)\b/i.test(question)
+	);
 }
 
 function isCareerTimelineQuestion(question: string) {
@@ -1029,27 +1073,66 @@ export function checkQuestionGuardrails(
 	};
 }
 
-export function rankSnippetsByKeywords(
-	question: string,
+export function buildRetrievalQuery(args: {
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+}) {
+	const { question, recentMessages } = args;
+	const trimmedQuestion = question.trim();
+
+	if (!trimmedQuestion) {
+		return "";
+	}
+
+	const usableRecentMessages = recentMessages
+		.filter((message) => message.content.trim())
+		.slice(-MAX_RETRIEVAL_CONTEXT_MESSAGES);
+
+	if (
+		usableRecentMessages.length === 0 ||
+		!isConversationDependentQuestion(trimmedQuestion)
+	) {
+		return trimmedQuestion;
+	}
+
+	const conversationSummary = usableRecentMessages
+		.map((message) => `${message.role}: ${message.content}`)
+		.join("\n");
+
+	return `Conversation context:\n${conversationSummary}\n\nCurrent question: ${trimmedQuestion}`;
+}
+
+export function rankSnippetEntriesByKeywords(
+	query: string,
 	snippets: ResumeSnippet[],
 	limit = MAX_CONTEXT_CHUNKS,
 ) {
-	const questionTokens = normalizeQuestionForRetrieval(question);
+	const questionTokens = normalizeQuestionForRetrieval(query);
 
 	return [...snippets]
 		.map((snippet) => ({
 			snippet,
 			score:
 				scoreKeywordOverlap(questionTokens, snippet) +
-				(normalizeText(snippet.text).includes(normalizeText(question))
-					? 8
-					: 0) +
-				applySnippetIntentBoost(question, snippet),
+				(normalizeText(snippet.text).includes(normalizeText(query)) ? 8 : 0) +
+				applySnippetIntentBoost(query, snippet),
 		}))
 		.filter((entry) => entry.score > 0)
-		.sort((a, b) => compareSnippetsForQuestion(question, a, b))
-		.slice(0, limit)
-		.map((entry) => entry.snippet);
+		.sort((a, b) => compareSnippetsForQuestion(query, a, b))
+		.slice(0, limit);
+}
+
+export function rankSnippetsByKeywords(
+	query: string,
+	snippets: ResumeSnippet[],
+	limit = MAX_CONTEXT_CHUNKS,
+) {
+	return rankSnippetEntriesByKeywords(query, snippets, limit).map(
+		(entry) => entry.snippet,
+	);
 }
 
 export function generateLocalResumeAnswer(
@@ -1303,8 +1386,8 @@ export function cosineSimilarity(a: number[], b: number[]) {
 	return dotProduct / (Math.sqrt(aMagnitude) * Math.sqrt(bMagnitude));
 }
 
-export function rankSnippetsByEmbeddings(
-	question: string,
+export function rankSnippetEntriesByEmbeddings(
+	query: string,
 	questionEmbedding: number[],
 	snippets: ResumeSnippet[],
 	snippetEmbeddings: number[][],
@@ -1315,11 +1398,68 @@ export function rankSnippetsByEmbeddings(
 			snippet,
 			score:
 				cosineSimilarity(questionEmbedding, snippetEmbeddings[index] || []) +
-				applySnippetIntentBoost(question, snippet),
+				applySnippetIntentBoost(query, snippet),
 		}))
-		.sort((a, b) => compareSnippetsForQuestion(question, a, b))
-		.slice(0, limit)
-		.map((entry) => entry.snippet);
+		.sort((a, b) => compareSnippetsForQuestion(query, a, b))
+		.slice(0, limit);
+}
+
+export function rankSnippetsByEmbeddings(
+	query: string,
+	questionEmbedding: number[],
+	snippets: ResumeSnippet[],
+	snippetEmbeddings: number[][],
+	limit = MAX_CONTEXT_CHUNKS,
+) {
+	return rankSnippetEntriesByEmbeddings(
+		query,
+		questionEmbedding,
+		snippets,
+		snippetEmbeddings,
+		limit,
+	).map((entry) => entry.snippet);
+}
+
+export function shouldUseClosestMatchFallback(args: {
+	query: string;
+	result: RetrievalResult;
+}) {
+	const { query, result } = args;
+	const topEntry = result.entries[0];
+
+	if (!topEntry) {
+		return false;
+	}
+
+	const topOverlapCount = countKeywordOverlap(
+		normalizeQuestionForRetrieval(query),
+		topEntry.snippet,
+	);
+	const secondScore = result.entries[1]?.score || 0;
+	const hasStrongScoreGap = topEntry.score - secondScore >= 2;
+	const hasStrongKeywordSignal = topOverlapCount >= 2;
+	const hasStrongEmbeddingSignal =
+		result.mode === "embeddings" && topEntry.score >= 0.55;
+
+	return (
+		hasStrongKeywordSignal || hasStrongScoreGap || hasStrongEmbeddingSignal
+	);
+}
+
+export function buildClosestMatchFallbackAnswer(args: {
+	result: RetrievalResult;
+}) {
+	const topEntry = args.result.entries[0];
+
+	if (!topEntry) {
+		return null;
+	}
+
+	return {
+		status: "answered",
+		answer: `I couldn't complete a full answer right now, but the closest relevant reference I found is ${topEntry.snippet.title}.`,
+		citations: [topEntry.snippet.id],
+	} satisfies AssistantResponse;
 }
 
 export async function hashResumePayload(resume: ResumePayload) {

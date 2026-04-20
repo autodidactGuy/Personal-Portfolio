@@ -18,7 +18,9 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
+	buildClosestMatchFallbackAnswer,
 	buildResumeSnippets,
+	buildRetrievalQuery,
 	checkQuestionGuardrails,
 	DEFAULT_CHAT_MODEL,
 	DEFAULT_EMBEDDING_MODEL,
@@ -33,8 +35,10 @@ import {
 	MISSING_INFORMATION_MESSAGE,
 	type ResumePayload,
 	type ResumeSnippet,
-	rankSnippetsByEmbeddings,
-	rankSnippetsByKeywords,
+	type RetrievalResult,
+	rankSnippetEntriesByEmbeddings,
+	rankSnippetEntriesByKeywords,
+	shouldUseClosestMatchFallback,
 	UNRELATED_QUESTION_MESSAGE,
 } from "@/lib/resume-assistant";
 
@@ -54,6 +58,13 @@ type EmbeddingsCachePayload = {
 };
 
 const CONVERSATION_STORAGE_KEY = "portfolio-assistant-conversation";
+const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV === "development";
+
+type AssistantDebugState = {
+	retrievalResult: RetrievalResult | null;
+	usedClosestMatchFallback: boolean;
+	fallbackReason: string | null;
+};
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
@@ -139,6 +150,11 @@ export function ResumeAssistant() {
 		useState<EmbeddingStatus>("idle");
 	const [snippetEmbeddings, setSnippetEmbeddings] = useState<number[][]>([]);
 	const [statusMessage, setStatusMessage] = useState("");
+	const [debugState, setDebugState] = useState<AssistantDebugState>({
+		retrievalResult: null,
+		usedClosestMatchFallback: false,
+		fallbackReason: null,
+	});
 	const workerUrl = getAssistantWorkerUrl();
 
 	const personName = resume?.name || "the person in this resume";
@@ -357,7 +373,41 @@ export function ResumeAssistant() {
 		}
 	};
 
-	const getRelevantSnippets = async (question: string) => {
+	const getRecentConversationMessages = (
+		nextMessages: ChatMessage[],
+		limit = 6,
+	) =>
+		nextMessages
+			.filter((message) => message.status !== "system")
+			.slice(-limit)
+			.map((message) => ({
+				role: message.role,
+				content: message.content,
+			}));
+
+	const updateDebugState = (nextState: Partial<AssistantDebugState>) => {
+		if (!IS_LOCAL_DEVELOPMENT) {
+			return;
+		}
+
+		setDebugState((currentState) => ({
+			...currentState,
+			...nextState,
+		}));
+	};
+
+	const getRelevantSnippets = async (
+		question: string,
+		recentMessages: Array<{
+			role: "user" | "assistant";
+			content: string;
+		}>,
+	): Promise<RetrievalResult> => {
+		const retrievalQuery = buildRetrievalQuery({
+			question,
+			recentMessages,
+		});
+
 		if (
 			embeddingStatus === "ready" &&
 			snippetEmbeddings.length === snippets.length
@@ -365,18 +415,26 @@ export function ResumeAssistant() {
 			const [questionEmbedding] = await fetchEmbeddings(
 				workerUrl,
 				DEFAULT_EMBEDDING_MODEL,
-				question,
+				retrievalQuery,
 			);
 
-			return rankSnippetsByEmbeddings(
-				question,
-				questionEmbedding,
-				snippets,
-				snippetEmbeddings,
-			);
+			return {
+				query: retrievalQuery,
+				mode: "embeddings",
+				entries: rankSnippetEntriesByEmbeddings(
+					retrievalQuery,
+					questionEmbedding,
+					snippets,
+					snippetEmbeddings,
+				),
+			};
 		}
 
-		return rankSnippetsByKeywords(question, snippets);
+		return {
+			query: retrievalQuery,
+			mode: "keywords",
+			entries: rankSnippetEntriesByKeywords(retrievalQuery, snippets),
+		};
 	};
 
 	const submitQuestion = async (question: string) => {
@@ -430,9 +488,27 @@ export function ResumeAssistant() {
 
 		setIsSending(true);
 		setStatusMessage("");
+		updateDebugState({
+			retrievalResult: null,
+			usedClosestMatchFallback: false,
+			fallbackReason: null,
+		});
 
 		try {
-			const relevantSnippets = await getRelevantSnippets(trimmedQuestion);
+			const recentMessages = getRecentConversationMessages([
+				...messages,
+				userMessage,
+			]);
+			const retrievalResult = await getRelevantSnippets(
+				trimmedQuestion,
+				recentMessages,
+			);
+			updateDebugState({
+				retrievalResult,
+			});
+			const relevantSnippets = retrievalResult.entries.map(
+				(entry) => entry.snippet,
+			);
 
 			if (!relevantSnippets.length) {
 				addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
@@ -445,13 +521,7 @@ export function ResumeAssistant() {
 				workerUrl,
 				model: DEFAULT_CHAT_MODEL,
 				question: trimmedQuestion,
-				recentMessages: [...messages, userMessage]
-					.filter((message) => message.status !== "system")
-					.slice(-4)
-					.map((message) => ({
-						role: message.role,
-						content: message.content,
-					})),
+				recentMessages,
 				snippets: relevantSnippets,
 			});
 			const responseCitationIds = new Set<string>(assistantResponse.citations);
@@ -463,8 +533,49 @@ export function ResumeAssistant() {
 				),
 			});
 		} catch {
+			const recentMessages = getRecentConversationMessages([
+				...messages,
+				userMessage,
+			]);
+
+			try {
+				const retrievalResult = await getRelevantSnippets(
+					trimmedQuestion,
+					recentMessages,
+				);
+				updateDebugState({
+					retrievalResult,
+				});
+				const closestMatchFallback = shouldUseClosestMatchFallback({
+					query: retrievalResult.query,
+					result: retrievalResult,
+				})
+					? buildClosestMatchFallbackAnswer({
+							result: retrievalResult,
+						})
+					: null;
+
+				if (closestMatchFallback) {
+					updateDebugState({
+						usedClosestMatchFallback: true,
+						fallbackReason: "model_request_failed_with_strong_retrieval_match",
+					});
+					addAssistantMessage(closestMatchFallback.answer, {
+						status: closestMatchFallback.status,
+						citations: resolveCitations(closestMatchFallback.citations),
+					});
+					return;
+				}
+			} catch {
+				// fall through to the standard missing response
+			}
+
 			addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
 				status: "missing",
+			});
+			updateDebugState({
+				usedClosestMatchFallback: false,
+				fallbackReason: "no_safe_closest_match_fallback",
 			});
 		} finally {
 			setIsSending(false);
@@ -581,6 +692,53 @@ export function ResumeAssistant() {
 										<span>{statusMessage}</span>
 									)}
 								</div>
+							) : null}
+
+							{IS_LOCAL_DEVELOPMENT ? (
+								<details className="mb-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-default-600">
+									<summary className="cursor-pointer select-none font-medium text-primary">
+										Assistant Debug
+									</summary>
+									<div className="mt-2 space-y-2">
+										<p>
+											Mode:{" "}
+											<span className="font-mono">
+												{debugState.retrievalResult?.mode || "n/a"}
+											</span>
+										</p>
+										<p>
+											Query:{" "}
+											<span className="font-mono">
+												{debugState.retrievalResult?.query || "n/a"}
+											</span>
+										</p>
+										<p>
+											Closest-match fallback:{" "}
+											<span className="font-mono">
+												{debugState.usedClosestMatchFallback ? "yes" : "no"}
+											</span>
+										</p>
+										<p>
+											Fallback reason:{" "}
+											<span className="font-mono">
+												{debugState.fallbackReason || "n/a"}
+											</span>
+										</p>
+										{debugState.retrievalResult?.entries?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Top Retrieval Results
+												</p>
+												{debugState.retrievalResult.entries.map((entry) => (
+													<p className="font-mono" key={entry.snippet.id}>
+														{entry.snippet.category} | {entry.score.toFixed(3)}{" "}
+														| {entry.snippet.title}
+													</p>
+												))}
+											</div>
+										) : null}
+									</div>
+								</details>
 							) : null}
 
 							<form
