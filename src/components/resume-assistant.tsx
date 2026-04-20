@@ -53,6 +53,8 @@ type EmbeddingsCachePayload = {
 	embeddings: number[][];
 };
 
+const CONVERSATION_STORAGE_KEY = "portfolio-assistant-conversation";
+
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
 		return [
@@ -110,9 +112,27 @@ export function ResumeAssistant() {
 	const [snippets, setSnippets] = useState<ResumeSnippet[]>([]);
 	const [resumeHash, setResumeHash] = useState("");
 	const [resumeError, setResumeError] = useState("");
-	const [messages, setMessages] = useState<ChatMessage[]>([
-		buildWelcomeMessage("the person in this resume"),
-	]);
+	const [messages, setMessages] = useState<ChatMessage[]>(() => {
+		if (typeof window === "undefined") {
+			return [buildWelcomeMessage("the person in this resume")];
+		}
+
+		try {
+			const stored = window.localStorage.getItem(CONVERSATION_STORAGE_KEY);
+
+			if (stored) {
+				const parsed = JSON.parse(stored) as ChatMessage[];
+
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					return parsed;
+				}
+			}
+		} catch {
+			// ignore parse/storage errors
+		}
+
+		return [buildWelcomeMessage("the person in this resume")];
+	});
 	const [draft, setDraft] = useState("");
 	const [isSending, setIsSending] = useState(false);
 	const [embeddingStatus, setEmbeddingStatus] =
@@ -156,13 +176,17 @@ export function ResumeAssistant() {
 				setSnippets(nextSnippets);
 				setResumeHash(nextHash);
 				setMessages((currentMessages) => {
-					if (
-						currentMessages.length === 1 &&
-						currentMessages[0]?.id === "assistant-welcome"
-					) {
+					const welcomeName = payload.name || "the person in this resume";
+
+					if (currentMessages[0]?.id === "assistant-welcome") {
 						return [
-							buildWelcomeMessage(payload.name || "the person in this resume"),
+							buildWelcomeMessage(welcomeName),
+							...currentMessages.slice(1),
 						];
+					}
+
+					if (currentMessages.length === 0) {
+						return [buildWelcomeMessage(welcomeName)];
 					}
 
 					return currentMessages;
@@ -203,6 +227,21 @@ export function ResumeAssistant() {
 
 		return () => window.cancelAnimationFrame(frame);
 	}, [messages, isSending]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		try {
+			window.localStorage.setItem(
+				CONVERSATION_STORAGE_KEY,
+				JSON.stringify(messages),
+			);
+		} catch {
+			// ignore storage errors (e.g. private browsing quota exceeded)
+		}
+	}, [messages]);
 
 	useEffect(() => {
 		if (!workerUrl || !resumeHash || !snippets.length) {
@@ -572,6 +611,12 @@ export function ResumeAssistant() {
 													setDraft("");
 													setStatusMessage("");
 													setMessages([buildWelcomeMessage(personName)]);
+
+													if (typeof window !== "undefined") {
+														window.localStorage.removeItem(
+															CONVERSATION_STORAGE_KEY,
+														);
+													}
 												}}
 												type="button"
 												variant="secondary"
