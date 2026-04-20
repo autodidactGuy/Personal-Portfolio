@@ -1,0 +1,9 @@
+{
+  "NEXT_PUBLIC_BASE_PATH": "",
+  "NEXT_PUBLIC_REPOSITORY_NAME": "Personal-Portfolio",
+  "NEXT_PUBLIC_CONTACT_WORKER_URL": "https://personal-portfolio.hassanraza632.workers.dev",
+  "NEXT_PUBLIC_ASSISTANT_WORKER_URL": "https://personal-portfolio.hassanraza632.workers.dev",
+  "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAC_l6ANNW5a9HB_l",
+  "NEXT_PUBLIC_GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
+  "NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL": "openai/text-embedding-3-small"
+}

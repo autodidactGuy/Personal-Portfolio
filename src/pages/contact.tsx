@@ -13,13 +13,14 @@ import {
 import type { GetStaticProps } from "next";
 import Script from "next/script";
 import { useTheme } from "next-themes";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { InlineWidget } from "react-calendly";
 import { Controller, type SubmitHandler } from "react-hook-form";
 import { FaLinkedin } from "react-icons/fa6";
 import { MdMail } from "react-icons/md";
 import { z } from "zod";
 import { SocialLinkButton } from "@/components/social-link-button";
+import { publicEnv } from "@/config/public-env";
 import { siteConfig } from "@/config/site";
 import { useZodForm } from "@/hooks/useZodForm";
 import DefaultLayout from "@/layouts/default";
@@ -56,9 +57,9 @@ export default function Contact({ settings }: ContactPageProps) {
 	const turnstileRef = useRef<HTMLDivElement>(null);
 	const turnstileWidgetId = useRef<string | undefined>(undefined);
 	const honeypotRef = useRef<HTMLInputElement>(null);
-	const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+	const turnstileSiteKey = publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-	const onTurnstileReady = useCallback(() => {
+	const onTurnstileReady = () => {
 		if (!turnstileRef.current || !turnstileSiteKey || !window.turnstile) {
 			return;
 		}
@@ -68,7 +69,7 @@ export default function Contact({ settings }: ContactPageProps) {
 			callback: (token: string) => setTurnstileToken(token),
 			"expired-callback": () => setTurnstileToken(""),
 		});
-	}, [turnstileSiteKey]);
+	};
 
 	const {
 		control,
@@ -88,7 +89,7 @@ export default function Contact({ settings }: ContactPageProps) {
 
 	const onSubmit: SubmitHandler<ContactFormValues> = async (data) => {
 		try {
-			const workerUrl = process.env.NEXT_PUBLIC_CONTACT_WORKER_URL;
+			const workerUrl = publicEnv.NEXT_PUBLIC_CONTACT_WORKER_URL;
 
 			if (!workerUrl) {
 				throw new Error("Missing contact worker URL");

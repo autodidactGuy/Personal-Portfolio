@@ -12,6 +12,16 @@ const env = {
 };
 
 function buildRequest(method, origin, body, contentType = "application/json") {
+	return buildPathRequest("/contact", method, origin, body, contentType);
+}
+
+function buildPathRequest(
+	pathname,
+	method,
+	origin,
+	body,
+	contentType = "application/json",
+) {
 	const headers = new Headers();
 
 	if (origin) {
@@ -28,7 +38,7 @@ function buildRequest(method, origin, body, contentType = "application/json") {
 		init.body = JSON.stringify(body);
 	}
 
-	return new Request("https://worker.test/contact", init);
+	return new Request(`https://worker.test${pathname}`, init);
 }
 
 const validPayload = {
@@ -267,6 +277,56 @@ describe("/contact", () => {
 
 		expect(response.status).toBe(422);
 		expect(data.fields).toContain("message must not exceed 5000 characters");
+	});
+});
+
+describe("/assistant", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		resetRateLimitState();
+	});
+
+	it("proxies embeddings requests for an allowed origin", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					data: [{ embedding: [0.1, 0.2, 0.3] }],
+				}),
+				{ status: 200, headers: { "Content-Type": "application/json" } },
+			),
+		);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant", "POST", ALLOWED_ORIGIN, {
+				action: "embeddings",
+				model: "openai/text-embedding-3-small",
+				input: "test snippet",
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+			},
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+			ALLOWED_ORIGIN,
+		);
+		expect((await response.json()).data[0].embedding).toEqual([0.1, 0.2, 0.3]);
+	});
+
+	it("returns 422 for invalid assistant payloads", async () => {
+		const response = await worker.fetch(
+			buildPathRequest("/assistant", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "",
+				messages: [],
+			}),
+			env,
+		);
+
+		expect(response.status).toBe(422);
+		expect((await response.json()).error).toBe("Validation failed");
 	});
 });
 

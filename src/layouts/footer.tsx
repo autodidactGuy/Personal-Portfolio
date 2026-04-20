@@ -1,6 +1,7 @@
 import { Chip } from "@heroui/react";
 import NextLink from "next/link";
 import { HiOutlineCommandLine } from "react-icons/hi2";
+import { FooterAssistantLauncher } from "@/components/resume-assistant";
 import { SocialLinks } from "@/components/social-links";
 import { siteConfig } from "@/config/site";
 
@@ -9,7 +10,7 @@ export function Footer() {
 		<footer className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
 			<div className="mx-auto w-full max-w-7xl rounded-3xl bg-background px-5 py-5 sm:px-6 sm:py-6">
 				<div className="flex flex-col gap-5">
-					<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+					<div className="flex items-start justify-between gap-4">
 						<div className="space-y-2">
 							<NextLink className="inline-block" href="/">
 								<p className="text-lg font-semibold tracking-tight text-foreground">
@@ -19,10 +20,11 @@ export function Footer() {
 									{siteConfig.title}
 								</p>
 							</NextLink>
-							{/* <p className="max-w-xl text-sm leading-6 text-default-600">{siteConfig.description}</p> */}
+							<SocialLinks />
 						</div>
-
-						<SocialLinks />
+						<div className="shrink-0">
+							<FooterAssistantLauncher />
+						</div>
 					</div>
 
 					<div className="flex flex-col gap-3 pt-4 text-sm text-default-600 dark:text-default-400 sm:flex-row sm:items-center sm:justify-between">

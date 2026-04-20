@@ -148,6 +148,41 @@ function jsonResponse(body, status, extraHeaders = {}) {
 	});
 }
 
+async function parseJsonRequest(request, cors) {
+	try {
+		return await request.json();
+	} catch {
+		throw jsonResponse({ error: "Invalid JSON body" }, 400, cors);
+	}
+}
+
+async function callGitHubModels(pathname, env, body) {
+	if (!env.GITHUB_MODELS_TOKEN) {
+		return jsonResponse({ error: "Assistant service is not configured" }, 503);
+	}
+
+	const response = await fetch(`https://models.github.ai${pathname}`, {
+		method: "POST",
+		headers: {
+			Accept: "application/vnd.github+json",
+			Authorization: `Bearer ${env.GITHUB_MODELS_TOKEN}`,
+			"Content-Type": "application/json",
+			"X-GitHub-Api-Version": "2026-03-10",
+		},
+		body: JSON.stringify(body),
+	});
+
+	const contentType = response.headers.get("Content-Type") || "";
+	const payload = contentType.includes("application/json")
+		? await response.json()
+		: await response.text();
+
+	return jsonResponse(
+		typeof payload === "string" ? { error: payload } : payload,
+		response.status,
+	);
+}
+
 async function verifyTurnstile(token, ip, secretKey) {
 	const form = new URLSearchParams();
 	form.append("secret", secretKey);
@@ -276,6 +311,33 @@ const contactSchema = z.object({
 		.optional(),
 });
 
+const assistantEmbeddingsSchema = z.object({
+	action: z.literal("embeddings"),
+	model: z.string().trim().min(1),
+	input: z.union([z.string().trim().min(1), z.array(z.string().trim().min(1))]),
+});
+
+const assistantChatSchema = z.object({
+	action: z.literal("chat"),
+	model: z.string().trim().min(1),
+	temperature: z.number().min(0).max(2).optional(),
+	max_tokens: z.number().int().positive().max(2000).optional(),
+	response_format: z.object({}).passthrough().optional(),
+	messages: z
+		.array(
+			z.object({
+				role: z.enum(["system", "developer", "user", "assistant"]),
+				content: z.string().trim().min(1),
+			}),
+		)
+		.min(1),
+});
+
+const assistantRequestSchema = z.discriminatedUnion("action", [
+	assistantEmbeddingsSchema,
+	assistantChatSchema,
+]);
+
 function validateContactPayload(data) {
 	const result = contactSchema.safeParse(data);
 
@@ -293,6 +355,17 @@ function validateContactPayload(data) {
 
 	const errors = result.error.issues.map((issue) => issue.message);
 	return { valid: false, errors };
+}
+
+function validateAssistantPayload(data) {
+	const result = assistantRequestSchema.safeParse(data);
+
+	if (result.success) {
+		return { valid: true, data: result.data, errors: [] };
+	}
+
+	const errors = result.error.issues.map((issue) => issue.message);
+	return { valid: false, data: null, errors };
 }
 
 function getRequestOrigin(request, url) {
@@ -604,6 +677,93 @@ export default {
 				200,
 				corsHeaders(origin),
 			);
+		}
+
+		if (url.pathname === "/assistant") {
+			const origin = getRequestOrigin(request, url);
+
+			if (!origin || !isAllowedOrigin(origin, env)) {
+				return jsonResponse({ error: "Invalid origin" }, 403);
+			}
+
+			if (request.method === "OPTIONS") {
+				return new Response(null, {
+					status: 204,
+					headers: corsHeaders(origin),
+				});
+			}
+
+			if (request.method !== "POST") {
+				return jsonResponse(
+					{ error: "Method not allowed" },
+					405,
+					corsHeaders(origin),
+				);
+			}
+
+			const contentType = request.headers.get("Content-Type") || "";
+
+			if (!contentType.includes("application/json")) {
+				return jsonResponse(
+					{ error: "Content-Type must be application/json" },
+					415,
+					corsHeaders(origin),
+				);
+			}
+
+			let body;
+
+			try {
+				body = await parseJsonRequest(request, corsHeaders(origin));
+			} catch (response) {
+				return response;
+			}
+
+			const clientIp = request.headers.get("CF-Connecting-IP") || null;
+
+			if (clientIp && isRateLimited(`assistant:${clientIp}`)) {
+				return jsonResponse(
+					{ error: "Too many requests. Please try again later." },
+					429,
+					corsHeaders(origin),
+				);
+			}
+
+			const { valid, data, errors } = validateAssistantPayload(body);
+
+			if (!valid || !data) {
+				return jsonResponse(
+					{ error: "Validation failed", fields: errors },
+					422,
+					corsHeaders(origin),
+				);
+			}
+
+			const proxyResponse =
+				data.action === "embeddings"
+					? await callGitHubModels("/inference/embeddings", env, {
+							model: data.model,
+							input: data.input,
+							encoding_format: "float",
+						})
+					: await callGitHubModels("/inference/chat/completions", env, {
+							model: data.model,
+							temperature: data.temperature ?? 0,
+							max_tokens: data.max_tokens ?? 220,
+							response_format: data.response_format,
+							messages: data.messages,
+						});
+
+			const headers = new Headers(proxyResponse.headers);
+
+			for (const [key, value] of Object.entries(corsHeaders(origin))) {
+				headers.set(key, value);
+			}
+
+			return new Response(proxyResponse.body, {
+				status: proxyResponse.status,
+				headers,
+			});
 		}
 
 		return new Response("Not found", { status: 404 });

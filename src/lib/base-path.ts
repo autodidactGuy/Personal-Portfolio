@@ -1,11 +1,6 @@
-// biome-ignore lint/correctness/noUnusedVariables: need this later
-const repositoryName =
-	process.env.NEXT_PUBLIC_REPOSITORY_NAME ||
-	process.env.GITHUB_REPOSITORY?.split("/")[1] ||
-	"Personal-Portfolio";
+import { publicEnv } from "@/config/public-env";
 
-export const basePath =
-	process.env.NEXT_PUBLIC_BASE_PATH ?? process.env.BASE_PATH ?? "";
+export const basePath = publicEnv.NEXT_PUBLIC_BASE_PATH;
 
 export function withBasePath(assetPath?: string | null) {
 	if (!assetPath) {

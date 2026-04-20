@@ -1,0 +1,1015 @@
+import { z } from "zod";
+import { publicEnv } from "@/config/public-env";
+
+export const GITHUB_MODELS_API_VERSION = "2026-03-10";
+export const GITHUB_MODELS_CHAT_URL =
+	"https://models.github.ai/inference/chat/completions";
+export const GITHUB_MODELS_EMBEDDINGS_URL =
+	"https://models.github.ai/inference/embeddings";
+export const DEFAULT_CHAT_MODEL =
+	publicEnv.NEXT_PUBLIC_GITHUB_MODELS_CHAT_MODEL;
+export const DEFAULT_EMBEDDING_MODEL =
+	publicEnv.NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL;
+export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
+export const MAX_CONTEXT_CHUNKS = 5;
+
+export const MISSING_INFORMATION_MESSAGE =
+	"I don't have that information available.";
+export const UNRELATED_QUESTION_MESSAGE =
+	"I can only answer questions based on the information available on this site.";
+
+export const SYSTEM_PROMPT = `You are an AI assistant embedded on this portfolio website.
+
+Rules:
+
+* ONLY answer using provided resume data
+* If info is missing: "I don't have that information available."
+* Do NOT hallucinate or guess
+* ONLY answer about the person described in the provided resume data
+* Reject unrelated questions
+
+Tone:
+
+* Professional
+* Concise
+* Friendly`;
+
+export type ResumeExperience = {
+	title: string;
+	company: string;
+	companyComments?: string;
+	location: string;
+	from: string;
+	to: string;
+	highlight: string;
+	details?: string[];
+	tech?: string[];
+};
+
+export type ResumeEducation = {
+	degree: string;
+	institute: string;
+	location: string;
+	from: string;
+	to: string;
+	result?: string;
+};
+
+export type ResumeProject = {
+	slug: string;
+	title: string;
+	summary: string;
+	tags?: string[];
+	featured?: boolean;
+	url?: string;
+	date?: string;
+};
+
+export type ResumePayload = {
+	name: string;
+	title: string;
+	headline: string;
+	summary: string;
+	about?: {
+		label?: string;
+		title?: string;
+		description?: string;
+		headline?: string;
+		summary?: string;
+		body?: string[];
+	};
+	interests?: string[];
+	skills?: string[];
+	links?: Record<string, string>;
+	contact?: {
+		title?: string;
+		description?: string;
+		formHeading?: string;
+		scheduleHeading?: string;
+		quickLink?: {
+			label?: string;
+			href?: string;
+		};
+	};
+	experience?: ResumeExperience[];
+	education?: ResumeEducation[];
+	projects?: ResumeProject[];
+};
+
+export type ResumeSnippet = {
+	id: string;
+	title: string;
+	category:
+		| "summary"
+		| "about"
+		| "skills"
+		| "links"
+		| "contact"
+		| "experience"
+		| "education"
+		| "project";
+	text: string;
+	keywords: string[];
+};
+
+export type GuardrailResult =
+	| { allowed: true }
+	| { allowed: false; message: string };
+
+export type AssistantResponse = {
+	status: "answered" | "missing" | "rejected";
+	answer: string;
+	citations: string[];
+};
+
+const assistantResponseSchema = z.object({
+	status: z.enum(["answered", "missing", "rejected"]),
+	answer: z.string().trim().min(1),
+	citations: z.array(z.string().trim()).max(MAX_CONTEXT_CHUNKS),
+});
+
+const blockedTopicPatterns = [
+	/\bignore (all )?(previous|prior) instructions\b/i,
+	/\bsystem prompt\b/i,
+	/\bdeveloper message\b/i,
+	/\bact as\b/i,
+	/\bjailbreak\b/i,
+	/\bweather\b/i,
+	/\bstock(s)?\b/i,
+	/\bbitcoin\b/i,
+	/\bcrypto price\b/i,
+	/\bsports?\b/i,
+	/\brecipe\b/i,
+	/\bmovie\b/i,
+	/\bpolitic(s|al)?\b/i,
+	/\belection\b/i,
+	/\bmedical\b/i,
+	/\bdiagnos(is|e)\b/i,
+	/\blawyer\b/i,
+	/\blegal advice\b/i,
+	/\bhomework\b/i,
+	/\bsolve\b.*\bmath\b/i,
+	/\btranslate\b/i,
+];
+
+const unsupportedResumeScopePatterns = [
+	/\brecent commits?\b/i,
+	/\bgithub commits?\b/i,
+	/\bpull requests?\b/i,
+	/\bprs?\b/i,
+	/\bbranches?\b/i,
+	/\bissues?\b/i,
+	/\bdeploy(ment|ments)?\b/i,
+	/\bcommit history\b/i,
+	/\brepository activity\b/i,
+];
+
+const builtInAllowedKeywords = [
+	"resume",
+	"portfolio",
+	"experience",
+	"worked",
+	"work",
+	"job",
+	"career",
+	"company",
+	"companies",
+	"role",
+	"roles",
+	"skills",
+	"stack",
+	"tech",
+	"technology",
+	"education",
+	"degree",
+	"school",
+	"university",
+	"project",
+	"projects",
+	"contact",
+	"email",
+	"github",
+	"linkedin",
+	"calendly",
+	"about",
+	"background",
+	"summary",
+	"location",
+];
+
+function normalizeText(value: string) {
+	return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+}
+
+function tokenize(value: string) {
+	return normalizeText(value)
+		.split(/\s+/)
+		.filter((token) => token.length > 1);
+}
+
+function unique<T>(items: T[]) {
+	return Array.from(new Set(items));
+}
+
+function buildKeywordSet(snippet: ResumeSnippet) {
+	return new Set(unique([...snippet.keywords, ...tokenize(snippet.title)]));
+}
+
+function scoreKeywordOverlap(questionTokens: string[], snippet: ResumeSnippet) {
+	const keywordSet = buildKeywordSet(snippet);
+
+	return questionTokens.reduce((score, token) => {
+		if (!keywordSet.has(token)) {
+			return score;
+		}
+
+		return score + (snippet.title.toLowerCase().includes(token) ? 3 : 1);
+	}, 0);
+}
+
+function sentenceCaseJoin(items: string[]) {
+	return items.filter(Boolean).join(" ");
+}
+
+function formatList(items: string[], maxItems = 6) {
+	const visibleItems = unique(items.filter(Boolean)).slice(0, maxItems);
+
+	if (visibleItems.length <= 1) {
+		return visibleItems[0] || "";
+	}
+
+	if (visibleItems.length === 2) {
+		return `${visibleItems[0]} and ${visibleItems[1]}`;
+	}
+
+	return `${visibleItems.slice(0, -1).join(", ")}, and ${visibleItems.at(-1)}`;
+}
+
+function possessiveName(name: string) {
+	return name.endsWith("s") ? `${name}'` : `${name}'s`;
+}
+
+function takeFirstSentence(value: string) {
+	const trimmedValue = value.trim();
+
+	if (!trimmedValue) {
+		return "";
+	}
+
+	const match = trimmedValue.match(/^[^.!?]+[.!?]?/);
+
+	return (match?.[0] || trimmedValue).trim();
+}
+
+function topRepeatedValues(items: string[], maxItems = 8) {
+	const counts = new Map<string, number>();
+
+	for (const item of items) {
+		const trimmedItem = item.trim();
+
+		if (!trimmedItem) {
+			continue;
+		}
+
+		counts.set(trimmedItem, (counts.get(trimmedItem) || 0) + 1);
+	}
+
+	return Array.from(counts.entries())
+		.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+		.slice(0, maxItems)
+		.map(([item]) => item);
+}
+
+function findSnippetById(snippets: ResumeSnippet[], id: string) {
+	return snippets.find((snippet) => snippet.id === id);
+}
+
+function findExperienceSnippetByCompany(
+	snippets: ResumeSnippet[],
+	companyName: string,
+) {
+	return snippets.find(
+		(snippet) =>
+			snippet.category === "experience" &&
+			normalizeText(snippet.title).includes(normalizeText(companyName)),
+	);
+}
+
+function hasQuestionMatch(question: string, patterns: RegExp[]) {
+	return patterns.some((pattern) => pattern.test(question));
+}
+
+export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
+	const snippets: ResumeSnippet[] = [];
+
+	snippets.push({
+		id: "summary",
+		title: "Professional Summary",
+		category: "summary",
+		text: [
+			`${resume.name} is a ${resume.title}.`,
+			resume.headline,
+			resume.summary,
+			resume.interests?.length
+				? `Core interests: ${resume.interests.join(", ")}.`
+				: "",
+		]
+			.filter(Boolean)
+			.join(" "),
+		keywords: unique([
+			...tokenize(resume.name),
+			...tokenize(resume.title),
+			...tokenize(resume.headline),
+			...tokenize(resume.summary),
+			...(resume.interests || []).flatMap((item) => tokenize(item)),
+		]),
+	});
+
+	if (resume.about) {
+		snippets.push({
+			id: "about",
+			title: resume.about.title || `About ${resume.name || "This Person"}`,
+			category: "about",
+			text: [
+				resume.about.description || "",
+				resume.about.headline || "",
+				resume.about.summary || "",
+				...(resume.about.body || []),
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(resume.about.title || ""),
+				...tokenize(resume.about.description || ""),
+				...tokenize(resume.about.headline || ""),
+				...tokenize(resume.about.summary || ""),
+				...(resume.about.body || []).flatMap((item) => tokenize(item)),
+			]),
+		});
+	}
+
+	if (resume.skills?.length) {
+		snippets.push({
+			id: "skills",
+			title: "Skills and Technologies",
+			category: "skills",
+			text: `Skills: ${resume.skills.join(", ")}.`,
+			keywords: unique(resume.skills.flatMap((item) => tokenize(item))),
+		});
+	}
+
+	if (resume.links) {
+		const linkPairs = Object.entries(resume.links).filter(([, value]) =>
+			Boolean(value),
+		);
+		snippets.push({
+			id: "links",
+			title: "Public Links",
+			category: "links",
+			text: linkPairs.map(([label, value]) => `${label}: ${value}`).join(". "),
+			keywords: unique(
+				linkPairs.flatMap(([label, value]) => tokenize(`${label} ${value}`)),
+			),
+		});
+	}
+
+	if (resume.contact) {
+		snippets.push({
+			id: "contact",
+			title: "Contact Information",
+			category: "contact",
+			text: [
+				resume.contact.title || "",
+				resume.contact.description || "",
+				resume.contact.formHeading || "",
+				resume.contact.scheduleHeading || "",
+				resume.contact.quickLink?.label
+					? `${resume.contact.quickLink.label}: ${resume.contact.quickLink.href || ""}`
+					: "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique(
+				tokenize(
+					[
+						resume.contact.title,
+						resume.contact.description,
+						resume.contact.formHeading,
+						resume.contact.scheduleHeading,
+						resume.contact.quickLink?.label,
+						resume.contact.quickLink?.href,
+					]
+						.filter(Boolean)
+						.join(" "),
+				),
+			),
+		});
+	}
+
+	for (const item of resume.experience || []) {
+		snippets.push({
+			id: `experience:${item.company.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+			title: `${item.title} at ${item.company}`,
+			category: "experience",
+			text: [
+				`${item.title} at ${item.company}${item.companyComments ? ` (${item.companyComments})` : ""}.`,
+				`${item.from} to ${item.to}.`,
+				item.location,
+				item.highlight,
+				...(item.details || []),
+				item.tech?.length ? `Tech: ${item.tech.join(", ")}.` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(item.title),
+				...tokenize(item.company),
+				...tokenize(item.companyComments || ""),
+				...tokenize(item.location),
+				...tokenize(item.highlight),
+				...(item.details || []).flatMap((detail) => tokenize(detail)),
+				...(item.tech || []).flatMap((tech) => tokenize(tech)),
+			]),
+		});
+	}
+
+	for (const item of resume.education || []) {
+		snippets.push({
+			id: `education:${item.institute.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+			title: `${item.degree} at ${item.institute}`,
+			category: "education",
+			text: [
+				`${item.degree} at ${item.institute}.`,
+				`${item.from} to ${item.to}.`,
+				item.location,
+				item.result ? `Result: ${item.result}.` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(item.degree),
+				...tokenize(item.institute),
+				...tokenize(item.location),
+				...tokenize(item.result || ""),
+			]),
+		});
+	}
+
+	for (const item of resume.projects || []) {
+		snippets.push({
+			id: `project:${item.slug}`,
+			title: item.title,
+			category: "project",
+			text: [
+				item.title,
+				item.summary,
+				item.tags?.length ? `Tags: ${item.tags.join(", ")}.` : "",
+				item.date ? `Date: ${item.date}.` : "",
+				item.url ? `URL: ${item.url}` : "",
+			]
+				.filter(Boolean)
+				.join(" "),
+			keywords: unique([
+				...tokenize(item.title),
+				...tokenize(item.summary),
+				...(item.tags || []).flatMap((tag) => tokenize(tag)),
+				...tokenize(item.date || ""),
+			]),
+		});
+	}
+
+	return snippets;
+}
+
+export function checkQuestionGuardrails(
+	question: string,
+	snippets: ResumeSnippet[],
+	hasConversationContext: boolean,
+): GuardrailResult {
+	const normalizedQuestion = question.trim();
+
+	if (!normalizedQuestion) {
+		return {
+			allowed: false,
+			message: `Ask a question about ${snippets[0]?.title || "the person"}, including background, experience, skills, projects, case studies, or contact details.`,
+		};
+	}
+
+	if (
+		blockedTopicPatterns.some((pattern) => pattern.test(normalizedQuestion))
+	) {
+		return {
+			allowed: false,
+			message: UNRELATED_QUESTION_MESSAGE,
+		};
+	}
+
+	const tokens = tokenize(normalizedQuestion);
+	const allowedKeywords = new Set([
+		...builtInAllowedKeywords,
+		...snippets.flatMap((snippet) => snippet.keywords),
+	]);
+	const overlapCount = tokens.filter((token) =>
+		allowedKeywords.has(token),
+	).length;
+	const pronounOnlyQuestion =
+		hasConversationContext &&
+		tokens.length > 0 &&
+		tokens.every((token) =>
+			["he", "him", "his", "that", "those", "them", "there"].includes(token),
+		);
+
+	if (overlapCount > 0 || pronounOnlyQuestion) {
+		return { allowed: true };
+	}
+
+	return {
+		allowed: false,
+		message: UNRELATED_QUESTION_MESSAGE,
+	};
+}
+
+export function rankSnippetsByKeywords(
+	question: string,
+	snippets: ResumeSnippet[],
+	limit = MAX_CONTEXT_CHUNKS,
+) {
+	const questionTokens = tokenize(question);
+
+	return [...snippets]
+		.map((snippet) => ({
+			snippet,
+			score:
+				scoreKeywordOverlap(questionTokens, snippet) +
+				(normalizeText(snippet.text).includes(normalizeText(question)) ? 8 : 0),
+		}))
+		.filter((entry) => entry.score > 0)
+		.sort((a, b) => b.score - a.score)
+		.slice(0, limit)
+		.map((entry) => entry.snippet);
+}
+
+export function generateLocalResumeAnswer(
+	question: string,
+	resume: ResumePayload,
+	snippets: ResumeSnippet[],
+): AssistantResponse | null {
+	const normalizedQuestion = question.trim().toLowerCase();
+	const personName = resume.name || "This person";
+	const personPossessiveName = possessiveName(personName);
+
+	if (!normalizedQuestion) {
+		return null;
+	}
+
+	if (hasQuestionMatch(normalizedQuestion, unsupportedResumeScopePatterns)) {
+		return {
+			status: "missing",
+			answer: MISSING_INFORMATION_MESSAGE,
+			citations: [],
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\bwhere\b.*\bstud(y|ied)\b/i,
+			/\beducation\b/i,
+			/\bdegree\b/i,
+			/\buniversity\b/i,
+			/\bcomputer science\b/i,
+			/\bschool\b/i,
+		]) &&
+		resume.education?.length
+	) {
+		const educationEntries = (resume.education || []).map((item) => {
+			const parts = [
+				item.degree ? `${item.degree}` : "",
+				item.institute ? `from ${item.institute}` : "",
+			].filter(Boolean);
+
+			return parts.join(" ");
+		});
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName} studied computer science at ${formatList(
+					resume.education.map((item) => item.institute).filter(Boolean),
+				)}.`,
+				educationEntries.length
+					? `${personPossessiveName} education includes ${formatList(
+							educationEntries,
+							resume.education.length,
+						)}.`
+					: "",
+			]),
+			citations: snippets
+				.filter((snippet) => snippet.category === "education")
+				.map((snippet) => snippet.id),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\btechnolog(y|ies)\b/i,
+			/\bskills?\b/i,
+			/\btech stack\b/i,
+			/\btools?\b/i,
+			/\buse most\b/i,
+			/\buses most\b/i,
+		])
+	) {
+		const topTechnologies = topRepeatedValues(
+			(resume.experience || []).flatMap((experience) => experience.tech || []),
+			8,
+		);
+
+		if (!topTechnologies.length && resume.skills?.length) {
+			return {
+				status: "answered",
+				answer: `${personPossessiveName} experience lists skills including ${formatList(
+					resume.skills,
+					8,
+				)}.`,
+				citations: ["skills"],
+			};
+		}
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`Across ${personPossessiveName} experience, the technologies that appear most often are ${formatList(
+					topTechnologies,
+					8,
+				)}.`,
+				resume.skills?.length
+					? `His broader skills list also includes ${formatList(
+							resume.skills,
+							8,
+						)}.`
+					: "",
+			]),
+			citations: unique([
+				"skills",
+				...(resume.experience || [])
+					.map(
+						(item) =>
+							findExperienceSnippetByCompany(snippets, item.company)?.id || "",
+					)
+					.filter(Boolean),
+			]),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\bpayments?\b/i,
+			/\bfinancial\b/i,
+			/\bdonations?\b/i,
+			/\badyen\b/i,
+			/\bach\b/i,
+			/\bcards?\b/i,
+			/\bcrypto\b/i,
+		])
+	) {
+		const overflowExperience = resume.experience?.find((item) =>
+			normalizeText(item.company).includes("overflow"),
+		);
+		const overflowSnippet = overflowExperience
+			? findExperienceSnippetByCompany(snippets, overflowExperience.company)
+			: null;
+
+		if (overflowExperience && overflowSnippet) {
+			const paymentDetails = (overflowExperience.details || [])
+				.filter((detail) =>
+					/payments?|financial|donation|ach|cards?|stock|crypto|fund/i.test(
+						detail,
+					),
+				)
+				.slice(0, 2)
+				.map((detail) => takeFirstSentence(detail));
+			return {
+				status: "answered",
+				answer: sentenceCaseJoin([
+					overflowExperience.highlight,
+					...paymentDetails,
+				]),
+				citations: unique(["summary", "about", overflowSnippet.id]),
+			};
+		}
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\boverflow\b/i,
+			/\bcurrent role\b/i,
+			/\bcurrent job\b/i,
+			/\bcurrently\b/i,
+			/\bwhat does\b/i,
+			/\bwhat is\b/i,
+		])
+	) {
+		const currentExperience = resume.experience?.find(
+			(item) => item.to.toLowerCase() === "present",
+		);
+		const currentSnippet = currentExperience
+			? findExperienceSnippetByCompany(snippets, currentExperience.company)
+			: null;
+
+		if (currentExperience && currentSnippet) {
+			return {
+				status: "answered",
+				answer: sentenceCaseJoin([
+					`${personName} is currently a ${currentExperience.title} at ${currentExperience.company}.`,
+					currentExperience.highlight,
+					...(currentExperience.details || [])
+						.slice(0, 1)
+						.map((detail) => takeFirstSentence(detail)),
+				]),
+				citations: [currentSnippet.id],
+			};
+		}
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\bgithub\b/i,
+			/\blinkedin\b/i,
+			/\bresume\b/i,
+			/\bcalendly\b/i,
+			/\bcontact\b/i,
+			/\bsite\b/i,
+		]) &&
+		resume.links
+	) {
+		const parts: string[] = [];
+
+		if (/github/i.test(normalizedQuestion) && resume.links.github) {
+			parts.push(`GitHub: ${resume.links.github}.`);
+		}
+
+		if (/linkedin/i.test(normalizedQuestion) && resume.links.linkedin) {
+			parts.push(`LinkedIn: ${resume.links.linkedin}.`);
+		}
+
+		if (/resume/i.test(normalizedQuestion) && resume.links.resume) {
+			parts.push(`Resume: ${resume.links.resume}.`);
+		}
+
+		if (/calendly|contact/i.test(normalizedQuestion) && resume.links.calendly) {
+			parts.push(`Calendly: ${resume.links.calendly}.`);
+		}
+
+		if (/site/i.test(normalizedQuestion) && resume.links.site) {
+			parts.push(`Website: ${resume.links.site}.`);
+		}
+
+		if (parts.length) {
+			return {
+				status: "answered",
+				answer: parts.join(" "),
+				citations: ["links", "contact"].filter((id) =>
+					Boolean(findSnippetById(snippets, id)),
+				),
+			};
+		}
+	}
+
+	return null;
+}
+
+export function cosineSimilarity(a: number[], b: number[]) {
+	if (a.length !== b.length || a.length === 0) {
+		return 0;
+	}
+
+	let dotProduct = 0;
+	let aMagnitude = 0;
+	let bMagnitude = 0;
+
+	for (let index = 0; index < a.length; index += 1) {
+		dotProduct += a[index] * b[index];
+		aMagnitude += a[index] * a[index];
+		bMagnitude += b[index] * b[index];
+	}
+
+	if (aMagnitude === 0 || bMagnitude === 0) {
+		return 0;
+	}
+
+	return dotProduct / (Math.sqrt(aMagnitude) * Math.sqrt(bMagnitude));
+}
+
+export function rankSnippetsByEmbeddings(
+	questionEmbedding: number[],
+	snippets: ResumeSnippet[],
+	snippetEmbeddings: number[][],
+	limit = MAX_CONTEXT_CHUNKS,
+) {
+	return snippets
+		.map((snippet, index) => ({
+			snippet,
+			score: cosineSimilarity(
+				questionEmbedding,
+				snippetEmbeddings[index] || [],
+			),
+		}))
+		.sort((a, b) => b.score - a.score)
+		.slice(0, limit)
+		.map((entry) => entry.snippet);
+}
+
+export async function hashResumePayload(resume: ResumePayload) {
+	const encoded = new TextEncoder().encode(JSON.stringify(resume));
+	const digest = await crypto.subtle.digest("SHA-256", encoded);
+
+	return Array.from(new Uint8Array(digest))
+		.map((value) => value.toString(16).padStart(2, "0"))
+		.join("");
+}
+
+export function getEmbeddingsCacheKey(hash: string, model: string) {
+	return `${RESPONSE_CACHE_PREFIX}:${model}:${hash}`;
+}
+
+export function getAssistantWorkerUrl() {
+	return publicEnv.NEXT_PUBLIC_ASSISTANT_WORKER_URL;
+}
+
+export async function fetchEmbeddings(
+	workerUrl: string,
+	model: string,
+	input: string | string[],
+) {
+	const response = await fetch(new URL("/assistant", workerUrl).toString(), {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			action: "embeddings",
+			model,
+			input,
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Embeddings request failed with status ${response.status}.`,
+		);
+	}
+
+	const payload = (await response.json()) as {
+		data?: Array<{
+			embedding?: number[];
+		}>;
+	};
+
+	const embeddings = payload.data?.map((item) => item.embedding || []) || [];
+
+	if (!embeddings.length) {
+		throw new Error("Embeddings response did not include vectors.");
+	}
+
+	return embeddings;
+}
+
+export async function fetchAssistantResponse(args: {
+	workerUrl: string;
+	model: string;
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+	snippets: ResumeSnippet[];
+}) {
+	const { model, question, recentMessages, snippets, workerUrl } = args;
+	const snippetList = snippets
+		.map((snippet) => `[${snippet.id}] ${snippet.title}\n${snippet.text}`)
+		.join("\n\n");
+	const recentContext = recentMessages.length
+		? recentMessages
+				.map((message) => `${message.role.toUpperCase()}: ${message.content}`)
+				.join("\n")
+		: "None";
+
+	const response = await fetch(new URL("/assistant", workerUrl).toString(), {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			action: "chat",
+			model,
+			temperature: 0,
+			max_tokens: 220,
+			response_format: {
+				type: "json_schema",
+				json_schema: {
+					name: "resume_assistant_response",
+					schema: {
+						type: "object",
+						additionalProperties: false,
+						properties: {
+							status: {
+								type: "string",
+								enum: ["answered", "missing", "rejected"],
+							},
+							answer: {
+								type: "string",
+							},
+							citations: {
+								type: "array",
+								items: {
+									type: "string",
+								},
+								maxItems: MAX_CONTEXT_CHUNKS,
+							},
+						},
+						required: ["status", "answer", "citations"],
+					},
+				},
+			},
+			messages: [
+				{
+					role: "system",
+					content: SYSTEM_PROMPT,
+				},
+				{
+					role: "developer",
+					content: [
+						"Use only the SUPPORTING_RESUME_SNIPPETS below.",
+						`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
+						`If the question is unrelated to the person described in the resume, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
+						"Do not infer, invent, generalize, or use outside knowledge.",
+						"Every factual answer must be grounded in the snippet IDs you cite.",
+						"Keep the answer concise and friendly.",
+						"",
+						`RECENT_CHAT_CONTEXT:\n${recentContext}`,
+						"",
+						`SUPPORTING_RESUME_SNIPPETS:\n${snippetList}`,
+					].join("\n"),
+				},
+				{
+					role: "user",
+					content: question,
+				},
+			],
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Assistant request failed with status ${response.status}.`);
+	}
+
+	const payload = (await response.json()) as {
+		choices?: Array<{
+			message?: {
+				content?: string;
+			};
+		}>;
+	};
+
+	const rawContent = payload.choices?.[0]?.message?.content;
+
+	if (!rawContent) {
+		throw new Error("Assistant response was empty.");
+	}
+
+	const parsed = assistantResponseSchema.parse(JSON.parse(rawContent));
+	const validCitationIds = new Set(snippets.map((snippet) => snippet.id));
+	const filteredCitations = parsed.citations.filter((citation) =>
+		validCitationIds.has(citation),
+	);
+
+	if (parsed.status === "answered" && filteredCitations.length === 0) {
+		return {
+			status: "missing",
+			answer: MISSING_INFORMATION_MESSAGE,
+			citations: [],
+		} satisfies AssistantResponse;
+	}
+
+	if (parsed.status === "missing") {
+		return {
+			status: "missing",
+			answer: MISSING_INFORMATION_MESSAGE,
+			citations: [],
+		} satisfies AssistantResponse;
+	}
+
+	if (parsed.status === "rejected") {
+		return {
+			status: "rejected",
+			answer: UNRELATED_QUESTION_MESSAGE,
+			citations: [],
+		} satisfies AssistantResponse;
+	}
+
+	return {
+		status: "answered",
+		answer: parsed.answer,
+		citations: filteredCitations,
+	} satisfies AssistantResponse;
+}
