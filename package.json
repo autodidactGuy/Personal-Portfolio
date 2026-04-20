@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf .next out",
-    "dev": "yarn search:generate && next dev",
-    "dev:clean": "yarn clean && yarn search:generate && next dev",
+    "dev": "yarn resume:generate && yarn search:generate && next dev",
+    "dev:clean": "yarn clean && yarn resume:generate && yarn search:generate && next dev",
     "icons:generate": "node scripts/generate-content-icons.mjs",
     "resume:generate": "node scripts/generate-resume-json.mjs",
     "search:generate": "node scripts/generate-search-index.mjs",

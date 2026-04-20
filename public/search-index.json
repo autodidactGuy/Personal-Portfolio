@@ -203,6 +203,30 @@
     "searchText": "education academic degree university school Bachelor of Science in Computer Science The University of Lahore Lahore, Pakistan Sep, 2015 Mar, 2019"
   },
   {
+    "id": "project-building-a-resume-native-ai-assistant",
+    "type": "project",
+    "typeLabel": "Project",
+    "title": "Building a Resume-Native AI Assistant for My Portfolio",
+    "summary": "Designing an assistant that answers from structured portfolio data, uses semantic retrieval over resume content, and safely proxies GitHub Models through Cloudflare Workers.",
+    "href": "/project/building-a-resume-native-ai-assistant",
+    "meta": "2026-04-19",
+    "keywords": [
+      "projects",
+      "project",
+      "portfolio",
+      "work",
+      "case",
+      "study",
+      "studies",
+      "ai",
+      "github-models",
+      "cloudflare-workers",
+      "retrieval",
+      "nextjs"
+    ],
+    "searchText": "projects project portfolio work case study case studies Building a Resume Native AI Assistant for My Portfolio Designing an assistant that answers from structured portfolio data, uses semantic retrieval over resume content, and safely proxies GitHub Models through Cloudflare Workers. project 2026 04 19 ai github models cloudflare workers retrieval nextjs portfolio Context I wanted the portfolio to do more than display information. I wanted it to answer for itself. Not with a generic chatbot and not with a prompt that tries to improvise from thin air. The goal was narrower and more useful: let a visitor ask questions about my experience, projects, technical strengths, and background, and get answers grounded in the actual content already published on the site. That design constraint shaped the entire implementation. The assistant is not a toy layer on top of a marketing site. It is a retrieval system built around structured resume data, deterministic guardrails, and a thin production safe proxy to GitHub Models. What I Built The result is an AI assistant embedded directly into the portfolio experience that: loads a generated static resume dataset from the site itself converts that content into searchable snippets ranks the most relevant context using embeddings and keyword fallback calls GitHub Models through a Cloudflare Worker proxy returns concise answers with citations tied to the underlying portfolio content In practical terms, visitors can ask questions like: What kind of backend systems has he built? Has he worked on payment infrastruc"
+  },
+  {
     "id": "project-building-financial-infrastructure-for-modern-nonprofits",
     "type": "project",
     "typeLabel": "Project",

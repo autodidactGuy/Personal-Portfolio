@@ -1,0 +1,232 @@
+---
+title: "Building a Resume-Native AI Assistant for My Portfolio"
+summary: "Designing an assistant that answers from structured portfolio data, uses semantic retrieval over resume content, and safely proxies GitHub Models through Cloudflare Workers."
+date: "2026-04-19"
+contentType: "project"
+featured: true
+published: true
+tags:
+  - ai
+  - github-models
+  - cloudflare-workers
+  - retrieval
+  - nextjs
+  - portfolio
+---
+
+## Context
+
+I wanted the portfolio to do more than display information. I wanted it to answer for itself.
+
+Not with a generic chatbot and not with a prompt that tries to improvise from thin air. The goal was narrower and more useful: let a visitor ask questions about my experience, projects, technical strengths, and background, and get answers grounded in the actual content already published on the site.
+
+That design constraint shaped the entire implementation.
+
+The assistant is not a toy layer on top of a marketing site. It is a retrieval system built around structured resume data, deterministic guardrails, and a thin production-safe proxy to GitHub Models.
+
+## What I Built
+
+The result is an AI assistant embedded directly into the portfolio experience that:
+
+- loads a generated static resume dataset from the site itself  
+- converts that content into searchable snippets  
+- ranks the most relevant context using embeddings and keyword fallback  
+- calls GitHub Models through a Cloudflare Worker proxy  
+- returns concise answers with citations tied to the underlying portfolio content  
+
+In practical terms, visitors can ask questions like:
+
+- What kind of backend systems has he built?
+- Has he worked on payment infrastructure?
+- What technologies does he use most often?
+- What is his current role and background?
+
+That sounds straightforward. The real work is in making the answers accurate, constrained, fast, and maintainable.
+
+## The Core Design Decision
+
+The most important decision was to treat the portfolio as a **data product**, not just a set of pages.
+
+Because this site is statically exported, the assistant cannot rely on traditional server-side Next.js API routes. Instead, the content pipeline generates a static resume payload at build time and publishes it as a site asset.
+
+That gave me a clean contract:
+
+1. author content once in the portfolio  
+2. normalize it into a structured resume payload  
+3. let the assistant reason only over that approved dataset  
+
+This is a much better engineering tradeoff than scraping rendered HTML or letting a model guess from partial page context.
+
+## Abstract Architecture Diagram
+
+```text
+Visitor Question
+      |
+      v
+Portfolio Assistant UI
+      |
+      +--> Load /api/resume.json
+      |
+      +--> Build normalized snippets
+      |
+      +--> Try local deterministic answer
+      |
+      +--> Retrieve relevant context
+             | 
+             +--> Embeddings available -> semantic ranking
+             |
+             +--> Otherwise -> keyword ranking fallback
+      |
+      v
+Cloudflare Worker /assistant
+      |
+      +--> origin validation
+      +--> payload validation
+      +--> rate limiting
+      +--> token isolation
+      |
+      v
+GitHub Models
+  - embeddings
+  - chat completions
+      |
+      v
+Structured JSON response + citations
+      |
+      v
+Grounded answer rendered in the portfolio
+```
+
+## Why the Resume API Matters
+
+The assistant is powered by a generated `resume.json` representation of the site content. That payload aggregates the information that actually matters to a recruiter, hiring manager, or engineering leader:
+
+- summary and about information  
+- experience history  
+- education  
+- links  
+- projects  
+- articles and case studies  
+- recommendations and proof points  
+
+That means the assistant is reasoning over normalized, intentional content rather than a noisy DOM.
+
+From an architecture perspective, this matters for three reasons:
+
+- **consistency**: the UI and the assistant share the same source of truth  
+- **reliability**: the payload shape is stable and easy to evolve  
+- **observability**: retrieval logic can work on well-defined content chunks instead of ambiguous page fragments  
+
+## Embeddings and Retrieval Strategy
+
+This is where the assistant becomes meaningfully useful.
+
+I break the resume payload into small, semantically focused snippets. Each snippet represents a coherent unit such as:
+
+- a role in my experience timeline  
+- an education entry  
+- a project or article  
+- a recommendation  
+- a skills or summary block  
+
+Those snippets are then embedded through GitHub Models and ranked against the user’s question using vector similarity.
+
+### Retrieval flow
+
+- the client loads the resume data  
+- it builds a snippet set and computes a hash of the content  
+- snippet embeddings are cached locally by model and content hash  
+- when a user asks a question, the question is embedded  
+- the system selects the highest-signal snippets and sends only that context to the model  
+
+This does two things well:
+
+1. it improves answer quality because the model is given the most relevant evidence instead of the whole resume  
+2. it keeps the design efficient by avoiding unnecessary repeated embedding work for unchanged content  
+
+I also added a keyword-based fallback path. If embeddings are unavailable for any reason, the assistant still works by ranking snippets through lexical overlap. That is an important operational detail: degraded mode is still useful mode.
+
+## A Safer Model Boundary with Cloudflare Workers
+
+I did not want model credentials exposed in the browser, and I did not want the frontend talking directly to a third-party inference endpoint.
+
+So I added a Cloudflare Worker route that acts as a narrow proxy for the assistant.
+
+The worker handles:
+
+- **origin validation** so requests only come from approved sites  
+- **schema validation** for both chat and embeddings payloads  
+- **rate limiting** to prevent abuse, with a bounded per-IP request window  
+- **secret isolation** so the GitHub Models token never leaves the server boundary  
+- **uniform response handling** across embeddings and chat completions  
+
+This is a simple pattern, but it is the right one. It turns a frontend AI feature into a controlled service interface rather than an open client-side experiment.
+
+## Why GitHub Models
+
+GitHub Models was a strong fit for this implementation because it provided a clean way to call both embeddings and chat inference through a familiar developer workflow.
+
+That let me keep the integration focused on product and architecture concerns:
+
+- retrieving the right context  
+- structuring the prompt correctly  
+- validating the model output  
+- controlling cost and abuse boundaries  
+
+In other words, the interesting engineering problem here was never “how do I call an LLM API.” It was “how do I make the model answer the right question from the right evidence in a portfolio setting.”
+
+## Guardrails and Deterministic Shortcuts
+
+One of the mistakes people make with assistants is sending every query directly to the model.
+
+I took a more disciplined approach.
+
+Before the remote model is involved, the assistant first checks for:
+
+- off-topic or adversarial prompts  
+- prompt-injection style instructions  
+- questions that can be answered deterministically from known patterns  
+
+That means common questions like current role, core skills, education, or portfolio links can often be handled immediately without a full model round trip.
+
+This improves latency, reduces token usage, and tightens correctness.
+
+It also gives the assistant a more senior-engineered feel: use the model where it adds value, not where a clear rule-based answer already exists.
+
+## Engineering Tradeoffs
+
+There are a few deliberate tradeoffs in this design.
+
+### 1. Static data over live repository introspection
+
+The assistant answers from the published site content, not from repo activity, commit history, or unstated knowledge. That makes the experience more trustworthy even if it is narrower.
+
+### 2. Retrieval-first over open-ended conversation
+
+I optimized for factual grounding rather than personality. The assistant is there to help a visitor understand my work quickly and accurately.
+
+### 3. Progressive enhancement over hard dependency
+
+If embeddings fail, the assistant does not disappear. It falls back gracefully and still answers from keyword-ranked evidence.
+
+### 4. Structured output over free-form generation
+
+The response is expected in a constrained JSON shape with answer status and citations. That gives the UI something deterministic to render and makes failure modes easier to manage.
+
+## What I Like About This Build
+
+What I like most is that the system stays honest.
+
+It does not pretend to know more than the portfolio actually says. It does not blur the line between retrieval and invention. And it does not rely on backend sprawl to deliver a relatively small but high-leverage user experience.
+
+This is the kind of AI integration I find compelling in real systems: bounded, observable, useful, and aligned with the actual product surface.
+
+## Closing Thoughts
+
+There is a broader lesson here.
+
+Good AI product engineering is rarely about adding a model to the stack and calling it innovation. The real work is in designing the data boundary, controlling failure modes, choosing where determinism should win, and making sure the system remains legible when something goes wrong.
+
+That is what this assistant represents for me.
+
+A portfolio is supposed to communicate capability. Building a resume-native assistant on top of structured content is a strong way to demonstrate not just that I can use AI tools, but that I can integrate them with sound engineering judgment.

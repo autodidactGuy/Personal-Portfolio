@@ -400,6 +400,25 @@
   ],
   "projects": [
     {
+      "slug": "building-a-resume-native-ai-assistant",
+      "title": "Building a Resume-Native AI Assistant for My Portfolio",
+      "summary": "Designing an assistant that answers from structured portfolio data, uses semantic retrieval over resume content, and safely proxies GitHub Models through Cloudflare Workers.",
+      "tags": [
+        "ai",
+        "github-models",
+        "cloudflare-workers",
+        "retrieval",
+        "nextjs",
+        "portfolio"
+      ],
+      "featured": true,
+      "coverImage": "",
+      "url": "https://hassanraza.us/project/building-a-resume-native-ai-assistant",
+      "date": "2026-04-19",
+      "contentType": "project",
+      "excerpt": "Context I wanted the portfolio to do more than display information. I wanted it to answer for itself. Not with a generic chatbot and not with a prompt that tries to improvise from thin air. The goal was narrower and more useful: let a visitor ask questions about my experience, projects, technical strengths, and background, and get answers grounded in the actual content already published on the site. That design constraint shaped the entire implementation. The assistant is not a toy layer on top of a marketing site. It is a retrieval system built around structured resume data, deterministic guardrails, and a thin production-safe proxy to GitHub Models. What I Built The result is an AI assistant embedded directly into the portfolio experience that: loads a generated static resume dataset from the site itself converts that content into searchable snippets ranks the most relevant context usi..."
+    },
+    {
       "slug": "building-financial-infrastructure-for-modern-nonprofits",
       "title": "Building Financial Infrastructure for Modern Nonprofits",
       "summary": "Designing systems that enable scalable, reliable, and intelligent financial operations for nonprofit organizations.",

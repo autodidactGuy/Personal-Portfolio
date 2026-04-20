@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	Button,
-	Chip,
-	Drawer,
-	ScrollShadow,
-	Spinner,
-	TextArea,
-} from "@heroui/react";
+import { Button, Chip, Drawer, ScrollShadow, Spinner } from "@heroui/react";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -91,7 +84,8 @@ function createMessage(
 }
 
 export function ResumeAssistant() {
-	const messagesEndRef = useRef<HTMLDivElement | null>(null);
+	const lastMessageRef = useRef<HTMLDivElement | null>(null);
+	const scrollPanelRef = useRef<HTMLDivElement | null>(null);
 
 	const [resume, setResume] = useState<ResumePayload | null>(null);
 	const [snippets, setSnippets] = useState<ResumeSnippet[]>([]);
@@ -163,12 +157,32 @@ export function ResumeAssistant() {
 	}, []);
 
 	useEffect(() => {
-		void messages;
-		void isSending;
-		messagesEndRef.current?.scrollIntoView({
-			behavior: "smooth",
-			block: "end",
+		if (typeof window === "undefined") {
+			return;
+		}
+
+		const latestMessageId = messages[messages.length - 1]?.id;
+
+		if (!latestMessageId && !isSending) {
+			return;
+		}
+
+		const frame = window.requestAnimationFrame(() => {
+			lastMessageRef.current?.scrollIntoView({
+				behavior: latestMessageId === "assistant-welcome" ? "auto" : "smooth",
+				block: "end",
+			});
+
+			const container = scrollPanelRef.current;
+			if (container) {
+				container.scrollTo({
+					top: container.scrollHeight,
+					behavior: latestMessageId === "assistant-welcome" ? "auto" : "smooth",
+				});
+			}
 		});
+
+		return () => window.cancelAnimationFrame(frame);
 	}, [messages, isSending]);
 
 	useEffect(() => {
@@ -366,135 +380,146 @@ export function ResumeAssistant() {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 flex-1 flex-col gap-3 sm:gap-4">
-			<div className="flex min-h-0 flex-1 flex-col gap-3 rounded-[24px] border border-default-200/70 bg-content1/90 p-2.5 shadow-sm dark:bg-content1/80 sm:rounded-[28px] sm:gap-4 sm:p-3">
-				<ScrollShadow className="flex min-h-[24rem] flex-1 flex-col gap-3 pr-1 sm:min-h-[28rem]">
-					{messages.map((message) => (
-						<div
-							className={clsx(
-								"flex",
-								message.role === "user" ? "justify-end" : "justify-start",
-							)}
-							key={message.id}
-						>
+		<div className="flex h-full min-h-0 flex-1 flex-col">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-default-200/70 bg-content1/85 shadow-sm shadow-primary/5 dark:bg-content1/75 sm:rounded-[28px]">
+				<ScrollShadow
+					className="min-h-0 flex-1 rounded-[inherit] px-2.5 pt-2.5 sm:px-3 sm:pt-3"
+					ref={scrollPanelRef}
+					visibility="none"
+				>
+					<div className="flex min-h-full flex-col gap-3 pb-2 sm:gap-4 sm:pb-3">
+						{messages.map((message, index) => (
 							<div
 								className={clsx(
-									"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
-									message.role === "user"
-										? "bg-primary text-white"
-										: "border border-default-200/70 bg-default-50/80 text-foreground dark:bg-default-100/10",
+									"flex scroll-mb-28",
+									message.role === "user" ? "justify-end" : "justify-start",
 								)}
+								key={message.id}
+								ref={index === messages.length - 1 ? lastMessageRef : null}
 							>
-								<p className="break-words">{message.content}</p>
-								{message.citations?.length ? (
-									<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
-										{message.citations.map((citation) => (
-											<Chip
-												className="max-w-full border border-primary/15 bg-primary/8 text-primary"
-												key={citation.id}
+								<div
+									className={clsx(
+										"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
+										message.role === "user"
+											? "bg-primary/95 text-white"
+											: "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80",
+									)}
+								>
+									<p className="break-words">{message.content}</p>
+									{message.citations?.length ? (
+										<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
+											{message.citations.map((citation) => (
+												<Chip
+													className="max-w-full border border-primary/15 bg-primary/8 text-primary"
+													key={citation.id}
+													size="sm"
+													variant="secondary"
+												>
+													<Chip.Label className="max-w-full truncate">
+														{citation.title}
+													</Chip.Label>
+												</Chip>
+											))}
+										</div>
+									) : null}
+								</div>
+							</div>
+						))}
+
+						{!hasUserMessages ? (
+							<div className="flex justify-start">
+								<div className="max-w-[92%] rounded-[22px] border border-default-200/70 bg-content1/80 px-3.5 py-3 text-foreground shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
+									<p className="text-sm text-default-600">
+										Try asking something from these:
+									</p>
+									<div className="mt-2 flex flex-wrap gap-2">
+										{questionSuggestions.map((question) => (
+											<Button
+												className="h-7 rounded-full border border-primary/15 bg-primary/8 px-2.5 text-[10px] font-medium text-primary shadow-none hover:bg-primary/12 sm:h-8 sm:px-3 sm:text-[11px]"
+												key={question}
+												onClick={() => void submitQuestion(question)}
 												size="sm"
 												variant="secondary"
 											>
-												<Chip.Label className="max-w-full truncate">
-													{citation.title}
-												</Chip.Label>
-											</Chip>
+												{question}
+											</Button>
 										))}
 									</div>
-								) : null}
-							</div>
-						</div>
-					))}
-
-					{!hasUserMessages ? (
-						<div className="flex justify-start">
-							<div className="max-w-[92%] rounded-[22px] border border-default-200/70 bg-default-50/80 px-3.5 py-3 text-foreground shadow-sm dark:bg-default-100/10">
-								<p className="text-sm text-default-600">
-									Try asking something from these:
-								</p>
-								<div className="mt-2 flex flex-wrap gap-2">
-									{questionSuggestions.map((question) => (
-										<Button
-											className="h-7 rounded-full border border-primary/15 bg-primary/8 px-2.5 text-[10px] font-medium text-primary shadow-none hover:bg-primary/12 sm:h-8 sm:px-3 sm:text-[11px]"
-											key={question}
-											onClick={() => void submitQuestion(question)}
-											size="sm"
-											variant="secondary"
-										>
-											{question}
-										</Button>
-									))}
 								</div>
 							</div>
-						</div>
-					) : null}
+						) : null}
 
-					{isSending ? (
-						<div className="flex justify-start">
-							<div className="flex items-center gap-3 rounded-[24px] border border-default-200/70 bg-default-50/80 px-4 py-3 text-sm text-default-600 shadow-sm dark:bg-default-100/10">
-								<Spinner color="accent" size="sm" />
-								<span>Thinking...</span>
+						{isSending ? (
+							<div className="flex justify-start">
+								<div className="flex items-center gap-3 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
+									<Spinner color="accent" size="sm" />
+									<span>Thinking...</span>
+								</div>
 							</div>
-						</div>
-					) : null}
+						) : null}
 
-					<div ref={messagesEndRef} />
+						<div className="sticky bottom-0 z-10 mt-auto rounded-[22px] border border-default-200/70 bg-content1/92 px-2.5 pb-2 pt-2.5 shadow-[0_-10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl dark:border-default-100/10 dark:bg-[#0d1b2f]/92 sm:rounded-[24px] sm:px-3 sm:pb-3 sm:pt-3">
+							{resumeError || statusMessage ? (
+								<div className="px-1 pb-2 text-xs text-default-500 hidden">
+									{resumeError ? (
+										<span className="text-danger">{resumeError}</span>
+									) : (
+										<span>{statusMessage}</span>
+									)}
+								</div>
+							) : null}
+
+							<form
+								className="flex flex-col gap-3"
+								onSubmit={(event) => {
+									event.preventDefault();
+									void submitQuestion(draft);
+								}}
+							>
+								<div className="flex flex-col gap-3">
+									<textarea
+										aria-label={`Ask a question about ${personName}`}
+										className="min-h-28 w-full resize-y rounded-2xl border border-default-200/80 bg-content1/90 px-4 py-3 text-sm leading-6 text-foreground shadow-none outline-none transition-colors placeholder:text-default-400 dark:border-default-100/14 dark:bg-[#13233c] focus:border-primary/45"
+										onChange={(event) => setDraft(event.target.value)}
+										placeholder={`Ask about ${personName}'s background, education, experience, skills, work, projects, case studies, or system thinking...`}
+										rows={3}
+										value={draft}
+									/>
+									<div className="flex flex-col gap-2.5">
+										<p className="max-w-2xl text-xs leading-5 text-default-500">
+											Only resume-backed answers are allowed. Unrelated or
+											missing questions are declined safely.
+										</p>
+										<div className="flex w-full items-center gap-2 sm:justify-end">
+											<Button
+												className="flex-1 rounded-full border border-default-200/70 bg-content1/90 px-3.5 text-foreground shadow-none hover:bg-default-100/70 dark:bg-[#13233c]/80 sm:flex-none"
+												onClick={() => {
+													setDraft("");
+													setStatusMessage("");
+													setMessages([buildWelcomeMessage(personName)]);
+												}}
+												type="button"
+												variant="secondary"
+											>
+												Reset
+											</Button>
+											<Button
+												className="flex-1 rounded-full bg-primary px-3.5 text-white shadow-sm shadow-primary/20 hover:opacity-95 sm:flex-none"
+												isDisabled={isSending || !resume}
+												type="submit"
+											>
+												<span className="flex items-center justify-center gap-2">
+													<HiPaperAirplane size={16} />
+													Send
+												</span>
+											</Button>
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
 				</ScrollShadow>
-
-				{resumeError || statusMessage ? (
-					<div className="px-1 text-xs text-default-500">
-						{resumeError ? (
-							<span className="text-danger">{resumeError}</span>
-						) : (
-							<span>{statusMessage}</span>
-						)}
-					</div>
-				) : null}
-
-				<form
-					className="rounded-[22px] border border-default-200/70 bg-default-50/70 p-2.5 dark:bg-default-100/10 sm:rounded-[24px] sm:p-3"
-					onSubmit={(event) => {
-						event.preventDefault();
-						void submitQuestion(draft);
-					}}
-				>
-					<div className="flex flex-col gap-3">
-						<TextArea
-							aria-label={`Ask a question about ${personName}`}
-							className="min-h-[78px] w-full rounded-[18px] border border-default-200/70 bg-content1/90 px-3.5 py-2.5 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-default-400 dark:border-default-100/14 dark:bg-content1/80 focus:border-primary/35 sm:min-h-[96px] sm:rounded-[20px] sm:px-4 sm:py-3"
-							onChange={(event) => setDraft(event.target.value)}
-							placeholder={`Ask about ${personName}'s background, education, experience, skills, work, projects, case studies, or system thinking...`}
-							value={draft}
-							variant="secondary"
-						/>
-						<div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-							<p className="max-w-2xl text-xs leading-5 text-default-500">
-								Only resume-backed answers are allowed. Unrelated or missing
-								questions are declined safely.
-							</p>
-							<div className="flex items-center justify-end gap-2">
-								<Button
-									className="rounded-full border border-default-200/70 bg-content1/90 px-3.5 text-foreground shadow-none hover:bg-default-100/70 dark:bg-content1/80"
-									onClick={() => setMessages([buildWelcomeMessage(personName)])}
-									type="button"
-									variant="secondary"
-								>
-									Reset
-								</Button>
-								<Button
-									className="rounded-full bg-primary px-3.5 text-white shadow-sm shadow-primary/20 hover:opacity-95"
-									isDisabled={isSending || !resume}
-									type="submit"
-								>
-									<span className="flex items-center gap-2">
-										<HiPaperAirplane size={16} />
-										Send
-									</span>
-								</Button>
-							</div>
-						</div>
-					</div>
-				</form>
 			</div>
 		</div>
 	);
@@ -521,9 +546,9 @@ export function FooterAssistantLauncher() {
 				</Drawer.Trigger>
 				<Drawer.Backdrop isDismissable variant="blur">
 					<Drawer.Content placement="bottom">
-						<Drawer.Dialog className="mx-auto flex h-full max-h-[94dvh] min-h-0 w-full max-w-5xl flex-col rounded-t-[2rem] border border-default-200/70 bg-background/96 backdrop-blur-xl">
-							<Drawer.Header className="border-b border-default-200/60 px-4 pb-3 pt-2 sm:px-5">
-								<Drawer.Handle className="mx-auto mb-3 mt-1 h-1.5 w-14 rounded-full bg-default-300/80 dark:bg-default-600/70" />
+						<Drawer.Dialog className="mx-auto flex h-full max-h-[94dvh] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border border-default-200/70 shadow-2xl shadow-primary/10 backdrop-blur-xl ">
+							<Drawer.Header className="shrink-0 rounded-t-[inherit] border-b border-default-200/60 px-4 pb-3 pt-2 sm:px-5">
+								<Drawer.Handle />
 								<div className="flex items-center justify-between gap-3">
 									<div className="flex items-center gap-3">
 										<span className="inline-flex rounded-2xl border border-primary/20 bg-primary/10 p-2 text-primary">
@@ -540,11 +565,11 @@ export function FooterAssistantLauncher() {
 									</div>
 									<Drawer.CloseTrigger
 										aria-label="Close portfolio assistant"
-										className="rounded-full border border-default-200/70 bg-content1/80 p-2 text-white bg-red-600 shadow-none transition-colors"
+										className="rounded-full border border-danger/40 bg-red-600 p-2 text-white shadow-sm shadow-danger/20 transition-colors hover:bg-red-500"
 									/>
 								</div>
 							</Drawer.Header>
-							<Drawer.Body className="min-h-0 flex-1 overflow-hidden px-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)] pt-3 sm:px-5 sm:pb-5">
+							<Drawer.Body className="min-h-0 flex-1 overflow-hidden bg-transparent px-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 sm:px-5 sm:pb-5">
 								<ResumeAssistant />
 							</Drawer.Body>
 						</Drawer.Dialog>
