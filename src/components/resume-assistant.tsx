@@ -436,18 +436,17 @@ export function ResumeAssistant() {
 												const href = getCitationHref(citation);
 
 												return href ? (
-													<Chip
-														as={NextLink}
-														className="max-w-full border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
-														href={href}
-														key={citation.id}
-														size="sm"
-														variant="secondary"
-													>
-														<Chip.Label className="max-w-full truncate">
-															{citation.title}
-														</Chip.Label>
-													</Chip>
+													<NextLink href={href} key={citation.id}>
+														<Chip
+															className="max-w-full border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12 cursor-pointer"
+															size="sm"
+															variant="secondary"
+														>
+															<Chip.Label className="max-w-full truncate">
+																{citation.title}
+															</Chip.Label>
+														</Chip>
+													</NextLink>
 												) : (
 													<Chip
 														className="max-w-full border border-primary/15 bg-primary/8 text-primary"
