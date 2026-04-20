@@ -546,7 +546,7 @@ export function FooterAssistantLauncher() {
 				</Drawer.Trigger>
 				<Drawer.Backdrop isDismissable variant="blur">
 					<Drawer.Content placement="bottom">
-						<Drawer.Dialog className="mx-auto flex h-full max-h-[94dvh] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border border-default-200/70 pb-0 shadow-2xl shadow-primary/10 backdrop-blur-xl">
+						<Drawer.Dialog className="mx-auto flex h-full max-h-[calc(94dvh+2.5rem)] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border border-default-200/70 -mb-10 pb-10 shadow-2xl shadow-primary/10 backdrop-blur-xl sm:mb-0 sm:max-h-[94dvh] sm:pb-6">
 							<Drawer.Header className="shrink-0 rounded-t-[inherit] border-b border-default-200/60 px-4 pb-3 pt-2 sm:px-5">
 								<Drawer.Handle />
 								<div className="flex items-center justify-between gap-3">
