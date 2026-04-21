@@ -2,7 +2,7 @@ import { Accordion, Card, CardContent, Chip } from "@heroui/react";
 import type { GetStaticProps } from "next";
 import NextImage from "next/image";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BiSolidUserAccount } from "react-icons/bi";
 import { FaUserGraduate } from "react-icons/fa6";
 import { HiChevronDown, HiOutlineMapPin } from "react-icons/hi2";
@@ -224,6 +224,26 @@ type AboutSectionCardProps = {
 	defaultExpanded?: boolean;
 };
 
+function scrollAccordionBodyIntoView(
+	bodyRef: React.RefObject<HTMLDivElement | null>,
+) {
+	window.setTimeout(() => {
+		const target = bodyRef.current;
+
+		if (!target) {
+			return;
+		}
+
+		const topOffset = 96;
+		const top = window.scrollY + target.getBoundingClientRect().top - topOffset;
+
+		window.scrollTo({
+			top: Math.max(top, 0),
+			behavior: "smooth",
+		});
+	}, 180);
+}
+
 function AboutSectionCard({
 	id,
 	title,
@@ -232,18 +252,31 @@ function AboutSectionCard({
 	children,
 	defaultExpanded = false,
 }: AboutSectionCardProps) {
+	const [expandedKeys, setExpandedKeys] = useState<Set<string | number>>(
+		() => new Set(defaultExpanded ? [id] : []),
+	);
+	const bodyRef = useRef<HTMLDivElement | null>(null);
+
 	return (
 		<Accordion
 			className="w-full"
-			defaultExpandedKeys={defaultExpanded ? [id] : undefined}
+			expandedKeys={expandedKeys}
 			hideSeparator
+			onExpandedChange={(keys) => setExpandedKeys(new Set(keys))}
 		>
 			<Accordion.Item
 				className="overflow-hidden rounded-3xl border border-default-200/80 bg-content1/85 shadow-sm dark:bg-content1/72"
 				id={id}
 			>
 				<Accordion.Heading>
-					<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition-colors hover:bg-default-100/35 sm:px-6 sm:py-6 dark:hover:bg-default-100/5">
+					<Accordion.Trigger
+						className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition-colors hover:bg-default-100/35 sm:px-6 sm:py-6 dark:hover:bg-default-100/5"
+						onClick={() => {
+							if (!expandedKeys.has(id)) {
+								scrollAccordionBodyIntoView(bodyRef);
+							}
+						}}
+					>
 						<div className="flex min-w-0 items-center gap-4">
 							<AboutAccordionIcon>{icon}</AboutAccordionIcon>
 							<div className="min-w-0">
@@ -257,7 +290,10 @@ function AboutSectionCard({
 					</Accordion.Trigger>
 				</Accordion.Heading>
 				<Accordion.Panel>
-					<Accordion.Body className="px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
+					<Accordion.Body
+						className="px-5 pb-5 pt-0 sm:px-6 sm:pb-6"
+						ref={bodyRef}
+					>
 						{children}
 					</Accordion.Body>
 				</Accordion.Panel>

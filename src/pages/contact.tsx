@@ -46,6 +46,26 @@ function getErrorMessage(message: unknown) {
 	return typeof message === "string" ? message : undefined;
 }
 
+function scrollAccordionBodyIntoView(
+	bodyRef: React.RefObject<HTMLDivElement | null>,
+) {
+	window.setTimeout(() => {
+		const target = bodyRef.current;
+
+		if (!target) {
+			return;
+		}
+
+		const topOffset = 96;
+		const top = window.scrollY + target.getBoundingClientRect().top - topOffset;
+
+		window.scrollTo({
+			top: Math.max(top, 0),
+			behavior: "smooth",
+		});
+	}, 180);
+}
+
 export default function Contact({ settings }: ContactPageProps) {
 	const { resolvedTheme, theme } = useTheme();
 
@@ -54,9 +74,14 @@ export default function Contact({ settings }: ContactPageProps) {
 	// const toastTheme = activeTheme as "light" | "dark" | "system";
 
 	const [turnstileToken, setTurnstileToken] = useState("");
+	const [mobileExpandedKeys, setMobileExpandedKeys] = useState<
+		Set<string | number>
+	>(() => new Set(["contact-form"]));
 	const turnstileRef = useRef<HTMLDivElement>(null);
 	const turnstileWidgetId = useRef<string | undefined>(undefined);
 	const honeypotRef = useRef<HTMLInputElement>(null);
+	const mobileContactFormBodyRef = useRef<HTMLDivElement | null>(null);
+	const mobileScheduleBodyRef = useRef<HTMLDivElement | null>(null);
 	const turnstileSiteKey = publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 	const onTurnstileReady = () => {
@@ -472,21 +497,31 @@ export default function Contact({ settings }: ContactPageProps) {
 				<section className="lg:hidden">
 					<Accordion
 						className="space-y-4"
-						defaultExpandedKeys={["contact-form"]}
+						expandedKeys={mobileExpandedKeys}
 						hideSeparator
+						onExpandedChange={(keys) => setMobileExpandedKeys(new Set(keys))}
 					>
 						<Accordion.Item
 							className="overflow-hidden rounded-3xl border border-default-200/80 bg-background/80 shadow-sm"
 							id="contact-form"
 						>
 							<Accordion.Heading>
-								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5">
+								<Accordion.Trigger
+									className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5"
+									onClick={() => {
+										if (!mobileExpandedKeys.has("contact-form")) {
+											scrollAccordionBodyIntoView(mobileContactFormBodyRef);
+										}
+									}}
+								>
 									<span>{settings.formHeading}</span>
 									<Accordion.Indicator className="shrink-0 text-primary" />
 								</Accordion.Trigger>
 							</Accordion.Heading>
 							<Accordion.Panel>
-								<Accordion.Body className="p-0">{contactForm}</Accordion.Body>
+								<Accordion.Body className="p-0" ref={mobileContactFormBodyRef}>
+									{contactForm}
+								</Accordion.Body>
 							</Accordion.Panel>
 						</Accordion.Item>
 						<Accordion.Item
@@ -494,13 +529,23 @@ export default function Contact({ settings }: ContactPageProps) {
 							id="schedule-widget"
 						>
 							<Accordion.Heading>
-								<Accordion.Trigger className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5">
+								<Accordion.Trigger
+									className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left text-lg font-semibold tracking-tight transition-colors hover:bg-default-100/40 sm:px-5 sm:py-5 dark:hover:bg-default-100/5"
+									onClick={() => {
+										if (!mobileExpandedKeys.has("schedule-widget")) {
+											scrollAccordionBodyIntoView(mobileScheduleBodyRef);
+										}
+									}}
+								>
 									<span>{settings.scheduleHeading}</span>
 									<Accordion.Indicator className="shrink-0 text-primary" />
 								</Accordion.Trigger>
 							</Accordion.Heading>
 							<Accordion.Panel>
-								<Accordion.Body className="px-5 pb-3">
+								<Accordion.Body
+									className="px-5 pb-3"
+									ref={mobileScheduleBodyRef}
+								>
 									{scheduleWidget}
 								</Accordion.Body>
 							</Accordion.Panel>

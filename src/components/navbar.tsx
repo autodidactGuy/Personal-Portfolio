@@ -89,7 +89,18 @@ export const Navbar = () => {
 	}, [isMenuOpen]);
 
 	const renderSearchInput = (inputClassName?: string) => (
-		<form action="/search" className={inputClassName} method="get">
+		<form
+			action="/search"
+			className={inputClassName}
+			method="get"
+			onSubmit={(event) => {
+				if (searchQuery.trim()) {
+					return;
+				}
+
+				event.preventDefault();
+			}}
+		>
 			<SearchField aria-label="Search the site">
 				<SearchField.Group>
 					<SearchField.SearchIcon />
