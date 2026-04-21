@@ -437,7 +437,7 @@ describe("/assistant-routed", () => {
 		);
 	});
 
-	it("returns the legacy rate limit response when every provider fails", async () => {
+	it("returns a graceful assistant payload when every provider rate limits", async () => {
 		const aiRun = vi.fn().mockRejectedValue(new Error("upstream unavailable"));
 
 		vi.spyOn(globalThis, "fetch")
@@ -473,9 +473,16 @@ describe("/assistant-routed", () => {
 		);
 		const data = await response.json();
 
-		expect(response.status).toBe(429);
-		expect(data.error).toBe("Too many requests. Please try again later.");
-		expect(data.providers).toHaveLength(3);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe(
+			"rate-limit-fallback",
+		);
+		expect(response.headers.get("X-Assistant-Rate-Limited")).toBe("true");
+		expect(JSON.parse(data.choices[0].message.content)).toEqual({
+			status: "missing",
+			answer: "I don't have that information available.",
+			citations: [],
+		});
 	});
 
 	it("does not fall back past GitHub Models on non-rate-limit failures", async () => {

@@ -270,6 +270,25 @@ function toChatCompletionsPayload(content, model) {
 	};
 }
 
+function createGracefulRateLimitedAssistantPayload(model) {
+	return toChatCompletionsPayload(
+		JSON.stringify({
+			status: "missing",
+			answer: "I don't have that information available.",
+			citations: [],
+		}),
+		model || "rate-limit-fallback",
+	);
+}
+
+function createGracefulRateLimitedAssistantResponse(model, origin, provider) {
+	return jsonResponse(createGracefulRateLimitedAssistantPayload(model), 200, {
+		...(origin ? corsHeaders(origin) : {}),
+		"X-Assistant-Provider": provider,
+		"X-Assistant-Rate-Limited": "true",
+	});
+}
+
 async function callCloudflareAi(body, env) {
 	if (!env.AI || !env.CLOUDFLARE_AI_MODEL) {
 		return createAssistantFetchResponse(
@@ -478,11 +497,13 @@ async function callAssistantChatWithRouting(env, body) {
 	});
 
 	return jsonResponse(
+		createGracefulRateLimitedAssistantPayload(body.model),
+		200,
 		{
-			error: "Too many requests. Please try again later.",
-			providers: providerAttempts,
+			"X-Assistant-Provider": "rate-limit-fallback",
+			"X-Assistant-Rate-Limited": "true",
+			"X-Assistant-Providers": JSON.stringify(providerAttempts),
 		},
-		429,
 	);
 }
 
@@ -528,7 +549,7 @@ async function verifyTurnstile(token, ip, secretKey) {
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
 const ASSISTANT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const ASSISTANT_RATE_LIMIT_MAX = 40;
+const ASSISTANT_RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_MAX_ENTRIES = 10000;
 const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
 const rateLimitMap = new Map();
@@ -722,6 +743,14 @@ async function handleAssistantRequest(request, env, url, options = {}) {
 			max: ASSISTANT_RATE_LIMIT_MAX,
 		})
 	) {
+		if (body && typeof body === "object" && body.action === "chat") {
+			return createGracefulRateLimitedAssistantResponse(
+				typeof body.model === "string" ? body.model : null,
+				origin,
+				"worker-rate-limit",
+			);
+		}
+
 		return jsonResponse(
 			{ error: "Too many requests. Please try again later." },
 			429,
@@ -760,6 +789,14 @@ async function handleAssistantRequest(request, env, url, options = {}) {
 
 	for (const [key, value] of Object.entries(corsHeaders(origin))) {
 		headers.set(key, value);
+	}
+
+	if (data.action === "chat" && proxyResponse.status === 429) {
+		return createGracefulRateLimitedAssistantResponse(
+			data.model,
+			origin,
+			headers.get("X-Assistant-Provider") || "upstream-rate-limit",
+		);
 	}
 
 	return new Response(proxyResponse.body, {

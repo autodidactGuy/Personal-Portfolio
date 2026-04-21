@@ -1605,6 +1605,37 @@ export function generateLocalResumeAnswer(
 
 	if (
 		hasQuestionMatch(normalizedQuestion, [
+			/\blist\b.*\bprojects?\b/i,
+			/\bprojects?\b.*\bworked on\b/i,
+			/\bwhat projects?\b/i,
+			/\bshow\b.*\bprojects?\b/i,
+			/\bportfolio projects?\b/i,
+		]) &&
+		resume.projects?.length
+	) {
+		const projectSnippets = (resume.projects || [])
+			.map((project) => findSnippetById(snippets, `project:${project.slug}`))
+			.filter((snippet): snippet is ResumeSnippet => Boolean(snippet));
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName}'s listed projects include ${formatList(
+					resume.projects.map((project) => project.title),
+					resume.projects.length,
+				)}.`,
+				resume.projects[0]?.summary
+					? `${resume.projects[0].title}: ${takeFirstSentence(
+							resume.projects[0].summary,
+						)}`
+					: "",
+			]),
+			citations: projectSnippets.map((snippet) => snippet.id),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
 			/\bgithub\b/i,
 			/\blinkedin\b/i,
 			/\bresume\b/i,
@@ -1909,6 +1940,26 @@ export function getAssistantWorkerUrl() {
 	return publicEnv.NEXT_PUBLIC_ASSISTANT_WORKER_URL;
 }
 
+async function parseAssistantJsonPayload(response: Response) {
+	const contentType = response.headers.get("Content-Type") || "";
+
+	if (contentType.toLowerCase().includes("application/json")) {
+		return response.json();
+	}
+
+	const rawText = await response.text();
+
+	try {
+		return JSON.parse(rawText);
+	} catch {
+		throw new Error(
+			rawText.trim()
+				? `Assistant returned a non-JSON response: ${rawText.trim()}`
+				: "Assistant returned an empty non-JSON response.",
+		);
+	}
+}
+
 export async function fetchEmbeddings(
 	workerUrl: string,
 	model: string,
@@ -1932,7 +1983,7 @@ export async function fetchEmbeddings(
 		);
 	}
 
-	const payload = (await response.json()) as {
+	const payload = (await parseAssistantJsonPayload(response)) as {
 		data?: Array<{
 			embedding?: number[];
 		}>;
@@ -2038,10 +2089,20 @@ export async function fetchAssistantResponse(args: {
 	});
 
 	if (!response.ok) {
-		throw new Error(`Assistant request failed with status ${response.status}.`);
+		const errorPayload = await parseAssistantJsonPayload(response).catch(
+			() => null,
+		);
+		const errorMessage =
+			errorPayload &&
+			typeof errorPayload === "object" &&
+			"error" in errorPayload &&
+			typeof errorPayload.error === "string"
+				? errorPayload.error
+				: `Assistant request failed with status ${response.status}.`;
+		throw new Error(errorMessage);
 	}
 
-	const payload = (await response.json()) as {
+	const payload = (await parseAssistantJsonPayload(response)) as {
 		choices?: Array<{
 			message?: {
 				content?: string;
