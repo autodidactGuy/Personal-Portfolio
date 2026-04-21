@@ -15,7 +15,7 @@ export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
 export const EMBEDDINGS_CACHE_VERSION = "v2";
 export const EMBEDDINGS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_CONTEXT_CHUNKS = 5;
-export const MAX_BROAD_CONTEXT_CHUNKS = 8;
+export const MAX_BROAD_CONTEXT_CHUNKS = 24;
 export const MAX_RETRIEVAL_CONTEXT_MESSAGES = 4;
 
 export const MISSING_INFORMATION_MESSAGE =
@@ -1533,18 +1533,52 @@ export function buildAssistantContextSnippets(args: {
 	};
 
 	if (isBroadProfileQuestion(question)) {
-		addSnippet(findSnippetById(allSnippets, "summary"));
-		addSnippet(findSnippetById(allSnippets, "about"));
+		const broadCategoryOrder: ResumeSnippet["category"][] = [
+			"summary",
+			"about",
+			"hero",
+			"focus",
+			"skills",
+			"experience",
+			"education",
+			"recommendation",
+			"links",
+			"contact",
+			"stats",
+			"project",
+			"case-study",
+			"article",
+		];
 
-		for (const entry of result.entries) {
-			if (entry.snippet.category === "experience") {
-				addSnippet(entry.snippet);
-			}
+		for (const category of broadCategoryOrder) {
+			for (const snippet of allSnippets) {
+				if (snippet.category === category) {
+					addSnippet(snippet);
+				}
 
-			if (selectedSnippets.length >= contextLimit) {
-				break;
+				if (selectedSnippets.length >= contextLimit) {
+					return selectedSnippets.slice(0, contextLimit);
+				}
 			}
 		}
+
+		for (const entry of result.entries) {
+			addSnippet(entry.snippet);
+
+			if (selectedSnippets.length >= contextLimit) {
+				return selectedSnippets.slice(0, contextLimit);
+			}
+		}
+
+		for (const snippet of allSnippets) {
+			addSnippet(snippet);
+
+			if (selectedSnippets.length >= contextLimit) {
+				return selectedSnippets.slice(0, contextLimit);
+			}
+		}
+
+		return selectedSnippets.slice(0, contextLimit);
 	}
 
 	for (const entry of result.entries) {
@@ -1552,18 +1586,6 @@ export function buildAssistantContextSnippets(args: {
 
 		if (selectedSnippets.length >= contextLimit) {
 			break;
-		}
-	}
-
-	if (isBroadProfileQuestion(question)) {
-		for (const snippet of allSnippets) {
-			if (snippet.category === "experience") {
-				addSnippet(snippet);
-			}
-
-			if (selectedSnippets.length >= contextLimit) {
-				break;
-			}
 		}
 	}
 
@@ -1678,6 +1700,7 @@ export async function fetchAssistantResponse(args: {
 	snippets: ResumeSnippet[];
 }) {
 	const { model, question, recentMessages, snippets, workerUrl } = args;
+	const broadProfileQuestion = isBroadProfileQuestion(question);
 	const snippetList = snippets
 		.map((snippet) => `[${snippet.id}] ${snippet.title}\n${snippet.text}`)
 		.join("\n\n");
@@ -1698,7 +1721,7 @@ export async function fetchAssistantResponse(args: {
 				action: "chat",
 				model,
 				temperature: 0,
-				max_tokens: 220,
+				max_tokens: broadProfileQuestion ? 320 : 220,
 				response_format: {
 					type: "json_schema",
 					json_schema: {
@@ -1741,6 +1764,8 @@ export async function fetchAssistantResponse(args: {
 							"Every factual answer must be grounded in the snippet IDs you cite.",
 							"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer.",
 							"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering.",
+							"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",
+							"For broad profile questions, prioritize profile/background/experience details before testimonials.",
 							"Keep the answer concise and friendly.",
 							"",
 							`RECENT_CHAT_CONTEXT:\n${recentContext}`,
