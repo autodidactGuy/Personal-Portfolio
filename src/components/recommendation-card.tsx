@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { useId, useState } from "react";
 import { FaLinkedin } from "react-icons/fa6";
 import { HiMiniChatBubbleBottomCenterText } from "react-icons/hi2";
+import { TbWorld } from "react-icons/tb";
 
 import type { Recommendations } from "@/types/content";
 import { AccentContentChip } from "./content-chip";
@@ -81,6 +82,16 @@ export function RecommendationCard({
 								target="_blank"
 							>
 								<FaLinkedin size={16} />
+							</a>
+						)}
+						{recommendation.cta && (
+							<a
+								aria-label={`${recommendation.name}'s external link`}
+								href={recommendation.cta}
+								rel="noreferrer"
+								target="_blank"
+							>
+								<TbWorld size={16} />
 							</a>
 						)}
 					</div>

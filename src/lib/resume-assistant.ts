@@ -78,6 +78,7 @@ export type ResumeRecommendation = {
 	highlight?: string;
 	featured?: boolean;
 	linkedin?: string;
+	cta?: string;
 };
 
 export type ResumeStat = {
@@ -1030,6 +1031,7 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 				item.highlight || "",
 				item.quote,
 				item.linkedin ? `LinkedIn: ${item.linkedin}` : "",
+				item.cta ? `Link: ${item.cta}` : "",
 			]
 				.filter(Boolean)
 				.join(" "),

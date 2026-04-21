@@ -110,6 +110,7 @@ export const recommendationsSchema = z.object({
 				highlight: z.string().default(""),
 				featured: z.boolean().default(false),
 				linkedin: z.string().url().optional(),
+				cta: z.string().url().optional(),
 			}),
 		)
 		.min(1),
@@ -297,6 +298,7 @@ export type ResumeApiResponse = {
 			highlight?: string;
 			featured: boolean;
 			linkedin?: string;
+			cta?: string;
 		}>;
 	};
 	experience: Array<{
