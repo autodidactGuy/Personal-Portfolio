@@ -20,12 +20,18 @@
       "linkedin": "https://www.linkedin.com/in/peterch/"
     },
     {
+      "featured": true,
+      "name": "Ahsan Waseem",
+      "role": "Software Engineer, Walmart",
+      "quote": "Hassan and I worked in the same team and it was one of the best experiences I have had\n\nHe is one of the best people I have worked with always focused on getting things done the right way and making sure everything moves smoothly\n\nHe understands things quickly and goes beyond what is expected he also speaks up when something does not feel right which I really respect\n\nWorking with him was smooth and you could always rely on him to get things done right"
+    },
+    {
       "name": "Vishal Kumar",
       "role": "Senior Android Engineer, Walmart Labs",
       "relationship": "Academic Peer and Collaborator",
       "quote": "Hassan Raza is an exceptionally smart individual, he has experience with multiple technologies from Web to Backend to Mobile. Java, Node, React, Angular, AWS, Python and more just name the technology and this guy has it in his Tech Stack. A very good problem solver, quick to learn, embrace challenges and get the work done. I highly recommend Hassan for Software Engineer position in any company that needs the top talent.",
       "highlight": "Broad technical depth across systems",
-      "featured": true,
+      "featured": false,
       "linkedin": "https://www.linkedin.com/in/vishalkumarmotwani/"
     },
     {
@@ -34,7 +40,7 @@
       "relationship": "Academic Peer and Collaborator",
       "quote": "I highly recommend Hassan Raza for his outstanding skills and expertise in the field of software development. I had the pleasure of working with Hassan at the National Solutions Convention (NaSCon’18) in Pakistan, where we participated in a software development competition as a team of three and emerged as the winners. During the 24-hour long competition, Hassan displayed remarkable dedication, hard work, and a forward-thinking approach. His ability to work non-stop and deliver quality work within the given time frame was truly impressive. I was amazed by his level of productivity and his attention to detail. Hassan is an intelligent, ambitious, energetic, and proactive perfectionist. His quest for proficiency and excellence makes him an invaluable asset to any team. He is a careful, proactive, self-motivated, and a great team player. Working with him is always a pleasure, and his contributions are always significant. In conclusion, I highly recommend Hassan Raza for any software development projects. His skills, professionalism, and dedication to excellence are unmatched, and his contributions to any project will undoubtedly lead to success.",
       "highlight": "High-performance execution under tight deadlines",
-      "featured": false,
+      "featured": true,
       "linkedin": "https://www.linkedin.com/in/dj0/"
     },
     {
