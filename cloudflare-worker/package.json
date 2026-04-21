@@ -5,6 +5,7 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote",
     "start": "wrangler dev",
     "test": "vitest run"
   },
@@ -13,6 +14,7 @@
     "wrangler": "^4.9.1"
   },
   "dependencies": {
+    "hono": "^4.12.14",
     "zod": "^4.3.6"
   }
 }

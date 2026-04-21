@@ -1,4 +1,28 @@
+import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
 import { z } from "zod";
+import {
+	corsHeaders,
+	createRedirectResponse,
+	jsonResponse,
+	parseCookies,
+	parseJsonRequest,
+	serializeCookie,
+	withClearedOauthCookies,
+} from "./utils/http.js";
+import { getRequestOrigin, isAllowedOrigin } from "./utils/origin.js";
+import {
+	callAssistantChatWithRouting,
+	callGitHubModels,
+	callRawAssistantProvider,
+	createGracefulRateLimitedAssistantResponse,
+	shouldGracefullyHandleAssistantRateLimit,
+} from "./utils/providers.js";
+import {
+	isRateLimited,
+	rateLimitMap,
+	resetRateLimitState,
+} from "./utils/rate-limit.js";
 
 async function sendEmail(body, env) {
 	const apiKey = env.RESEND_API_KEY;
@@ -48,620 +72,8 @@ async function sendEmail(body, env) {
 	return { sent: true, skipped: false };
 }
 
-function parseCookies(cookieHeader) {
-	return String(cookieHeader || "")
-		.split(";")
-		.map((part) => part.trim())
-		.filter(Boolean)
-		.reduce((cookies, part) => {
-			const separatorIndex = part.indexOf("=");
-
-			if (separatorIndex === -1) {
-				return cookies;
-			}
-
-			const key = part.slice(0, separatorIndex).trim();
-			const value = part.slice(separatorIndex + 1).trim();
-			cookies[key] = decodeURIComponent(value);
-			return cookies;
-		}, {});
-}
-
-function serializeCookie(name, value, maxAgeSeconds) {
-	const segments = [
-		`${name}=${encodeURIComponent(value)}`,
-		"Path=/",
-		"HttpOnly",
-		"SameSite=Lax",
-		maxAgeSeconds === 0 ? "Max-Age=0" : `Max-Age=${maxAgeSeconds}`,
-	];
-
-	return segments.join("; ");
-}
-
-function withClearedOauthCookies(headers = new Headers()) {
-	headers.append("Set-Cookie", serializeCookie("oauth_state", "", 0));
-	headers.append("Set-Cookie", serializeCookie("oauth_origin", "", 0));
-	return headers;
-}
-
-function createRedirectResponse(location, headers = new Headers()) {
-	headers.set("Location", location);
-	return new Response(null, {
-		status: 302,
-		headers,
-	});
-}
-
-function getAllowedOrigins(env) {
-	return String(env.ALLOWED_ORIGINS || env.ORIGIN || "")
-		.split(",")
-		.map((value) => value.trim())
-		.filter(Boolean);
-}
-
-function isAllowedOrigin(origin, env) {
-	return getAllowedOrigins(env).includes(origin);
-}
-
 function createStateToken() {
 	return crypto.randomUUID();
-}
-
-function sanitizeOriginCandidate(value) {
-	if (!value) {
-		return null;
-	}
-
-	const trimmedValue = String(value).trim();
-
-	if (!trimmedValue) {
-		return null;
-	}
-
-	const withoutUnexpectedQuery = trimmedValue.split("?")[0];
-
-	try {
-		return new URL(withoutUnexpectedQuery).origin;
-	} catch {
-		return null;
-	}
-}
-
-function corsHeaders(origin) {
-	return {
-		"Access-Control-Allow-Origin": origin,
-		"Access-Control-Allow-Methods": "POST, OPTIONS",
-		"Access-Control-Allow-Headers": "Content-Type",
-		"Access-Control-Expose-Headers": "X-Assistant-Provider",
-		"Access-Control-Max-Age": "86400",
-		Vary: "Origin",
-	};
-}
-
-function jsonResponse(body, status, extraHeaders = {}) {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: {
-			"Content-Type": "application/json; charset=utf-8",
-			...extraHeaders,
-		},
-	});
-}
-
-async function parseJsonRequest(request, cors) {
-	try {
-		return await request.json();
-	} catch {
-		throw jsonResponse({ error: "Invalid JSON body" }, 400, cors);
-	}
-}
-
-async function parseMaybeJsonResponse(response) {
-	const rawText = await response.text();
-	const contentType = response.headers.get("Content-Type") || "";
-
-	if (!contentType.toLowerCase().includes("application/json")) {
-		return rawText;
-	}
-
-	try {
-		return JSON.parse(rawText);
-	} catch {
-		return rawText;
-	}
-}
-
-async function callGitHubModels(pathname, env, body) {
-	if (!env.GITHUB_MODELS_TOKEN) {
-		return jsonResponse({ error: "Assistant service is not configured" }, 503);
-	}
-
-	try {
-		const response = await fetch(`https://models.github.ai${pathname}`, {
-			method: "POST",
-			headers: {
-				Accept: "application/vnd.github+json",
-				Authorization: `Bearer ${env.GITHUB_MODELS_TOKEN}`,
-				"Content-Type": "application/json",
-				"X-GitHub-Api-Version": "2026-03-10",
-			},
-			body: JSON.stringify(body),
-		});
-
-		const payload = await parseMaybeJsonResponse(response);
-
-		return jsonResponse(
-			typeof payload === "string" ? { error: payload } : payload,
-			response.status,
-		);
-	} catch (error) {
-		return jsonResponse(
-			{
-				error:
-					error instanceof Error
-						? error.message
-						: "GitHub Models request failed",
-			},
-			503,
-		);
-	}
-}
-
-async function parseJsonResponse(response) {
-	return parseMaybeJsonResponse(response);
-}
-
-function normalizeAssistantErrorPayload(payload, fallbackMessage) {
-	if (typeof payload === "string" && payload.trim()) {
-		return payload;
-	}
-
-	if (payload && typeof payload === "object") {
-		if (typeof payload.error === "string" && payload.error.trim()) {
-			return payload.error;
-		}
-
-		if (
-			payload.error &&
-			typeof payload.error === "object" &&
-			typeof payload.error.message === "string" &&
-			payload.error.message.trim()
-		) {
-			return payload.error.message;
-		}
-
-		if (typeof payload.message === "string" && payload.message.trim()) {
-			return payload.message;
-		}
-	}
-
-	return fallbackMessage;
-}
-
-function createAssistantFetchResponse(response, payload, provider) {
-	return {
-		ok: response.ok,
-		status: response.status,
-		payload,
-		provider,
-	};
-}
-
-function isRateLimitLikeFailure(status, payload) {
-	if (status === 429) {
-		return true;
-	}
-
-	const normalizedError = normalizeAssistantErrorPayload(payload, "")
-		.toLowerCase()
-		.trim();
-
-	return (
-		normalizedError.includes("rate limit") ||
-		normalizedError.includes("too many requests")
-	);
-}
-
-function normalizeAssistantMessagesForGroq(messages) {
-	if (!Array.isArray(messages) || messages.length === 0) {
-		return [];
-	}
-
-	const normalizedMessages = [];
-	let leadingInstructionBlock = "";
-
-	for (const message of messages) {
-		if (!message || typeof message.content !== "string") {
-			continue;
-		}
-
-		if (
-			normalizedMessages.length === 0 &&
-			(message.role === "system" || message.role === "developer")
-		) {
-			leadingInstructionBlock = leadingInstructionBlock
-				? `${leadingInstructionBlock}\n\n${message.content}`
-				: message.content;
-			continue;
-		}
-
-		normalizedMessages.push({
-			role: message.role === "developer" ? "system" : message.role,
-			content: message.content,
-		});
-	}
-
-	if (leadingInstructionBlock) {
-		normalizedMessages.unshift({
-			role: "system",
-			content: leadingInstructionBlock,
-		});
-	}
-
-	return normalizedMessages;
-}
-
-function isGroqFallbackWorthyFailure(status, payload) {
-	if (status === 503 || isRateLimitLikeFailure(status, payload)) {
-		return true;
-	}
-
-	if (status !== 400) {
-		return false;
-	}
-
-	const normalizedError = normalizeAssistantErrorPayload(payload, "")
-		.toLowerCase()
-		.trim();
-
-	return (
-		normalizedError.includes("failed to generate json") ||
-		normalizedError.includes("generated json does not match") ||
-		normalizedError.includes("json_schema") ||
-		normalizedError.includes("response_format") ||
-		normalizedError.includes("developer role") ||
-		normalizedError.includes("unsupported value") ||
-		normalizedError.includes("failed_generation")
-	);
-}
-
-function toChatCompletionsPayload(content, model) {
-	return {
-		id: crypto.randomUUID(),
-		object: "chat.completion",
-		created: Math.floor(Date.now() / 1000),
-		model,
-		choices: [
-			{
-				index: 0,
-				finish_reason: "stop",
-				message: {
-					role: "assistant",
-					content,
-				},
-			},
-		],
-	};
-}
-
-function createGracefulRateLimitedAssistantPayload(model) {
-	return toChatCompletionsPayload(
-		JSON.stringify({
-			status: "missing",
-			answer: "I don't have that information available.",
-			citations: [],
-		}),
-		model || "rate-limit-fallback",
-	);
-}
-
-function createGracefulRateLimitedAssistantResponse(model, origin, provider) {
-	return jsonResponse(createGracefulRateLimitedAssistantPayload(model), 200, {
-		...(origin ? corsHeaders(origin) : {}),
-		"X-Assistant-Provider": provider,
-		"X-Assistant-Rate-Limited": "true",
-	});
-}
-
-async function shouldGracefullyHandleAssistantRateLimit(response) {
-	const payload = await parseJsonResponse(response.clone()).catch(() => null);
-
-	return isRateLimitLikeFailure(response.status, payload);
-}
-
-async function callCloudflareAi(body, env) {
-	if (!env.AI || !env.CLOUDFLARE_AI_MODEL) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{ error: "Cloudflare AI is not configured" },
-			"cloudflare",
-		);
-	}
-
-	try {
-		const result = await env.AI.run(env.CLOUDFLARE_AI_MODEL, {
-			messages: body.messages,
-			temperature: body.temperature ?? 0,
-			max_tokens: body.max_tokens ?? 220,
-			response_format: body.response_format,
-		});
-
-		const rawContent =
-			typeof result?.response === "string"
-				? result.response
-				: typeof result?.result?.response === "string"
-					? result.result.response
-					: result?.response && typeof result.response === "object"
-						? JSON.stringify(result.response)
-						: null;
-
-		if (!rawContent) {
-			return createAssistantFetchResponse(
-				new Response(null, { status: 502 }),
-				{ error: "Cloudflare AI returned an empty response" },
-				"cloudflare",
-			);
-		}
-
-		return createAssistantFetchResponse(
-			new Response(null, { status: 200 }),
-			toChatCompletionsPayload(rawContent, env.CLOUDFLARE_AI_MODEL),
-			"cloudflare",
-		);
-	} catch (error) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{
-				error:
-					error instanceof Error
-						? error.message
-						: "Cloudflare AI request failed",
-			},
-			"cloudflare",
-		);
-	}
-}
-
-async function callGroq(body, env) {
-	if (!env.GROQ_API_KEY || !env.GROQ_MODEL) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{ error: "Groq is not configured" },
-			"groq",
-		);
-	}
-
-	try {
-		const response = await fetch(
-			"https://api.groq.com/openai/v1/chat/completions",
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${env.GROQ_API_KEY}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					model: env.GROQ_MODEL,
-					temperature: body.temperature ?? 0,
-					max_completion_tokens: body.max_tokens ?? 220,
-					response_format: body.response_format,
-					messages: normalizeAssistantMessagesForGroq(body.messages),
-				}),
-			},
-		);
-
-		return createAssistantFetchResponse(
-			response,
-			await parseJsonResponse(response),
-			"groq",
-		);
-	} catch (error) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{
-				error: error instanceof Error ? error.message : "Groq request failed",
-			},
-			"groq",
-		);
-	}
-}
-
-async function callHuggingFace(body, env) {
-	if (!env.HUGGING_FACE_API_TOKEN || !env.HUGGING_FACE_MODEL) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{ error: "Hugging Face is not configured" },
-			"huggingface",
-		);
-	}
-
-	try {
-		const response = await fetch(
-			"https://router.huggingface.co/v1/chat/completions",
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${env.HUGGING_FACE_API_TOKEN}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					model: env.HUGGING_FACE_MODEL,
-					temperature: body.temperature ?? 0,
-					max_tokens: body.max_tokens ?? 220,
-					response_format: body.response_format,
-					messages: body.messages,
-				}),
-			},
-		);
-
-		return createAssistantFetchResponse(
-			response,
-			await parseJsonResponse(response),
-			"huggingface",
-		);
-	} catch (error) {
-		return createAssistantFetchResponse(
-			new Response(null, { status: 503 }),
-			{
-				error:
-					error instanceof Error
-						? error.message
-						: "Hugging Face request failed",
-			},
-			"huggingface",
-		);
-	}
-}
-
-async function callAssistantChatWithRouting(env, body) {
-	const providerAttempts = [];
-
-	if (env.GITHUB_MODELS_TOKEN) {
-		const githubResponse = await callGitHubModels(
-			"/inference/chat/completions",
-			env,
-			{
-				model: body.model,
-				temperature: body.temperature ?? 0,
-				max_tokens: body.max_tokens ?? 220,
-				response_format: body.response_format,
-				messages: body.messages,
-			},
-		);
-		const payload = await parseJsonResponse(githubResponse);
-
-		if (githubResponse.ok) {
-			return jsonResponse(payload, githubResponse.status, {
-				"X-Assistant-Provider": "github-models",
-			});
-		}
-
-		const githubError = normalizeAssistantErrorPayload(
-			payload,
-			"GitHub Models request failed",
-		);
-
-		providerAttempts.push({
-			provider: "github-models",
-			status: githubResponse.status,
-			error: githubError,
-		});
-
-		if (!isRateLimitLikeFailure(githubResponse.status, payload)) {
-			return jsonResponse(
-				{
-					error: githubError,
-					providers: providerAttempts,
-				},
-				githubResponse.status,
-				{
-					"X-Assistant-Provider": "github-models",
-				},
-			);
-		}
-	}
-
-	const groqResponse = await callGroq(body, env);
-
-	if (groqResponse.ok) {
-		return jsonResponse(groqResponse.payload, groqResponse.status, {
-			"X-Assistant-Provider": "groq",
-		});
-	}
-
-	const groqError = normalizeAssistantErrorPayload(
-		groqResponse.payload,
-		"Groq request failed",
-	);
-
-	providerAttempts.push({
-		provider: "groq",
-		status: groqResponse.status,
-		error: groqError,
-	});
-
-	if (!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload)) {
-		return jsonResponse(
-			{
-				error: groqError,
-				providers: providerAttempts,
-			},
-			groqResponse.status,
-			{
-				"X-Assistant-Provider": "groq",
-			},
-		);
-	}
-
-	const cloudflareResponse = await callCloudflareAi(body, env);
-
-	if (cloudflareResponse.ok) {
-		return jsonResponse(cloudflareResponse.payload, cloudflareResponse.status, {
-			"X-Assistant-Provider": "cloudflare",
-		});
-	}
-
-	const cloudflareError = normalizeAssistantErrorPayload(
-		cloudflareResponse.payload,
-		"Cloudflare AI request failed",
-	);
-
-	providerAttempts.push({
-		provider: "cloudflare",
-		status: cloudflareResponse.status,
-		error: cloudflareError,
-	});
-
-	if (
-		cloudflareResponse.status !== 503 &&
-		!isRateLimitLikeFailure(
-			cloudflareResponse.status,
-			cloudflareResponse.payload,
-		)
-	) {
-		return jsonResponse(
-			{
-				error: cloudflareError,
-				providers: providerAttempts,
-			},
-			cloudflareResponse.status,
-			{
-				"X-Assistant-Provider": "cloudflare",
-			},
-		);
-	}
-
-	const huggingFaceResponse = await callHuggingFace(body, env);
-
-	if (huggingFaceResponse.ok) {
-		return jsonResponse(
-			huggingFaceResponse.payload,
-			huggingFaceResponse.status,
-			{
-				"X-Assistant-Provider": "huggingface",
-			},
-		);
-	}
-
-	providerAttempts.push({
-		provider: "huggingface",
-		status: huggingFaceResponse.status,
-		error: normalizeAssistantErrorPayload(
-			huggingFaceResponse.payload,
-			"Hugging Face request failed",
-		),
-	});
-
-	return jsonResponse(
-		createGracefulRateLimitedAssistantPayload(body.model),
-		200,
-		{
-			"X-Assistant-Provider": "rate-limit-fallback",
-			"X-Assistant-Rate-Limited": "true",
-			"X-Assistant-Providers": JSON.stringify(providerAttempts),
-		},
-	);
 }
 
 async function verifyTurnstile(token, ip, secretKey) {
@@ -703,69 +115,8 @@ async function verifyTurnstile(token, ip, secretKey) {
 	}
 }
 
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const RATE_LIMIT_MAX = 5;
 const ASSISTANT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const ASSISTANT_RATE_LIMIT_MAX = 100;
-const RATE_LIMIT_MAX_ENTRIES = 10000;
-const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
-const rateLimitMap = new Map();
-let lastPruneTime = 0;
-
-function pruneExpiredEntries(now) {
-	if (now - lastPruneTime < RATE_LIMIT_PRUNE_INTERVAL_MS) {
-		return;
-	}
-	lastPruneTime = now;
-
-	for (const [ip, entry] of rateLimitMap) {
-		const valid = entry.timestamps.filter(
-			(ts) => now - ts < RATE_LIMIT_WINDOW_MS,
-		);
-		if (valid.length === 0) {
-			rateLimitMap.delete(ip);
-		} else {
-			entry.timestamps = valid;
-		}
-	}
-
-	if (rateLimitMap.size > RATE_LIMIT_MAX_ENTRIES) {
-		const excess = rateLimitMap.size - RATE_LIMIT_MAX_ENTRIES;
-		const iter = rateLimitMap.keys();
-		for (let i = 0; i < excess; i++) {
-			rateLimitMap.delete(iter.next().value);
-		}
-	}
-}
-
-function isRateLimited(ip, options = {}) {
-	const { windowMs = RATE_LIMIT_WINDOW_MS, max = RATE_LIMIT_MAX } = options;
-	const now = Date.now();
-
-	pruneExpiredEntries(now);
-
-	const entry = rateLimitMap.get(ip);
-
-	if (!entry) {
-		rateLimitMap.set(ip, { timestamps: [now] });
-		return false;
-	}
-
-	entry.timestamps = entry.timestamps.filter((ts) => now - ts < windowMs);
-
-	if (entry.timestamps.length === 0) {
-		rateLimitMap.delete(ip);
-		rateLimitMap.set(ip, { timestamps: [now] });
-		return false;
-	}
-
-	if (entry.timestamps.length >= max) {
-		return true;
-	}
-
-	entry.timestamps.push(now);
-	return false;
-}
 
 const contactSchema = z.object({
 	name: z
@@ -801,7 +152,7 @@ const assistantEmbeddingsSchema = z.object({
 
 const assistantChatSchema = z.object({
 	action: z.literal("chat"),
-	model: z.string().trim().min(1),
+	model: z.string().trim().min(1).optional(),
 	temperature: z.number().min(0).max(2).optional(),
 	max_tokens: z.number().int().positive().max(2000).optional(),
 	response_format: z.object({}).passthrough().optional(),
@@ -819,6 +170,11 @@ const assistantRequestSchema = z.discriminatedUnion("action", [
 	assistantEmbeddingsSchema,
 	assistantChatSchema,
 ]);
+
+const rawProviderSchema = z.object({
+	provider: z.enum(["github-models", "groq", "huggingface", "cloudflare"]),
+	request: assistantChatSchema,
+});
 
 function validateContactPayload(data) {
 	const result = contactSchema.safeParse(data);
@@ -850,20 +206,43 @@ function validateAssistantPayload(data) {
 	return { valid: false, data: null, errors };
 }
 
-async function handleAssistantRequest(request, env, url, options = {}) {
-	const { routeChatWithFallbacks = false } = options;
-	const origin = getRequestOrigin(request, url);
+function validateRawProviderPayload(data) {
+	const result = rawProviderSchema.safeParse(data);
 
-	if (!origin || !isAllowedOrigin(origin, env)) {
+	if (result.success) {
+		return { valid: true, data: result.data, errors: [] };
+	}
+
+	return {
+		valid: false,
+		data: null,
+		errors: result.error.issues.map((issue) => issue.message),
+	};
+}
+
+const requireAllowedOrigin = createMiddleware(async (c, next) => {
+	const origin = getRequestOrigin(c.req.raw, new URL(c.req.raw.url));
+
+	if (!origin || !isAllowedOrigin(origin, c.env)) {
 		return jsonResponse({ error: "Invalid origin" }, 403);
 	}
 
-	if (request.method === "OPTIONS") {
+	c.set("requestOrigin", origin);
+
+	if (c.req.method === "OPTIONS") {
 		return new Response(null, {
 			status: 204,
 			headers: corsHeaders(origin),
 		});
 	}
+
+	return next();
+});
+
+async function handleAssistantRequest(request, env, url, options = {}) {
+	const { routeChatWithFallbacks = false } = options;
+	const origin = getRequestOrigin(request, url);
+	const defaultChatModel = env.GITHUB_MODELS_CHAT_MODEL;
 
 	if (request.method !== "POST") {
 		return jsonResponse(
@@ -933,9 +312,12 @@ async function handleAssistantRequest(request, env, url, options = {}) {
 					encoding_format: "float",
 				})
 			: routeChatWithFallbacks
-				? await callAssistantChatWithRouting(env, data)
+				? await callAssistantChatWithRouting(env, {
+						...data,
+						model: data.model || defaultChatModel,
+					})
 				: await callGitHubModels("/inference/chat/completions", env, {
-						model: data.model,
+						model: data.model || defaultChatModel,
 						temperature: data.temperature ?? 0,
 						max_tokens: data.max_tokens ?? 220,
 						response_format: data.response_format,
@@ -965,162 +347,312 @@ async function handleAssistantRequest(request, env, url, options = {}) {
 	});
 }
 
-function getRequestOrigin(request, url) {
-	const explicitOrigin = sanitizeOriginCandidate(
-		url.searchParams.get("origin"),
-	);
+async function handleRawProviderRequest(request, env, url) {
+	const origin = getRequestOrigin(request, url);
 
-	if (explicitOrigin) {
-		return explicitOrigin;
+	if (request.method !== "POST") {
+		return jsonResponse(
+			{ error: "Method not allowed" },
+			405,
+			corsHeaders(origin),
+		);
 	}
 
-	const originHeader = sanitizeOriginCandidate(request.headers.get("Origin"));
+	const contentType = request.headers.get("Content-Type") || "";
 
-	if (originHeader) {
-		return originHeader;
+	if (!contentType.includes("application/json")) {
+		return jsonResponse(
+			{ error: "Content-Type must be application/json" },
+			415,
+			corsHeaders(origin),
+		);
 	}
 
-	const refererHeader = request.headers.get("Referer");
-
-	if (!refererHeader) {
-		return null;
-	}
+	let body;
 
 	try {
-		return new URL(refererHeader).origin;
-	} catch {
-		return null;
+		body = await parseJsonRequest(request, corsHeaders(origin));
+	} catch (response) {
+		return response;
 	}
+
+	const { valid, data, errors } = validateRawProviderPayload(body);
+
+	if (!valid || !data) {
+		return jsonResponse(
+			{ error: "Validation failed", fields: errors },
+			422,
+			corsHeaders(origin),
+		);
+	}
+
+	const providerResponse = await callRawAssistantProvider(
+		data.provider,
+		data.request,
+		env,
+	);
+	const headers = new Headers(providerResponse.headers);
+
+	for (const [key, value] of Object.entries(corsHeaders(origin))) {
+		headers.set(key, value);
+	}
+
+	headers.set("X-Assistant-Provider", data.provider);
+
+	return new Response(providerResponse.body, {
+		status: providerResponse.status,
+		headers,
+	});
 }
 
-function resetRateLimitState() {
-	rateLimitMap.clear();
-	lastPruneTime = 0;
+async function handleContactRequest(request, env, url) {
+	const origin = getRequestOrigin(request, url);
+
+	if (request.method !== "POST") {
+		return jsonResponse(
+			{ error: "Method not allowed" },
+			405,
+			corsHeaders(origin),
+		);
+	}
+
+	const contentType = request.headers.get("Content-Type") || "";
+
+	if (!contentType.includes("application/json")) {
+		return jsonResponse(
+			{ error: "Content-Type must be application/json" },
+			415,
+			corsHeaders(origin),
+		);
+	}
+
+	let body;
+
+	try {
+		body = await request.json();
+	} catch {
+		return jsonResponse(
+			{ error: "Invalid JSON body" },
+			400,
+			corsHeaders(origin),
+		);
+	}
+
+	if (body && typeof body === "object" && body._hp) {
+		return jsonResponse(
+			{ success: true, message: "Message received" },
+			200,
+			corsHeaders(origin),
+		);
+	}
+
+	const clientIp = request.headers.get("CF-Connecting-IP") || null;
+
+	if (clientIp && isRateLimited(clientIp)) {
+		return jsonResponse(
+			{ error: "Too many requests. Please try again later." },
+			429,
+			corsHeaders(origin),
+		);
+	}
+
+	const turnstileToken =
+		body && typeof body === "object" ? body.turnstileToken : undefined;
+
+	if (env.TURNSTILE_SECRET_KEY) {
+		if (!turnstileToken) {
+			return jsonResponse(
+				{ error: "Bot verification is required" },
+				403,
+				corsHeaders(origin),
+			);
+		}
+
+		const turnstileValid = await verifyTurnstile(
+			turnstileToken,
+			clientIp,
+			env.TURNSTILE_SECRET_KEY,
+		);
+
+		if (!turnstileValid) {
+			return jsonResponse(
+				{ error: "Bot verification failed" },
+				403,
+				corsHeaders(origin),
+			);
+		}
+	}
+
+	const { valid, errors } = validateContactPayload(body);
+
+	if (!valid) {
+		return jsonResponse(
+			{ error: "Validation failed", fields: errors },
+			422,
+			corsHeaders(origin),
+		);
+	}
+
+	const email = await sendEmail(body, env);
+
+	if (email.skipped) {
+		console.error(
+			"Email delivery skipped: RESEND_API_KEY or CONTACT_EMAIL is not configured",
+		);
+		return jsonResponse(
+			{ error: "Service temporarily unavailable. Please try again later." },
+			503,
+			corsHeaders(origin),
+		);
+	}
+
+	if (!email.sent) {
+		return jsonResponse(
+			{ error: "Unable to deliver your message. Please try again later." },
+			502,
+			corsHeaders(origin),
+		);
+	}
+
+	return jsonResponse(
+		{ success: true, message: "Message received" },
+		200,
+		corsHeaders(origin),
+	);
 }
 
 export { rateLimitMap, resetRateLimitState };
 
-export default {
-	async fetch(request, env) {
-		const url = new URL(request.url);
-		const callbackUrl = `${url.origin}/callback`;
+const app = new Hono();
+app.use("/contact", requireAllowedOrigin);
+app.use("/assistant", requireAllowedOrigin);
+app.use("/assistant-routed", requireAllowedOrigin);
+app.use("/assistant-provider-raw", requireAllowedOrigin);
 
-		if (url.pathname === "/auth") {
-			const requestedOrigin = getRequestOrigin(request, url);
+app.all("/auth", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	const callbackUrl = `${url.origin}/callback`;
+	const requestedOrigin = getRequestOrigin(request, url);
 
-			if (!requestedOrigin || !isAllowedOrigin(requestedOrigin, env)) {
-				return new Response("Invalid origin", {
-					status: 400,
-					headers: { "Content-Type": "text/plain; charset=utf-8" },
-				});
-			}
+	if (!requestedOrigin || !isAllowedOrigin(requestedOrigin, env)) {
+		return new Response("Invalid origin", {
+			status: 400,
+			headers: { "Content-Type": "text/plain; charset=utf-8" },
+		});
+	}
 
-			const state = createStateToken();
-			const githubUrl = new URL("https://github.com/login/oauth/authorize");
-			githubUrl.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
-			githubUrl.searchParams.set("scope", env.GITHUB_OAUTH_SCOPE || "repo");
-			githubUrl.searchParams.set("redirect_uri", callbackUrl);
-			githubUrl.searchParams.set("state", state);
+	const state = createStateToken();
+	const githubUrl = new URL("https://github.com/login/oauth/authorize");
+	githubUrl.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
+	githubUrl.searchParams.set("scope", env.GITHUB_OAUTH_SCOPE || "repo");
+	githubUrl.searchParams.set("redirect_uri", callbackUrl);
+	githubUrl.searchParams.set("state", state);
 
-			const headers = new Headers();
-			headers.append("Set-Cookie", serializeCookie("oauth_state", state, 600));
-			headers.append(
-				"Set-Cookie",
-				serializeCookie("oauth_origin", requestedOrigin, 600),
-			);
-			return createRedirectResponse(githubUrl.toString(), headers);
-		}
+	const headers = new Headers();
+	headers.append("Set-Cookie", serializeCookie("oauth_state", state, 600));
+	headers.append(
+		"Set-Cookie",
+		serializeCookie("oauth_origin", requestedOrigin, 600),
+	);
 
-		if (url.pathname === "/callback") {
-			const code = url.searchParams.get("code");
-			const returnedState = url.searchParams.get("state");
-			const cookies = parseCookies(request.headers.get("Cookie"));
-			const expectedState = cookies.oauth_state;
-			const openerOrigin = cookies.oauth_origin;
+	return createRedirectResponse(githubUrl.toString(), headers);
+});
 
-			if (!code) {
-				return new Response("Missing OAuth code", { status: 400 });
-			}
+app.all("/callback", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	const callbackUrl = `${url.origin}/callback`;
+	const code = url.searchParams.get("code");
+	const returnedState = url.searchParams.get("state");
+	const cookies = parseCookies(request.headers.get("Cookie"));
+	const expectedState = cookies.oauth_state;
+	const openerOrigin = cookies.oauth_origin;
 
-			if (!returnedState || !expectedState || returnedState !== expectedState) {
-				return new Response("Invalid OAuth state", {
-					status: 400,
-					headers: withClearedOauthCookies(
-						new Headers({ "Content-Type": "text/plain; charset=utf-8" }),
-					),
-				});
-			}
+	if (!code) {
+		return new Response("Missing OAuth code", { status: 400 });
+	}
 
-			if (!openerOrigin || !isAllowedOrigin(openerOrigin, env)) {
-				return new Response("Invalid opener origin", {
-					status: 400,
-					headers: withClearedOauthCookies(
-						new Headers({ "Content-Type": "text/plain; charset=utf-8" }),
-					),
-				});
-			}
+	if (!returnedState || !expectedState || returnedState !== expectedState) {
+		return new Response("Invalid OAuth state", {
+			status: 400,
+			headers: withClearedOauthCookies(
+				new Headers({ "Content-Type": "text/plain; charset=utf-8" }),
+			),
+		});
+	}
 
-			const tokenResponse = await fetch(
-				"https://github.com/login/oauth/access_token",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Accept: "application/json",
-						"User-Agent": "decap-cms-oauth-worker",
-					},
-					body: JSON.stringify({
-						client_id: env.GITHUB_CLIENT_ID,
-						client_secret: env.GITHUB_CLIENT_SECRET,
-						code,
-						redirect_uri: callbackUrl,
-					}),
-				},
-			);
+	if (!openerOrigin || !isAllowedOrigin(openerOrigin, env)) {
+		return new Response("Invalid opener origin", {
+			status: 400,
+			headers: withClearedOauthCookies(
+				new Headers({ "Content-Type": "text/plain; charset=utf-8" }),
+			),
+		});
+	}
 
-			const tokenData = await tokenResponse.json();
+	const tokenResponse = await fetch(
+		"https://github.com/login/oauth/access_token",
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+				"User-Agent": "decap-cms-oauth-worker",
+			},
+			body: JSON.stringify({
+				client_id: env.GITHUB_CLIENT_ID,
+				client_secret: env.GITHUB_CLIENT_SECRET,
+				code,
+				redirect_uri: callbackUrl,
+			}),
+		},
+	);
 
-			if (!tokenData.access_token) {
-				return new Response(`OAuth failed: ${JSON.stringify(tokenData)}`, {
-					status: 400,
-					headers: { "Content-Type": "text/plain; charset=utf-8" },
-				});
-			}
+	const tokenData = await tokenResponse.json();
 
-			const profileResponse = await fetch("https://api.github.com/user", {
-				headers: {
-					Accept: "application/vnd.github+json",
-					Authorization: `Bearer ${tokenData.access_token}`,
-					"User-Agent": "decap-cms-oauth-worker",
-				},
-			});
+	if (!tokenData.access_token) {
+		return new Response(`OAuth failed: ${JSON.stringify(tokenData)}`, {
+			status: 400,
+			headers: { "Content-Type": "text/plain; charset=utf-8" },
+		});
+	}
 
-			if (!profileResponse.ok) {
-				return new Response("Failed to fetch GitHub profile", { status: 403 });
-			}
+	const profileResponse = await fetch("https://api.github.com/user", {
+		headers: {
+			Accept: "application/vnd.github+json",
+			Authorization: `Bearer ${tokenData.access_token}`,
+			"User-Agent": "decap-cms-oauth-worker",
+		},
+	});
 
-			const profile = await profileResponse.json();
-			const username = String(profile.login || "").toLowerCase();
-			const allowedUsers = String(env.ALLOWED_GITHUB_USERS || "")
-				.split(",")
-				.map((value) => value.trim().toLowerCase())
-				.filter(Boolean);
+	if (!profileResponse.ok) {
+		return new Response("Failed to fetch GitHub profile", { status: 403 });
+	}
 
-			if (!allowedUsers.includes(username)) {
-				return new Response(`Access denied for GitHub user: ${profile.login}`, {
-					status: 403,
-					headers: { "Content-Type": "text/plain; charset=utf-8" },
-				});
-			}
+	const profile = await profileResponse.json();
+	const username = String(profile.login || "").toLowerCase();
+	const allowedUsers = String(env.ALLOWED_GITHUB_USERS || "")
+		.split(",")
+		.map((value) => value.trim().toLowerCase())
+		.filter(Boolean);
 
-			const tokenPayload = JSON.stringify({ token: tokenData.access_token });
+	if (!allowedUsers.includes(username)) {
+		return new Response(`Access denied for GitHub user: ${profile.login}`, {
+			status: 403,
+			headers: { "Content-Type": "text/plain; charset=utf-8" },
+		});
+	}
 
-			const headers = withClearedOauthCookies(
-				new Headers({ "Content-Type": "text/html; charset=utf-8" }),
-			);
+	const tokenPayload = JSON.stringify({ token: tokenData.access_token });
+	const headers = withClearedOauthCookies(
+		new Headers({ "Content-Type": "text/html; charset=utf-8" }),
+	);
 
-			return new Response(
-				`<!doctype html>
+	return new Response(
+		`<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -1143,149 +675,42 @@ export default {
     Login complete. You can close this window.
   </body>
 </html>`,
-				{
-					headers,
-				},
-			);
-		}
+		{
+			headers,
+		},
+	);
+});
 
-		if (url.pathname === "/contact") {
-			const origin = getRequestOrigin(request, url);
+app.all("/contact", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	return handleContactRequest(request, env, url);
+});
 
-			if (!origin || !isAllowedOrigin(origin, env)) {
-				return jsonResponse({ error: "Invalid origin" }, 403);
-			}
+app.all("/assistant", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	return handleAssistantRequest(request, env, url);
+});
 
-			if (request.method === "OPTIONS") {
-				return new Response(null, {
-					status: 204,
-					headers: corsHeaders(origin),
-				});
-			}
+app.all("/assistant-routed", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	return handleAssistantRequest(request, env, url, {
+		routeChatWithFallbacks: true,
+	});
+});
 
-			if (request.method !== "POST") {
-				return jsonResponse(
-					{ error: "Method not allowed" },
-					405,
-					corsHeaders(origin),
-				);
-			}
+app.all("/assistant-provider-raw", async (c) => {
+	const request = c.req.raw;
+	const env = c.env;
+	const url = new URL(request.url);
+	return handleRawProviderRequest(request, env, url);
+});
 
-			const contentType = request.headers.get("Content-Type") || "";
+app.notFound(() => new Response("Not found", { status: 404 }));
 
-			if (!contentType.includes("application/json")) {
-				return jsonResponse(
-					{ error: "Content-Type must be application/json" },
-					415,
-					corsHeaders(origin),
-				);
-			}
-
-			let body;
-
-			try {
-				body = await request.json();
-			} catch {
-				return jsonResponse(
-					{ error: "Invalid JSON body" },
-					400,
-					corsHeaders(origin),
-				);
-			}
-
-			if (body && typeof body === "object" && body._hp) {
-				return jsonResponse(
-					{ success: true, message: "Message received" },
-					200,
-					corsHeaders(origin),
-				);
-			}
-
-			const clientIp = request.headers.get("CF-Connecting-IP") || null;
-
-			if (clientIp && isRateLimited(clientIp)) {
-				return jsonResponse(
-					{ error: "Too many requests. Please try again later." },
-					429,
-					corsHeaders(origin),
-				);
-			}
-
-			const turnstileToken =
-				body && typeof body === "object" ? body.turnstileToken : undefined;
-
-			if (env.TURNSTILE_SECRET_KEY) {
-				if (!turnstileToken) {
-					return jsonResponse(
-						{ error: "Bot verification is required" },
-						403,
-						corsHeaders(origin),
-					);
-				}
-
-				const turnstileValid = await verifyTurnstile(
-					turnstileToken,
-					clientIp,
-					env.TURNSTILE_SECRET_KEY,
-				);
-
-				if (!turnstileValid) {
-					return jsonResponse(
-						{ error: "Bot verification failed" },
-						403,
-						corsHeaders(origin),
-					);
-				}
-			}
-
-			const { valid, errors } = validateContactPayload(body);
-
-			if (!valid) {
-				return jsonResponse(
-					{ error: "Validation failed", fields: errors },
-					422,
-					corsHeaders(origin),
-				);
-			}
-
-			const email = await sendEmail(body, env);
-
-			if (email.skipped) {
-				console.error(
-					"Email delivery skipped: RESEND_API_KEY or CONTACT_EMAIL is not configured",
-				);
-				return jsonResponse(
-					{ error: "Service temporarily unavailable. Please try again later." },
-					503,
-					corsHeaders(origin),
-				);
-			}
-
-			if (!email.sent) {
-				return jsonResponse(
-					{ error: "Unable to deliver your message. Please try again later." },
-					502,
-					corsHeaders(origin),
-				);
-			}
-
-			return jsonResponse(
-				{ success: true, message: "Message received" },
-				200,
-				corsHeaders(origin),
-			);
-		}
-
-		if (url.pathname === "/assistant") {
-			return handleAssistantRequest(request, env, url);
-		}
-
-		if (url.pathname === "/assistant-routed") {
-			return handleAssistantRequest(request, env, url, {
-				routeChatWithFallbacks: true,
-			});
-		}
-
-		return new Response("Not found", { status: 404 });
-	},
-};
+export default app;

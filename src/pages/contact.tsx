@@ -20,7 +20,7 @@ import { FaLinkedin } from "react-icons/fa6";
 import { MdMail } from "react-icons/md";
 import { z } from "zod";
 import { SocialLinkButton } from "@/components/social-link-button";
-import { publicEnv } from "@/config/public-env";
+import { getContactWorkerUrl, publicEnv } from "@/config/public-env";
 import { siteConfig } from "@/config/site";
 import { useZodForm } from "@/hooks/useZodForm";
 import DefaultLayout from "@/layouts/default";
@@ -114,7 +114,7 @@ export default function Contact({ settings }: ContactPageProps) {
 
 	const onSubmit: SubmitHandler<ContactFormValues> = async (data) => {
 		try {
-			const workerUrl = publicEnv.NEXT_PUBLIC_CONTACT_WORKER_URL;
+			const workerUrl = getContactWorkerUrl();
 
 			if (!workerUrl) {
 				throw new Error("Missing contact worker URL");

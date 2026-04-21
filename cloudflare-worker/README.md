@@ -57,20 +57,32 @@ Anyone else receives `403 Access denied`.
 
 ## Local development
 
-1. Copy `.dev.vars.example` to `.dev.vars`
-2. Fill in your GitHub OAuth credentials
-3. Add local origins:
+For fast offline/local-only testing you can still use `.dev.vars`, but for full assistant testing it is better to run the worker locally against remote Cloudflare bindings and secrets.
 
-```env
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-ORIGIN=http://localhost:3000
-REPO_BASE_PATH=
-```
+### Local worker with remote Cloudflare credentials
 
-4. Run:
+When Wrangler serves the worker on a local URL like `http://127.0.0.1:8787`, the worker automatically accepts localhost origins from the local site while still using the default remote Worker secrets and bindings.
+
+Run it with:
 
 ```bash
 cd cloudflare-worker
-npm install
-npx wrangler dev
+yarn install
+yarn dev:remote
+```
+
+This starts `wrangler dev --remote`, so requests from your local Next app can hit the worker while still using your configured remote Cloudflare secrets.
+
+### Pure local worker mode
+
+If you want a fully local worker instead:
+
+1. Copy `.dev.vars.example` to `.dev.vars`
+2. Fill in your secrets
+3. Run:
+
+```bash
+cd cloudflare-worker
+yarn install
+yarn dev
 ```

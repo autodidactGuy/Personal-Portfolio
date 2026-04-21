@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { publicEnv } from "@/config/public-env";
+import {
+	getAssistantWorkerUrl as getResolvedAssistantWorkerUrl,
+	publicEnv,
+} from "@/config/public-env";
 import { siteConfig, withBasePath } from "@/config/site";
 
 export const GITHUB_MODELS_API_VERSION = "2026-03-10";
@@ -7,8 +10,6 @@ export const GITHUB_MODELS_CHAT_URL =
 	"https://models.github.ai/inference/chat/completions";
 export const GITHUB_MODELS_EMBEDDINGS_URL =
 	"https://models.github.ai/inference/embeddings";
-export const DEFAULT_CHAT_MODEL =
-	publicEnv.NEXT_PUBLIC_GITHUB_MODELS_CHAT_MODEL;
 export const DEFAULT_EMBEDDING_MODEL =
 	publicEnv.NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL;
 export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
@@ -16,6 +17,7 @@ export const EMBEDDINGS_CACHE_VERSION = "v2";
 export const EMBEDDINGS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_CONTEXT_CHUNKS = 5;
 export const MAX_BROAD_CONTEXT_CHUNKS = 24;
+export const MAX_TARGETED_CONTEXT_CHUNKS = 8;
 export const MAX_RETRIEVAL_CONTEXT_MESSAGES = 4;
 
 export const MISSING_INFORMATION_MESSAGE =
@@ -188,6 +190,37 @@ export type AssistantResponse = {
 	answer: string;
 	citations: string[];
 	provider?: string | null;
+	providerContext?: Array<{
+		provider: string;
+		status: number;
+		error: string | null;
+	}> | null;
+};
+
+export type AssistantDebugProvider =
+	| "github-models"
+	| "groq"
+	| "huggingface"
+	| "cloudflare";
+
+export type AssistantChatRequestMessage = {
+	role: "system" | "developer" | "user" | "assistant";
+	content: string;
+};
+
+export type AssistantChatRequestBody = {
+	action: "chat";
+	model?: string;
+	temperature: number;
+	max_tokens: number;
+	response_format?: {
+		type: "json_schema";
+		json_schema: {
+			name: string;
+			schema: Record<string, unknown>;
+		};
+	};
+	messages: AssistantChatRequestMessage[];
 };
 
 export type AssistantInlineLinkMatch = {
@@ -1443,6 +1476,44 @@ export function generateLocalResumeAnswer(
 	}
 
 	if (
+		isBroadProfileQuestion(question) ||
+		hasQuestionMatch(normalizedQuestion, [
+			/\bwho is\b/i,
+			/\bwho's\b/i,
+			/\btell me about\b/i,
+			/\bwhat does\b.*\bdo\b/i,
+			/\bintroduce\b/i,
+		])
+	) {
+		const currentExperience = resume.experience?.find(
+			(item) => item.to.toLowerCase() === "present",
+		);
+		const citedIds = unique([
+			"summary",
+			"about",
+			...(currentExperience
+				? [
+						findExperienceSnippetByCompany(snippets, currentExperience.company)
+							?.id || "",
+					]
+				: []),
+		]).filter(Boolean);
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName} is ${resume.title}.`,
+				resume.headline,
+				resume.summary,
+				currentExperience
+					? `${personName} is currently a ${currentExperience.title} at ${currentExperience.company}.`
+					: "",
+			]),
+			citations: citedIds,
+		};
+	}
+
+	if (
 		hasQuestionMatch(normalizedQuestion, [
 			/\bwhere\b.*\bstud(y|ied)\b/i,
 			/\beducation\b/i,
@@ -1850,17 +1921,42 @@ function collectSnippetContext(args: {
 	return selectedSnippets.slice(0, limit);
 }
 
+function getFoundationalAssistantSnippets(allSnippets: ResumeSnippet[]) {
+	const foundationalCategories: ResumeSnippet["category"][] = [
+		"summary",
+		"about",
+		"skills",
+		"links",
+		"contact",
+	];
+
+	return allSnippets.filter((snippet) =>
+		foundationalCategories.includes(snippet.category),
+	);
+}
+
 export function buildInitialAssistantContextSnippets(
 	question: string,
 	allSnippets: ResumeSnippet[],
 ) {
 	const contextLimit = isBroadProfileQuestion(question)
 		? MAX_BROAD_CONTEXT_CHUNKS
-		: 12;
+		: 14;
+	const prioritizedSnippets = isBroadProfileQuestion(question)
+		? getFoundationalAssistantSnippets(allSnippets)
+		: [
+				...rankSnippetsByKeywords(
+					question,
+					allSnippets,
+					Math.min(MAX_TARGETED_CONTEXT_CHUNKS, contextLimit),
+				),
+				...getFoundationalAssistantSnippets(allSnippets),
+			];
 
 	return collectSnippetContext({
 		allSnippets,
 		limit: contextLimit,
+		prioritizedSnippets,
 	});
 }
 
@@ -1872,12 +1968,21 @@ export function buildAssistantContextSnippets(args: {
 	const { question, result, allSnippets } = args;
 	const contextLimit = isBroadProfileQuestion(question)
 		? MAX_BROAD_CONTEXT_CHUNKS
-		: MAX_CONTEXT_CHUNKS;
+		: MAX_TARGETED_CONTEXT_CHUNKS;
+	const prioritizedSnippets = isBroadProfileQuestion(question)
+		? [
+				...result.entries.map((entry) => entry.snippet),
+				...getFoundationalAssistantSnippets(allSnippets),
+			]
+		: [
+				...result.entries.map((entry) => entry.snippet),
+				...getFoundationalAssistantSnippets(allSnippets),
+			];
 
 	return collectSnippetContext({
 		allSnippets,
 		limit: contextLimit,
-		prioritizedSnippets: result.entries.map((entry) => entry.snippet),
+		prioritizedSnippets,
 	});
 }
 
@@ -1937,7 +2042,7 @@ export function getEmbeddingsCacheKey(hash: string, model: string) {
 }
 
 export function getAssistantWorkerUrl() {
-	return publicEnv.NEXT_PUBLIC_ASSISTANT_WORKER_URL;
+	return getResolvedAssistantWorkerUrl();
 }
 
 async function parseAssistantJsonPayload(response: Response) {
@@ -1958,6 +2063,126 @@ async function parseAssistantJsonPayload(response: Response) {
 				: "Assistant returned an empty non-JSON response.",
 		);
 	}
+}
+
+async function parseUnknownAssistantPayload(response: Response) {
+	const rawText = await response.text();
+
+	if (!rawText.trim()) {
+		return {
+			rawText,
+			payload: null as unknown,
+		};
+	}
+
+	try {
+		return {
+			rawText,
+			payload: JSON.parse(rawText) as unknown,
+		};
+	} catch {
+		return {
+			rawText,
+			payload: rawText,
+		};
+	}
+}
+
+export function buildAssistantChatRequestBody(args: {
+	model?: string;
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+	snippets: ResumeSnippet[];
+	temperature?: number;
+	maxTokens?: number;
+	structuredOutput?: boolean;
+}) {
+	const {
+		model,
+		question,
+		recentMessages,
+		snippets,
+		temperature = 0,
+		maxTokens,
+		structuredOutput = true,
+	} = args;
+	const broadProfileQuestion = isBroadProfileQuestion(question);
+	const snippetList = snippets
+		.map((snippet) => `[${snippet.id}] ${snippet.title}\n${snippet.text}`)
+		.join("\n\n");
+	const recentContext = recentMessages.length
+		? recentMessages
+				.map((message) => `${message.role.toUpperCase()}: ${message.content}`)
+				.join("\n")
+		: "None";
+
+	return {
+		action: "chat",
+		...(model ? { model } : {}),
+		temperature,
+		max_tokens: maxTokens ?? (broadProfileQuestion ? 320 : 220),
+		response_format: structuredOutput
+			? {
+					type: "json_schema" as const,
+					json_schema: {
+						name: "resume_assistant_response",
+						schema: {
+							type: "object",
+							additionalProperties: false,
+							properties: {
+								status: {
+									type: "string",
+									enum: ["answered", "missing", "rejected"],
+								},
+								answer: {
+									type: "string",
+								},
+								citations: {
+									type: "array",
+									items: {
+										type: "string",
+									},
+									maxItems: MAX_CONTEXT_CHUNKS,
+								},
+							},
+							required: ["status", "answer", "citations"],
+						},
+					},
+				}
+			: undefined,
+		messages: [
+			{
+				role: "system" as const,
+				content: SYSTEM_PROMPT,
+			},
+			{
+				role: "developer" as const,
+				content: [
+					"Use only the SUPPORTING_RESUME_SNIPPETS below.",
+					`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
+					`If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
+					"Do not infer, invent, generalize, or use outside knowledge.",
+					"Every factual answer must be grounded in the snippet IDs you cite.",
+					"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
+					"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
+					"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",
+					"For broad profile questions, prioritize profile/background/experience details before testimonials.",
+					"Keep the answer concise and friendly.",
+					"",
+					`RECENT_CHAT_CONTEXT:\n${recentContext}`,
+					"",
+					`SUPPORTING_RESUME_SNIPPETS:\n${snippetList}`,
+				].join("\n"),
+			},
+			{
+				role: "user" as const,
+				content: question,
+			},
+		],
+	} satisfies AssistantChatRequestBody;
 }
 
 export async function fetchEmbeddings(
@@ -2000,7 +2225,6 @@ export async function fetchEmbeddings(
 
 export async function fetchAssistantResponse(args: {
 	workerUrl: string;
-	model: string;
 	question: string;
 	recentMessages: Array<{
 		role: "user" | "assistant";
@@ -2008,16 +2232,12 @@ export async function fetchAssistantResponse(args: {
 	}>;
 	snippets: ResumeSnippet[];
 }) {
-	const { model, question, recentMessages, snippets, workerUrl } = args;
-	const broadProfileQuestion = isBroadProfileQuestion(question);
-	const snippetList = snippets
-		.map((snippet) => `[${snippet.id}] ${snippet.title}\n${snippet.text}`)
-		.join("\n\n");
-	const recentContext = recentMessages.length
-		? recentMessages
-				.map((message) => `${message.role.toUpperCase()}: ${message.content}`)
-				.join("\n")
-		: "None";
+	const { question, recentMessages, snippets, workerUrl } = args;
+	const requestBody = buildAssistantChatRequestBody({
+		question,
+		recentMessages,
+		snippets,
+	});
 
 	const response = await fetch(
 		new URL("/assistant-routed", workerUrl).toString(),
@@ -2026,68 +2246,7 @@ export async function fetchAssistantResponse(args: {
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({
-				action: "chat",
-				model,
-				temperature: 0,
-				max_tokens: broadProfileQuestion ? 320 : 220,
-				response_format: {
-					type: "json_schema",
-					json_schema: {
-						name: "resume_assistant_response",
-						schema: {
-							type: "object",
-							additionalProperties: false,
-							properties: {
-								status: {
-									type: "string",
-									enum: ["answered", "missing", "rejected"],
-								},
-								answer: {
-									type: "string",
-								},
-								citations: {
-									type: "array",
-									items: {
-										type: "string",
-									},
-									maxItems: MAX_CONTEXT_CHUNKS,
-								},
-							},
-							required: ["status", "answer", "citations"],
-						},
-					},
-				},
-				messages: [
-					{
-						role: "system",
-						content: SYSTEM_PROMPT,
-					},
-					{
-						role: "developer",
-						content: [
-							"Use only the SUPPORTING_RESUME_SNIPPETS below.",
-							`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
-							`If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
-							"Do not infer, invent, generalize, or use outside knowledge.",
-							"Every factual answer must be grounded in the snippet IDs you cite.",
-							"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
-							"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
-							"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",
-							"For broad profile questions, prioritize profile/background/experience details before testimonials.",
-							"Keep the answer concise and friendly.",
-							"",
-							`RECENT_CHAT_CONTEXT:\n${recentContext}`,
-							"",
-							`SUPPORTING_RESUME_SNIPPETS:\n${snippetList}`,
-						].join("\n"),
-					},
-					{
-						role: "user",
-						content: question,
-					},
-				],
-			}),
+			body: JSON.stringify(requestBody),
 		},
 	);
 
@@ -2113,6 +2272,35 @@ export async function fetchAssistantResponse(args: {
 		}>;
 	};
 	const provider = response.headers.get("X-Assistant-Provider");
+	const providerContextHeader = response.headers.get("X-Assistant-Providers");
+	let providerContext: AssistantResponse["providerContext"] = null;
+
+	if (providerContextHeader) {
+		try {
+			const parsedProviderContext = JSON.parse(providerContextHeader) as Array<{
+				provider?: unknown;
+				status?: unknown;
+				error?: unknown;
+			}>;
+
+			providerContext = Array.isArray(parsedProviderContext)
+				? parsedProviderContext
+						.filter(
+							(entry) =>
+								entry &&
+								typeof entry.provider === "string" &&
+								typeof entry.status === "number",
+						)
+						.map((entry) => ({
+							provider: entry.provider as string,
+							status: entry.status as number,
+							error: typeof entry.error === "string" ? entry.error : null,
+						}))
+				: null;
+		} catch {
+			providerContext = null;
+		}
+	}
 
 	const rawContent = payload.choices?.[0]?.message?.content;
 
@@ -2128,10 +2316,11 @@ export async function fetchAssistantResponse(args: {
 
 	if (parsed.status === "answered" && filteredCitations.length === 0) {
 		return {
-			status: "missing",
-			answer: MISSING_INFORMATION_MESSAGE,
+			status: "answered",
+			answer: parsed.answer,
 			citations: [],
 			provider,
+			providerContext,
 		} satisfies AssistantResponse;
 	}
 
@@ -2141,6 +2330,7 @@ export async function fetchAssistantResponse(args: {
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
 			provider,
+			providerContext,
 		} satisfies AssistantResponse;
 	}
 
@@ -2150,6 +2340,7 @@ export async function fetchAssistantResponse(args: {
 			answer: UNRELATED_QUESTION_MESSAGE,
 			citations: [],
 			provider,
+			providerContext,
 		} satisfies AssistantResponse;
 	}
 
@@ -2158,5 +2349,63 @@ export async function fetchAssistantResponse(args: {
 		answer: parsed.answer,
 		citations: filteredCitations,
 		provider,
+		providerContext,
 	} satisfies AssistantResponse;
+}
+
+export async function fetchAssistantRawProviderResponse(args: {
+	workerUrl: string;
+	provider: AssistantDebugProvider;
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+	snippets: ResumeSnippet[];
+	model?: string;
+	temperature?: number;
+	maxTokens?: number;
+	structuredOutput?: boolean;
+}) {
+	const {
+		workerUrl,
+		provider,
+		question,
+		recentMessages,
+		snippets,
+		model,
+		temperature = 0,
+		maxTokens,
+		structuredOutput = true,
+	} = args;
+	const response = await fetch(
+		new URL("/assistant-provider-raw", workerUrl).toString(),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				provider,
+				request: buildAssistantChatRequestBody({
+					model: model?.trim() || undefined,
+					question,
+					recentMessages,
+					snippets,
+					temperature,
+					maxTokens,
+					structuredOutput,
+				}),
+			}),
+		},
+	);
+	const { rawText, payload } = await parseUnknownAssistantPayload(response);
+
+	return {
+		ok: response.ok,
+		status: response.status,
+		provider: response.headers.get("X-Assistant-Provider"),
+		rawText,
+		payload,
+	};
 }

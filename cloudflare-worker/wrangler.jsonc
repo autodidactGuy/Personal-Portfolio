@@ -18,9 +18,10 @@
     "REPO_BASE_PATH": "",
     "CONTACT_EMAIL": "hassanraza632@gmail.com",
     "FROM_EMAIL": "noreply@contact.hassanraza.us",
-    "GROQ_MODEL": "openai/gpt-oss-20b",
+    "GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
+    "GROQ_MODEL": "openai/gpt-oss-120b",
     "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-    "HUGGING_FACE_MODEL": "Qwen/Qwen2.5-7B-Instruct-1M"
+    "HUGGING_FACE_MODEL": "openai/gpt-oss-120b"
   },
   // Secrets (set via `wrangler secret put`):
   //   GITHUB_CLIENT_ID      – GitHub OAuth app client ID
@@ -32,6 +33,7 @@
   //   TURNSTILE_SECRET_KEY (optional) – Cloudflare Turnstile secret key for bot verification
   //
   // Optional vars for routed assistant chat:
+  //   GITHUB_MODELS_CHAT_MODEL – GitHub Models chat model for primary assistant calls
   //   GROQ_MODEL             – Groq chat model identifier
   //   CLOUDFLARE_AI_MODEL    – Workers AI model for native env.AI.run() fallback
   //   HUGGING_FACE_MODEL     – Hugging Face router chat model identifier

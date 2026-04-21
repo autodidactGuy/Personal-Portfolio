@@ -30,11 +30,11 @@ export const publicEnv = {
 	NEXT_PUBLIC_ASSISTANT_WORKER_URL: resolvePublicEnvValue(
 		"NEXT_PUBLIC_ASSISTANT_WORKER_URL",
 	),
+	NEXT_PUBLIC_LOCAL_WORKER_URL: resolvePublicEnvValue(
+		"NEXT_PUBLIC_LOCAL_WORKER_URL" as PublicEnvKey,
+	),
 	NEXT_PUBLIC_TURNSTILE_SITE_KEY: resolvePublicEnvValue(
 		"NEXT_PUBLIC_TURNSTILE_SITE_KEY",
-	),
-	NEXT_PUBLIC_GITHUB_MODELS_CHAT_MODEL: resolvePublicEnvValue(
-		"NEXT_PUBLIC_GITHUB_MODELS_CHAT_MODEL",
 	),
 	NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL: resolvePublicEnvValue(
 		"NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL",
@@ -43,4 +43,32 @@ export const publicEnv = {
 
 export function getPublicEnv() {
 	return publicEnv;
+}
+
+function isLocalRuntimeHost(hostname: string) {
+	return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function shouldUseLocalWorkerUrl() {
+	if (typeof window === "undefined") {
+		return false;
+	}
+
+	return isLocalRuntimeHost(window.location.hostname);
+}
+
+export function getContactWorkerUrl() {
+	if (shouldUseLocalWorkerUrl() && publicEnv.NEXT_PUBLIC_LOCAL_WORKER_URL) {
+		return publicEnv.NEXT_PUBLIC_LOCAL_WORKER_URL;
+	}
+
+	return publicEnv.NEXT_PUBLIC_CONTACT_WORKER_URL;
+}
+
+export function getAssistantWorkerUrl() {
+	if (shouldUseLocalWorkerUrl() && publicEnv.NEXT_PUBLIC_LOCAL_WORKER_URL) {
+		return publicEnv.NEXT_PUBLIC_LOCAL_WORKER_URL;
+	}
+
+	return publicEnv.NEXT_PUBLIC_ASSISTANT_WORKER_URL;
 }

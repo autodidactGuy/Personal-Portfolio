@@ -12,15 +12,16 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
+	type AssistantDebugProvider,
 	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
 	buildInitialAssistantContextSnippets,
 	buildResumeSnippets,
 	buildRetrievalQuery,
 	checkQuestionGuardrails,
-	DEFAULT_CHAT_MODEL,
 	DEFAULT_EMBEDDING_MODEL,
 	EMBEDDINGS_CACHE_TTL_MS,
+	fetchAssistantRawProviderResponse,
 	fetchAssistantResponse,
 	fetchEmbeddings,
 	findAssistantInlineLinkMatches,
@@ -66,6 +67,17 @@ type AssistantDebugState = {
 	usedClosestMatchFallback: boolean;
 	fallbackReason: string | null;
 	lastProvider: string | null;
+	providerContext: Array<{
+		provider: string;
+		status: number;
+		error: string | null;
+	}> | null;
+};
+
+type AssistantRawDebugResult = {
+	status: number;
+	provider: string | null;
+	content: string;
 };
 
 function isEmbeddingsRateLimitError(error: unknown) {
@@ -273,7 +285,20 @@ export function ResumeAssistant() {
 		usedClosestMatchFallback: false,
 		fallbackReason: null,
 		lastProvider: null,
+		providerContext: null,
 	});
+	const [rawDebugProvider, setRawDebugProvider] =
+		useState<AssistantDebugProvider>("github-models");
+	const [rawDebugQuestion, setRawDebugQuestion] = useState("");
+	const [rawDebugModel, setRawDebugModel] = useState("");
+	const [rawDebugTemperature, setRawDebugTemperature] = useState("0");
+	const [rawDebugMaxTokens, setRawDebugMaxTokens] = useState("220");
+	const [rawDebugStructuredOutput, setRawDebugStructuredOutput] =
+		useState(true);
+	const [rawDebugLoading, setRawDebugLoading] = useState(false);
+	const [rawDebugResult, setRawDebugResult] =
+		useState<AssistantRawDebugResult | null>(null);
+	const [rawDebugError, setRawDebugError] = useState("");
 	const workerUrl = getAssistantWorkerUrl();
 
 	const personName = resume?.name || "the person in this resume";
@@ -291,6 +316,13 @@ export function ResumeAssistant() {
 					message.status !== "system" &&
 					message.content !== UNRELATED_QUESTION_MESSAGE,
 			),
+		[messages],
+	);
+	const latestUserQuestion = useMemo(
+		() =>
+			Array.from(messages)
+				.reverse()
+				.find((message) => message.role === "user")?.content || "",
 		[messages],
 	);
 
@@ -514,6 +546,64 @@ export function ResumeAssistant() {
 		}));
 	};
 
+	const runRawProviderDebug = async () => {
+		if (!IS_LOCAL_DEVELOPMENT || !workerUrl || !resume) {
+			return;
+		}
+
+		const debugQuestion = (
+			rawDebugQuestion.trim() ||
+			draft.trim() ||
+			latestUserQuestion.trim()
+		).trim();
+
+		if (!debugQuestion) {
+			setRawDebugError("Add a question, or reuse the current draft.");
+			setRawDebugResult(null);
+			return;
+		}
+
+		setRawDebugLoading(true);
+		setRawDebugError("");
+		setRawDebugResult(null);
+
+		try {
+			const recentMessages = getRecentConversationMessages(messages);
+			const initialSnippets = buildInitialAssistantContextSnippets(
+				debugQuestion,
+				snippets,
+			);
+			const response = await fetchAssistantRawProviderResponse({
+				workerUrl,
+				provider: rawDebugProvider,
+				question: debugQuestion,
+				recentMessages,
+				snippets: initialSnippets,
+				model: rawDebugModel.trim() || undefined,
+				temperature: Number(rawDebugTemperature) || 0,
+				maxTokens: Number(rawDebugMaxTokens) || 220,
+				structuredOutput: rawDebugStructuredOutput,
+			});
+
+			setRawDebugResult({
+				status: response.status,
+				provider: response.provider,
+				content:
+					typeof response.payload === "string"
+						? response.payload
+						: response.payload
+							? JSON.stringify(response.payload, null, 2)
+							: response.rawText || "",
+			});
+		} catch (error) {
+			setRawDebugError(
+				error instanceof Error ? error.message : "Raw provider request failed.",
+			);
+		} finally {
+			setRawDebugLoading(false);
+		}
+	};
+
 	const getRelevantSnippets = async (
 		question: string,
 		recentMessages: Array<{
@@ -651,6 +741,7 @@ export function ResumeAssistant() {
 			usedClosestMatchFallback: false,
 			fallbackReason: null,
 			lastProvider: null,
+			providerContext: null,
 		});
 
 		const recentMessages = getRecentConversationMessages([
@@ -667,13 +758,13 @@ export function ResumeAssistant() {
 			if (initialSnippets.length) {
 				const initialAssistantResponse = await fetchAssistantResponse({
 					workerUrl,
-					model: DEFAULT_CHAT_MODEL,
 					question: trimmedQuestion,
 					recentMessages,
 					snippets: initialSnippets,
 				});
 				updateDebugState({
 					lastProvider: initialAssistantResponse.provider || null,
+					providerContext: initialAssistantResponse.providerContext || null,
 				});
 
 				if (initialAssistantResponse.status !== "missing") {
@@ -693,6 +784,7 @@ export function ResumeAssistant() {
 			updateDebugState({
 				retrievalResult,
 				lastProvider: null,
+				providerContext: null,
 			});
 			const relevantSnippets = buildAssistantContextSnippets({
 				question: trimmedQuestion,
@@ -703,13 +795,13 @@ export function ResumeAssistant() {
 			if (relevantSnippets.length) {
 				const assistantResponse = await fetchAssistantResponse({
 					workerUrl,
-					model: DEFAULT_CHAT_MODEL,
 					question: trimmedQuestion,
 					recentMessages,
 					snippets: relevantSnippets,
 				});
 				updateDebugState({
 					lastProvider: assistantResponse.provider || null,
+					providerContext: assistantResponse.providerContext || null,
 				});
 
 				if (assistantResponse.status !== "missing") {
@@ -756,6 +848,7 @@ export function ResumeAssistant() {
 						usedClosestMatchFallback: true,
 						fallbackReason: "embeddings_fell_back_to_closest_match",
 						lastProvider: null,
+						providerContext: null,
 					});
 					addAssistantMessage(closestMatchFallback.answer, {
 						status: closestMatchFallback.status,
@@ -775,6 +868,7 @@ export function ResumeAssistant() {
 				usedClosestMatchFallback: false,
 				fallbackReason: "no_answer_after_llm_embeddings_and_local_match",
 				lastProvider: null,
+				providerContext: null,
 			});
 		} catch {
 			const localResponse = generateLocalResumeAnswer(
@@ -795,6 +889,7 @@ export function ResumeAssistant() {
 					usedClosestMatchFallback: false,
 					fallbackReason: "request_failed_fell_back_to_local_match",
 					lastProvider: null,
+					providerContext: null,
 				});
 				return;
 			}
@@ -806,6 +901,7 @@ export function ResumeAssistant() {
 				usedClosestMatchFallback: false,
 				fallbackReason: "request_failed_no_local_match",
 				lastProvider: null,
+				providerContext: null,
 			});
 		} finally {
 			setIsSending(false);
@@ -954,7 +1050,7 @@ export function ResumeAssistant() {
 									<summary className="cursor-pointer select-none font-medium text-primary">
 										Assistant Debug
 									</summary>
-									<div className="mt-2 space-y-2">
+									<div className="mt-2 space-y-3">
 										<p>
 											Mode:{" "}
 											<span className="font-mono">
@@ -985,6 +1081,22 @@ export function ResumeAssistant() {
 												{debugState.lastProvider || "n/a"}
 											</span>
 										</p>
+										{debugState.providerContext?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Provider Trail
+												</p>
+												{debugState.providerContext.map((entry) => (
+													<p
+														className="font-mono"
+														key={`${entry.provider}-${entry.status}-${entry.error || "ok"}`}
+													>
+														{entry.provider} | {entry.status} |{" "}
+														{entry.error || "ok"}
+													</p>
+												))}
+											</div>
+										) : null}
 										{debugState.retrievalResult?.entries?.length ? (
 											<div className="space-y-1">
 												<p className="font-medium text-foreground">
@@ -998,6 +1110,116 @@ export function ResumeAssistant() {
 												))}
 											</div>
 										) : null}
+										<div className="rounded-2xl border border-primary/10 bg-content1/70 p-3">
+											<p className="font-medium text-foreground">
+												Raw Provider Debug
+											</p>
+											<div className="mt-2 grid gap-2 sm:grid-cols-2">
+												<label className="flex flex-col gap-1">
+													<span>Provider</span>
+													<select
+														className="rounded-xl border border-default-200/80 bg-content1 px-3 py-2 text-xs text-foreground outline-none"
+														onChange={(event) =>
+															setRawDebugProvider(
+																event.target.value as AssistantDebugProvider,
+															)
+														}
+														value={rawDebugProvider}
+													>
+														<option value="github-models">GitHub Models</option>
+														<option value="groq">Groq</option>
+														<option value="huggingface">Hugging Face</option>
+														<option value="cloudflare">Cloudflare AI</option>
+													</select>
+												</label>
+												<label className="flex flex-col gap-1">
+													<span>Model override</span>
+													<input
+														className="rounded-xl border border-default-200/80 bg-content1 px-3 py-2 text-xs text-foreground outline-none"
+														onChange={(event) =>
+															setRawDebugModel(event.target.value)
+														}
+														placeholder="optional"
+														value={rawDebugModel}
+													/>
+												</label>
+												<label className="flex flex-col gap-1 sm:col-span-2">
+													<span>Question</span>
+													<textarea
+														className="min-h-20 rounded-xl border border-default-200/80 bg-content1 px-3 py-2 text-xs text-foreground outline-none"
+														onChange={(event) =>
+															setRawDebugQuestion(event.target.value)
+														}
+														placeholder={
+															latestUserQuestion
+																? "Leave empty to reuse the current draft or latest user question"
+																: "Ask a raw provider debug question"
+														}
+														rows={3}
+														value={rawDebugQuestion}
+													/>
+												</label>
+												<label className="flex flex-col gap-1">
+													<span>Temperature</span>
+													<input
+														className="rounded-xl border border-default-200/80 bg-content1 px-3 py-2 text-xs text-foreground outline-none"
+														inputMode="decimal"
+														onChange={(event) =>
+															setRawDebugTemperature(event.target.value)
+														}
+														value={rawDebugTemperature}
+													/>
+												</label>
+												<label className="flex flex-col gap-1">
+													<span>Max tokens</span>
+													<input
+														className="rounded-xl border border-default-200/80 bg-content1 px-3 py-2 text-xs text-foreground outline-none"
+														inputMode="numeric"
+														onChange={(event) =>
+															setRawDebugMaxTokens(event.target.value)
+														}
+														value={rawDebugMaxTokens}
+													/>
+												</label>
+											</div>
+											<label className="mt-2 flex items-center gap-2 text-xs text-foreground">
+												<input
+													checked={rawDebugStructuredOutput}
+													onChange={(event) =>
+														setRawDebugStructuredOutput(event.target.checked)
+													}
+													type="checkbox"
+												/>
+												<span>Use structured output</span>
+											</label>
+											<div className="mt-3 flex items-center gap-2">
+												<Button
+													className="rounded-full bg-primary px-3 text-white shadow-none hover:opacity-95"
+													isDisabled={rawDebugLoading || !workerUrl}
+													onClick={() => {
+														void runRawProviderDebug();
+													}}
+													size="sm"
+													type="button"
+												>
+													{rawDebugLoading ? "Running..." : "Run Raw Provider"}
+												</Button>
+												{rawDebugResult ? (
+													<span className="font-mono text-[11px]">
+														{rawDebugResult.provider || rawDebugProvider} |{" "}
+														{rawDebugResult.status}
+													</span>
+												) : null}
+											</div>
+											{rawDebugError ? (
+												<p className="mt-2 text-danger">{rawDebugError}</p>
+											) : null}
+											{rawDebugResult ? (
+												<pre className="mt-2 max-h-64 overflow-auto rounded-xl border border-default-200/80 bg-content1 p-3 font-mono text-[11px] leading-5 text-foreground whitespace-pre-wrap">
+													{rawDebugResult.content || "(empty response)"}
+												</pre>
+											) : null}
+										</div>
 									</div>
 								</details>
 							) : null}
