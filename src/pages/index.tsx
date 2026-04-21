@@ -77,7 +77,7 @@ export default function IndexPage({
 				],
 			}}
 		>
-			<section className="mx-auto flex max-w-6xl flex-col gap-10 py-10 sm:py-24">
+			<section className="disable-scroll-anchor mx-auto flex max-w-6xl flex-col gap-10 py-10 sm:py-24">
 				<HomeHeroSection hero={hero} />
 
 				<HomeStatsSection stats={stats} />

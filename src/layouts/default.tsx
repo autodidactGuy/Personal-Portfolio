@@ -21,7 +21,7 @@ export default function DefaultLayout({
 		<div className="relative flex min-h-screen flex-col">
 			<Head seo={seo} />
 			{!shouldShowComingSoon ? (
-				<div className="sticky top-0 z-50">
+				<div className="sticky top-0 z-50 disable-scroll-anchor">
 					<AdminBar />
 					<Navbar />
 				</div>

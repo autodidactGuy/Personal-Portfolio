@@ -141,6 +141,10 @@ body{
   overflow-x: hidden;
 }
 
+.disable-scroll-anchor {
+  overflow-anchor: none;
+}
+
 .page-shell-theme {
   background: radial-gradient(
     circle,
