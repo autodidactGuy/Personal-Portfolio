@@ -157,6 +157,21 @@ async function parseJsonRequest(request, cors) {
 	}
 }
 
+async function parseMaybeJsonResponse(response) {
+	const rawText = await response.text();
+	const contentType = response.headers.get("Content-Type") || "";
+
+	if (!contentType.toLowerCase().includes("application/json")) {
+		return rawText;
+	}
+
+	try {
+		return JSON.parse(rawText);
+	} catch {
+		return rawText;
+	}
+}
+
 async function callGitHubModels(pathname, env, body) {
 	if (!env.GITHUB_MODELS_TOKEN) {
 		return jsonResponse({ error: "Assistant service is not configured" }, 503);
@@ -174,10 +189,7 @@ async function callGitHubModels(pathname, env, body) {
 			body: JSON.stringify(body),
 		});
 
-		const contentType = response.headers.get("Content-Type") || "";
-		const payload = contentType.includes("application/json")
-			? await response.json()
-			: await response.text();
+		const payload = await parseMaybeJsonResponse(response);
 
 		return jsonResponse(
 			typeof payload === "string" ? { error: payload } : payload,
@@ -197,10 +209,7 @@ async function callGitHubModels(pathname, env, body) {
 }
 
 async function parseJsonResponse(response) {
-	const contentType = response.headers.get("Content-Type") || "";
-	return contentType.includes("application/json")
-		? await response.json()
-		: await response.text();
+	return parseMaybeJsonResponse(response);
 }
 
 function normalizeAssistantErrorPayload(payload, fallbackMessage) {

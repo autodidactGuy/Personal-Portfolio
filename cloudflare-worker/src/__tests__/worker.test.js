@@ -333,7 +333,7 @@ describe("/assistant", () => {
 		vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
 			new Response("Too many requests. Please try again later.", {
 				status: 429,
-				headers: { "Content-Type": "text/plain" },
+				headers: { "Content-Type": "application/json" },
 			}),
 		);
 
