@@ -527,6 +527,31 @@ export function ResumeAssistant() {
 			updateDebugState({
 				lastProvider: assistantResponse.provider || null,
 			});
+
+			if (assistantResponse.status === "missing") {
+				const closestMatchFallback = shouldUseClosestMatchFallback({
+					query: retrievalResult.query,
+					result: retrievalResult,
+				})
+					? buildClosestMatchFallbackAnswer({
+							result: retrievalResult,
+						})
+					: null;
+
+				if (closestMatchFallback) {
+					updateDebugState({
+						usedClosestMatchFallback: true,
+						fallbackReason:
+							"model_returned_missing_with_strong_retrieval_match",
+					});
+					addAssistantMessage(closestMatchFallback.answer, {
+						status: closestMatchFallback.status,
+						citations: resolveCitations(closestMatchFallback.citations),
+					});
+					return;
+				}
+			}
+
 			const responseCitationIds = new Set<string>(assistantResponse.citations);
 
 			addAssistantMessage(assistantResponse.answer, {

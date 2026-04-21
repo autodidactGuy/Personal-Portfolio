@@ -1710,77 +1710,74 @@ export async function fetchAssistantResponse(args: {
 				.join("\n")
 		: "None";
 
-	const response = await fetch(
-		new URL("/assistant-routed", workerUrl).toString(),
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				action: "chat",
-				model,
-				temperature: 0,
-				max_tokens: broadProfileQuestion ? 320 : 220,
-				response_format: {
-					type: "json_schema",
-					json_schema: {
-						name: "resume_assistant_response",
-						schema: {
-							type: "object",
-							additionalProperties: false,
-							properties: {
-								status: {
-									type: "string",
-									enum: ["answered", "missing", "rejected"],
-								},
-								answer: {
-									type: "string",
-								},
-								citations: {
-									type: "array",
-									items: {
-										type: "string",
-									},
-									maxItems: MAX_CONTEXT_CHUNKS,
-								},
+	const response = await fetch(new URL("/assistant", workerUrl).toString(), {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			action: "chat",
+			model,
+			temperature: 0,
+			max_tokens: broadProfileQuestion ? 320 : 220,
+			response_format: {
+				type: "json_schema",
+				json_schema: {
+					name: "resume_assistant_response",
+					schema: {
+						type: "object",
+						additionalProperties: false,
+						properties: {
+							status: {
+								type: "string",
+								enum: ["answered", "missing", "rejected"],
 							},
-							required: ["status", "answer", "citations"],
+							answer: {
+								type: "string",
+							},
+							citations: {
+								type: "array",
+								items: {
+									type: "string",
+								},
+								maxItems: MAX_CONTEXT_CHUNKS,
+							},
 						},
+						required: ["status", "answer", "citations"],
 					},
 				},
-				messages: [
-					{
-						role: "system",
-						content: SYSTEM_PROMPT,
-					},
-					{
-						role: "developer",
-						content: [
-							"Use only the SUPPORTING_RESUME_SNIPPETS below.",
-							`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
-							`If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
-							"Do not infer, invent, generalize, or use outside knowledge.",
-							"Every factual answer must be grounded in the snippet IDs you cite.",
-							"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
-							"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
-							"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",
-							"For broad profile questions, prioritize profile/background/experience details before testimonials.",
-							"Keep the answer concise and friendly.",
-							"",
-							`RECENT_CHAT_CONTEXT:\n${recentContext}`,
-							"",
-							`SUPPORTING_RESUME_SNIPPETS:\n${snippetList}`,
-						].join("\n"),
-					},
-					{
-						role: "user",
-						content: question,
-					},
-				],
-			}),
-		},
-	);
+			},
+			messages: [
+				{
+					role: "system",
+					content: SYSTEM_PROMPT,
+				},
+				{
+					role: "developer",
+					content: [
+						"Use only the SUPPORTING_RESUME_SNIPPETS below.",
+						`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
+						`If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
+						"Do not infer, invent, generalize, or use outside knowledge.",
+						"Every factual answer must be grounded in the snippet IDs you cite.",
+						"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
+						"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
+						"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",
+						"For broad profile questions, prioritize profile/background/experience details before testimonials.",
+						"Keep the answer concise and friendly.",
+						"",
+						`RECENT_CHAT_CONTEXT:\n${recentContext}`,
+						"",
+						`SUPPORTING_RESUME_SNIPPETS:\n${snippetList}`,
+					].join("\n"),
+				},
+				{
+					role: "user",
+					content: question,
+				},
+			],
+		}),
+	});
 
 	if (!response.ok) {
 		throw new Error(`Assistant request failed with status ${response.status}.`);
