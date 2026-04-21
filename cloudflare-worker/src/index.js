@@ -385,9 +385,13 @@ async function callAssistantChatWithRouting(env, body) {
 	const huggingFaceResponse = await callHuggingFace(body, env);
 
 	if (huggingFaceResponse.ok) {
-		return jsonResponse(huggingFaceResponse.payload, huggingFaceResponse.status, {
-			"X-Assistant-Provider": "huggingface",
-		});
+		return jsonResponse(
+			huggingFaceResponse.payload,
+			huggingFaceResponse.status,
+			{
+				"X-Assistant-Provider": "huggingface",
+			},
+		);
 	}
 
 	providerAttempts.push({
