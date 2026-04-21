@@ -1,0 +1,11 @@
+{
+  "HF_TOKEN": "",
+  "HF_PROXY_HOST": "127.0.0.1",
+  "HF_PROXY_PORT": 8788,
+  "EXPERIMENTAL_ASSISTANT_PROXY_URL": "http://127.0.0.1:8788",
+  "HF_EMBEDDING_MODEL": "mixedbread-ai/mxbai-embed-large-v1",
+  "HF_CHAT_MODEL": "Qwen/Qwen2.5-7B-Instruct",
+  "NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_PROXY_URL": "http://127.0.0.1:8788",
+  "NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_CHAT_MODEL": "Qwen/Qwen2.5-7B-Instruct",
+  "NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_EMBEDDING_MODEL": "mixedbread-ai/mxbai-embed-large-v1"
+}

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 import publicEnvDefaults from "./config/public-env.defaults.json" with { type: "json" };
+import experimentalAssistantDefaults from "./config/experimental-assistant.defaults.json" with { type: "json" };
 
 const repositoryName =
   process.env.GITHUB_REPOSITORY?.split("/")[1] ||
@@ -21,6 +22,18 @@ const assistantWorkerUrl =
   publicEnvDefaults.NEXT_PUBLIC_ASSISTANT_WORKER_URL ||
   contactWorkerUrl;
 
+const experimentalAssistantProxyUrl =
+  process.env.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_PROXY_URL ||
+  experimentalAssistantDefaults.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_PROXY_URL;
+
+const experimentalAssistantChatModel =
+  process.env.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_CHAT_MODEL ||
+  experimentalAssistantDefaults.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_CHAT_MODEL;
+
+const experimentalAssistantEmbeddingModel =
+  process.env.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_EMBEDDING_MODEL ||
+  experimentalAssistantDefaults.NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_EMBEDDING_MODEL;
+
 const nextConfig = {
   output: "export",
   trailingSlash: true,
@@ -40,6 +53,10 @@ const nextConfig = {
     NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL:
       process.env.NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL ||
       publicEnvDefaults.NEXT_PUBLIC_GITHUB_MODELS_EMBEDDING_MODEL,
+    NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_PROXY_URL: experimentalAssistantProxyUrl,
+    NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_CHAT_MODEL: experimentalAssistantChatModel,
+    NEXT_PUBLIC_EXPERIMENTAL_ASSISTANT_EMBEDDING_MODEL:
+      experimentalAssistantEmbeddingModel,
   },
   images: {
     unoptimized: true,
