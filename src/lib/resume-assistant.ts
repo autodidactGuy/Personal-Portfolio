@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicEnv } from "@/config/public-env";
-import { siteConfig } from "@/config/site";
+import { siteConfig, withBasePath } from "@/config/site";
 
 export const GITHUB_MODELS_API_VERSION = "2026-03-10";
 export const GITHUB_MODELS_CHAT_URL =
@@ -188,6 +188,14 @@ export type AssistantResponse = {
 	answer: string;
 	citations: string[];
 	provider?: string | null;
+};
+
+export type AssistantInlineLinkMatch = {
+	start: number;
+	end: number;
+	text: string;
+	href: string;
+	external: boolean;
 };
 
 export type RetrievalEntry = {
@@ -1080,6 +1088,219 @@ export function buildResumeSnippets(resume: ResumePayload): ResumeSnippet[] {
 	return snippets;
 }
 
+export function resolveResumeSnippetCitations(
+	citationIds: string[],
+	snippets: ResumeSnippet[],
+) {
+	if (!citationIds.length || !snippets.length) {
+		return [];
+	}
+
+	const citationIdSet = new Set(citationIds);
+
+	return snippets.filter((snippet) => citationIdSet.has(snippet.id));
+}
+
+function isSiteOrigin(url: URL) {
+	return url.origin === new URL(siteConfig.siteUrl).origin;
+}
+
+export function getSnippetHref(snippet: Pick<ResumeSnippet, "url">) {
+	if (!snippet.url) {
+		return null;
+	}
+
+	try {
+		const parsedUrl = new URL(snippet.url);
+
+		if (isSiteOrigin(parsedUrl)) {
+			return withBasePath(
+				`${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`,
+			);
+		}
+
+		return parsedUrl.toString();
+	} catch {
+		return snippet.url.startsWith("/")
+			? withBasePath(snippet.url)
+			: snippet.url;
+	}
+}
+
+export function isExternalAssistantLink(href: string) {
+	try {
+		return !isSiteOrigin(new URL(href, siteConfig.siteUrl));
+	} catch {
+		return /^https?:\/\//i.test(href);
+	}
+}
+
+function escapeRegExp(value: string) {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function trimTrailingPunctuation(value: string) {
+	return value.replace(/[),.;:!?]+$/g, "");
+}
+
+function normalizeLinkLabel(value: string) {
+	return value.trim().replace(/\s+/g, " ");
+}
+
+function createInlineLinkMatch(
+	content: string,
+	matchText: string,
+	href: string,
+): AssistantInlineLinkMatch | null {
+	const normalizedText = normalizeLinkLabel(matchText);
+
+	if (!normalizedText) {
+		return null;
+	}
+
+	const pattern = new RegExp(`\\b${escapeRegExp(normalizedText)}\\b`, "i");
+	const match = pattern.exec(content);
+
+	if (!match || match.index < 0) {
+		return null;
+	}
+
+	return {
+		start: match.index,
+		end: match.index + match[0].length,
+		text: match[0],
+		href,
+		external: isExternalAssistantLink(href),
+	};
+}
+
+function buildCitationTextCandidates(
+	citation: ResumeSnippet,
+	resume?: ResumePayload | null,
+) {
+	const matches = new Map<string, string>();
+
+	const addMatch = (text: string, href: string | null) => {
+		const normalizedText = trimTrailingPunctuation(text.trim());
+
+		if (!normalizedText || !href) {
+			return;
+		}
+
+		matches.set(normalizedText, href);
+	};
+
+	const href = getSnippetHref(citation);
+	addMatch(citation.title, href);
+
+	if (citation.category === "links" && resume?.links) {
+		for (const [label, value] of Object.entries(resume.links)) {
+			if (!value) {
+				continue;
+			}
+
+			const resolvedHref =
+				getSnippetHref({ url: value } satisfies Pick<ResumeSnippet, "url">) ||
+				value;
+			addMatch(label, resolvedHref);
+			addMatch(value, resolvedHref);
+			addMatch(value.replace(/^https?:\/\//i, ""), resolvedHref);
+
+			try {
+				const parsedUrl = new URL(value, siteConfig.siteUrl);
+				addMatch(parsedUrl.hostname.replace(/^www\./, ""), resolvedHref);
+			} catch {
+				// Ignore malformed configured links.
+			}
+		}
+	}
+
+	if (citation.category === "contact" && resume?.contact?.quickLink) {
+		const resolvedHref =
+			getSnippetHref({
+				url: resume.contact.quickLink.href,
+			} satisfies Pick<ResumeSnippet, "url">) || resume.contact.quickLink.href;
+		addMatch(resume.contact.quickLink.label || "", resolvedHref || null);
+		addMatch(resume.contact.quickLink.href || "", resolvedHref || null);
+	}
+
+	if (citation.url) {
+		addMatch(citation.url, href);
+		addMatch(citation.url.replace(/^https?:\/\//i, ""), href);
+
+		try {
+			const parsedUrl = new URL(citation.url, siteConfig.siteUrl);
+			addMatch(parsedUrl.hostname.replace(/^www\./, ""), href);
+		} catch {
+			// Ignore malformed citation URLs.
+		}
+	}
+
+	return Array.from(matches.entries())
+		.sort((a, b) => b[0].length - a[0].length)
+		.map(([text, resolvedHref]) => ({ text, href: resolvedHref }));
+}
+
+export function findAssistantInlineLinkMatches(args: {
+	content: string;
+	citations?: ResumeSnippet[];
+	resume?: ResumePayload | null;
+}) {
+	const { content, citations = [], resume } = args;
+	const matches: AssistantInlineLinkMatch[] = [];
+	const usedRanges: Array<{ start: number; end: number }> = [];
+
+	const canUseRange = (start: number, end: number) =>
+		usedRanges.every((range) => end <= range.start || start >= range.end);
+
+	const addMatch = (match: AssistantInlineLinkMatch | null) => {
+		if (!match || !canUseRange(match.start, match.end)) {
+			return;
+		}
+
+		matches.push(match);
+		usedRanges.push({ start: match.start, end: match.end });
+		usedRanges.sort((a, b) => a.start - b.start);
+	};
+
+	const urlPattern = /https?:\/\/[^\s)]+/gi;
+	let rawMatch: RegExpExecArray | null = urlPattern.exec(content);
+
+	while (rawMatch) {
+		const text = trimTrailingPunctuation(rawMatch[0] || "");
+
+		if (!text) {
+			rawMatch = urlPattern.exec(content);
+			continue;
+		}
+
+		const start = rawMatch.index ?? -1;
+
+		if (start < 0) {
+			rawMatch = urlPattern.exec(content);
+			continue;
+		}
+
+		addMatch({
+			start,
+			end: start + text.length,
+			text,
+			href: text,
+			external: isExternalAssistantLink(text),
+		});
+
+		rawMatch = urlPattern.exec(content);
+	}
+
+	for (const citation of citations) {
+		for (const candidate of buildCitationTextCandidates(citation, resume)) {
+			addMatch(createInlineLinkMatch(content, candidate.text, candidate.href));
+		}
+	}
+
+	return matches.sort((a, b) => a.start - b.start);
+}
+
 export function checkQuestionGuardrails(
 	question: string,
 	snippets: ResumeSnippet[],
@@ -1511,15 +1732,29 @@ export function rankSnippetsByEmbeddings(
 	).map((entry) => entry.snippet);
 }
 
-export function buildAssistantContextSnippets(args: {
-	question: string;
-	result: RetrievalResult;
+const BROAD_ASSISTANT_CATEGORY_ORDER: ResumeSnippet["category"][] = [
+	"summary",
+	"about",
+	"hero",
+	"focus",
+	"skills",
+	"experience",
+	"education",
+	"recommendation",
+	"links",
+	"contact",
+	"stats",
+	"project",
+	"case-study",
+	"article",
+];
+
+function collectSnippetContext(args: {
 	allSnippets: ResumeSnippet[];
+	limit: number;
+	prioritizedSnippets?: ResumeSnippet[];
 }) {
-	const { question, result, allSnippets } = args;
-	const contextLimit = isBroadProfileQuestion(question)
-		? MAX_BROAD_CONTEXT_CHUNKS
-		: MAX_CONTEXT_CHUNKS;
+	const { allSnippets, limit, prioritizedSnippets = [] } = args;
 	const selectedSnippets: ResumeSnippet[] = [];
 	const selectedIds = new Set<string>();
 
@@ -1532,64 +1767,66 @@ export function buildAssistantContextSnippets(args: {
 		selectedIds.add(snippet.id);
 	};
 
-	if (isBroadProfileQuestion(question)) {
-		const broadCategoryOrder: ResumeSnippet["category"][] = [
-			"summary",
-			"about",
-			"hero",
-			"focus",
-			"skills",
-			"experience",
-			"education",
-			"recommendation",
-			"links",
-			"contact",
-			"stats",
-			"project",
-			"case-study",
-			"article",
-		];
+	for (const snippet of prioritizedSnippets) {
+		addSnippet(snippet);
 
-		for (const category of broadCategoryOrder) {
-			for (const snippet of allSnippets) {
-				if (snippet.category === category) {
-					addSnippet(snippet);
-				}
-
-				if (selectedSnippets.length >= contextLimit) {
-					return selectedSnippets.slice(0, contextLimit);
-				}
-			}
+		if (selectedSnippets.length >= limit) {
+			return selectedSnippets.slice(0, limit);
 		}
+	}
 
-		for (const entry of result.entries) {
-			addSnippet(entry.snippet);
-
-			if (selectedSnippets.length >= contextLimit) {
-				return selectedSnippets.slice(0, contextLimit);
-			}
-		}
-
+	for (const category of BROAD_ASSISTANT_CATEGORY_ORDER) {
 		for (const snippet of allSnippets) {
-			addSnippet(snippet);
+			if (snippet.category === category) {
+				addSnippet(snippet);
+			}
 
-			if (selectedSnippets.length >= contextLimit) {
-				return selectedSnippets.slice(0, contextLimit);
+			if (selectedSnippets.length >= limit) {
+				return selectedSnippets.slice(0, limit);
 			}
 		}
-
-		return selectedSnippets.slice(0, contextLimit);
 	}
 
-	for (const entry of result.entries) {
-		addSnippet(entry.snippet);
+	for (const snippet of allSnippets) {
+		addSnippet(snippet);
 
-		if (selectedSnippets.length >= contextLimit) {
-			break;
+		if (selectedSnippets.length >= limit) {
+			return selectedSnippets.slice(0, limit);
 		}
 	}
 
-	return selectedSnippets.slice(0, contextLimit);
+	return selectedSnippets.slice(0, limit);
+}
+
+export function buildInitialAssistantContextSnippets(
+	question: string,
+	allSnippets: ResumeSnippet[],
+) {
+	const contextLimit = isBroadProfileQuestion(question)
+		? MAX_BROAD_CONTEXT_CHUNKS
+		: 12;
+
+	return collectSnippetContext({
+		allSnippets,
+		limit: contextLimit,
+	});
+}
+
+export function buildAssistantContextSnippets(args: {
+	question: string;
+	result: RetrievalResult;
+	allSnippets: ResumeSnippet[];
+}) {
+	const { question, result, allSnippets } = args;
+	const contextLimit = isBroadProfileQuestion(question)
+		? MAX_BROAD_CONTEXT_CHUNKS
+		: MAX_CONTEXT_CHUNKS;
+
+	return collectSnippetContext({
+		allSnippets,
+		limit: contextLimit,
+		prioritizedSnippets: result.entries.map((entry) => entry.snippet),
+	});
 }
 
 export function shouldUseClosestMatchFallback(args: {

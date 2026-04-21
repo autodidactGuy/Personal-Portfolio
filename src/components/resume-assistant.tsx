@@ -3,9 +3,10 @@
 import { Button, Chip, Drawer, ScrollShadow, Tooltip } from "@heroui/react";
 import clsx from "clsx";
 import NextLink from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	HiMiniSparkles,
+	HiOutlineArrowTopRightOnSquare,
 	HiOutlineSparkles,
 	HiPaperAirplane,
 } from "react-icons/hi2";
@@ -13,6 +14,7 @@ import { siteConfig, withBasePath } from "@/config/site";
 import {
 	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
+	buildInitialAssistantContextSnippets,
 	buildResumeSnippets,
 	buildRetrievalQuery,
 	checkQuestionGuardrails,
@@ -21,10 +23,12 @@ import {
 	EMBEDDINGS_CACHE_TTL_MS,
 	fetchAssistantResponse,
 	fetchEmbeddings,
+	findAssistantInlineLinkMatches,
 	type GuardrailResult,
 	generateLocalResumeAnswer,
 	getAssistantWorkerUrl,
 	getEmbeddingsCacheKey,
+	getSnippetHref,
 	hashResumePayload,
 	MISSING_INFORMATION_MESSAGE,
 	type ResumePayload,
@@ -32,6 +36,7 @@ import {
 	type RetrievalResult,
 	rankSnippetEntriesByEmbeddings,
 	rankSnippetEntriesByKeywords,
+	resolveResumeSnippetCitations,
 	shouldUseClosestMatchFallback,
 	UNRELATED_QUESTION_MESSAGE,
 } from "@/lib/resume-assistant";
@@ -60,6 +65,52 @@ type AssistantDebugState = {
 	fallbackReason: string | null;
 	lastProvider: string | null;
 };
+
+function renderMessageContent(
+	content: string,
+	citations: ResumeSnippet[] | undefined,
+	resume: ResumePayload | null,
+) {
+	const matches = findAssistantInlineLinkMatches({
+		content,
+		citations,
+		resume,
+	});
+
+	if (!matches.length) {
+		return <p className="break-words">{content}</p>;
+	}
+
+	const parts: ReactNode[] = [];
+	let cursor = 0;
+
+	for (const match of matches) {
+		if (cursor < match.start) {
+			parts.push(content.slice(cursor, match.start));
+		}
+
+		parts.push(
+			<NextLink
+				className="inline-flex items-center gap-1 break-all text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
+				href={match.href}
+				key={`${match.start}-${match.end}-${match.href}`}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<span>{match.text}</span>
+				<HiOutlineArrowTopRightOnSquare className="shrink-0" size={12} />
+			</NextLink>,
+		);
+
+		cursor = match.end;
+	}
+
+	if (cursor < content.length) {
+		parts.push(content.slice(cursor));
+	}
+
+	return <p className="break-words">{parts}</p>;
+}
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
@@ -349,26 +400,6 @@ export function ResumeAssistant() {
 		]);
 	};
 
-	const resolveCitations = (citationIds: string[]) =>
-		snippets.filter((snippet) => citationIds.includes(snippet.id));
-
-	const getCitationHref = (citation: ResumeSnippet) => {
-		if (!citation.url) {
-			return null;
-		}
-
-		try {
-			const parsedUrl = new URL(citation.url);
-			return withBasePath(
-				`${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`,
-			);
-		} catch {
-			return citation.url.startsWith("/")
-				? withBasePath(citation.url)
-				: citation.url;
-		}
-	};
-
 	const getRecentConversationMessages = (
 		nextMessages: ChatMessage[],
 		limit = 6,
@@ -433,6 +464,25 @@ export function ResumeAssistant() {
 		};
 	};
 
+	const canUseEmbeddingRetrieval =
+		embeddingStatus === "ready" && snippetEmbeddings.length === snippets.length;
+	const canSubmitDraft = Boolean(draft.trim()) && !isSending && Boolean(resume);
+
+	const addAssistantResponseMessage = (
+		response: Awaited<ReturnType<typeof fetchAssistantResponse>>,
+		availableSnippets: ResumeSnippet[],
+	) => {
+		const responseCitationIds = new Set<string>(response.citations);
+
+		addAssistantMessage(response.answer, {
+			status: response.status,
+			citations: resolveResumeSnippetCitations(
+				Array.from(responseCitationIds),
+				availableSnippets,
+			),
+		});
+	};
+
 	const submitQuestion = async (question: string) => {
 		const trimmedQuestion = question.trim();
 
@@ -461,24 +511,25 @@ export function ResumeAssistant() {
 		setMessages((currentMessages) => [...currentMessages, userMessage]);
 		setDraft("");
 
-		const localResponse = generateLocalResumeAnswer(
-			trimmedQuestion,
-			resume,
-			snippets,
-		);
-
-		if (localResponse) {
-			addAssistantMessage(localResponse.answer, {
-				status: localResponse.status,
-				citations: resolveCitations(localResponse.citations),
-			});
-			return;
-		}
-
 		if (!workerUrl) {
-			addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
-				status: "missing",
-			});
+			const localResponse = generateLocalResumeAnswer(
+				trimmedQuestion,
+				resume,
+				snippets,
+			);
+
+			if (localResponse) {
+				addAssistantMessage(localResponse.answer, {
+					status: localResponse.status,
+					citations: resolveResumeSnippetCitations(
+						localResponse.citations,
+						snippets,
+					),
+				});
+				return;
+			}
+
+			addAssistantMessage(MISSING_INFORMATION_MESSAGE, { status: "missing" });
 			return;
 		}
 
@@ -491,89 +542,103 @@ export function ResumeAssistant() {
 			lastProvider: null,
 		});
 
+		const recentMessages = getRecentConversationMessages([
+			...messages,
+			userMessage,
+		]);
+
 		try {
-			const recentMessages = getRecentConversationMessages([
-				...messages,
-				userMessage,
-			]);
-			const retrievalResult = await getRelevantSnippets(
+			const initialSnippets = buildInitialAssistantContextSnippets(
 				trimmedQuestion,
-				recentMessages,
+				snippets,
 			);
-			updateDebugState({
-				retrievalResult,
-				lastProvider: null,
-			});
-			const relevantSnippets = buildAssistantContextSnippets({
-				question: trimmedQuestion,
-				result: retrievalResult,
-				allSnippets: snippets,
-			});
 
-			if (!relevantSnippets.length) {
-				addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
-					status: "missing",
+			if (initialSnippets.length) {
+				const initialAssistantResponse = await fetchAssistantResponse({
+					workerUrl,
+					model: DEFAULT_CHAT_MODEL,
+					question: trimmedQuestion,
+					recentMessages,
+					snippets: initialSnippets,
 				});
-				return;
-			}
+				updateDebugState({
+					lastProvider: initialAssistantResponse.provider || null,
+				});
 
-			const assistantResponse = await fetchAssistantResponse({
-				workerUrl,
-				model: DEFAULT_CHAT_MODEL,
-				question: trimmedQuestion,
-				recentMessages,
-				snippets: relevantSnippets,
-			});
-			updateDebugState({
-				lastProvider: assistantResponse.provider || null,
-			});
-
-			if (assistantResponse.status === "missing") {
-				const closestMatchFallback = shouldUseClosestMatchFallback({
-					query: retrievalResult.query,
-					result: retrievalResult,
-				})
-					? buildClosestMatchFallbackAnswer({
-							result: retrievalResult,
-						})
-					: null;
-
-				if (closestMatchFallback) {
-					updateDebugState({
-						usedClosestMatchFallback: true,
-						fallbackReason:
-							"model_returned_missing_with_strong_retrieval_match",
-					});
-					addAssistantMessage(closestMatchFallback.answer, {
-						status: closestMatchFallback.status,
-						citations: resolveCitations(closestMatchFallback.citations),
-					});
+				if (initialAssistantResponse.status !== "missing") {
+					addAssistantResponseMessage(
+						initialAssistantResponse,
+						initialSnippets,
+					);
 					return;
 				}
 			}
 
-			const responseCitationIds = new Set<string>(assistantResponse.citations);
+			let retrievalResult: RetrievalResult | null = null;
 
-			addAssistantMessage(assistantResponse.answer, {
-				status: assistantResponse.status,
-				citations: relevantSnippets.filter((snippet) =>
-					responseCitationIds.has(snippet.id),
-				),
-			});
-		} catch {
-			const recentMessages = getRecentConversationMessages([
-				...messages,
-				userMessage,
-			]);
-
-			try {
-				const retrievalResult = await getRelevantSnippets(
+			if (canUseEmbeddingRetrieval) {
+				retrievalResult = await getRelevantSnippets(
 					trimmedQuestion,
 					recentMessages,
 				);
 				updateDebugState({
 					retrievalResult,
+					lastProvider: null,
 				});
+				const relevantSnippets = buildAssistantContextSnippets({
+					question: trimmedQuestion,
+					result: retrievalResult,
+					allSnippets: snippets,
+				});
+
+				if (relevantSnippets.length) {
+					const assistantResponse = await fetchAssistantResponse({
+						workerUrl,
+						model: DEFAULT_CHAT_MODEL,
+						question: trimmedQuestion,
+						recentMessages,
+						snippets: relevantSnippets,
+					});
+					updateDebugState({
+						lastProvider: assistantResponse.provider || null,
+					});
+
+					if (assistantResponse.status !== "missing") {
+						addAssistantResponseMessage(assistantResponse, relevantSnippets);
+						return;
+					}
+				}
+			} else {
+				updateDebugState({
+					retrievalResult: null,
+					fallbackReason: "embeddings_unavailable_skipped_retrieval",
+				});
+			}
+
+			const localResponse = generateLocalResumeAnswer(
+				trimmedQuestion,
+				resume,
+				snippets,
+			);
+
+			if (localResponse) {
+				addAssistantMessage(localResponse.answer, {
+					status: localResponse.status,
+					citations: resolveResumeSnippetCitations(
+						localResponse.citations,
+						snippets,
+					),
+				});
+				updateDebugState({
+					usedClosestMatchFallback: false,
+					fallbackReason: retrievalResult
+						? "llm_and_embeddings_fell_back_to_local_match"
+						: "llm_fell_back_to_local_match",
+				});
+				return;
+			}
+
+			if (retrievalResult) {
 				const closestMatchFallback = shouldUseClosestMatchFallback({
 					query: retrievalResult.query,
 					result: retrievalResult,
@@ -586,17 +651,18 @@ export function ResumeAssistant() {
 				if (closestMatchFallback) {
 					updateDebugState({
 						usedClosestMatchFallback: true,
-						fallbackReason: "model_request_failed_with_strong_retrieval_match",
+						fallbackReason: "embeddings_fell_back_to_closest_match",
 						lastProvider: null,
 					});
 					addAssistantMessage(closestMatchFallback.answer, {
 						status: closestMatchFallback.status,
-						citations: resolveCitations(closestMatchFallback.citations),
+						citations: resolveResumeSnippetCitations(
+							closestMatchFallback.citations,
+							snippets,
+						),
 					});
 					return;
 				}
-			} catch {
-				// fall through to the standard missing response
 			}
 
 			addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
@@ -604,7 +670,38 @@ export function ResumeAssistant() {
 			});
 			updateDebugState({
 				usedClosestMatchFallback: false,
-				fallbackReason: "no_safe_closest_match_fallback",
+				fallbackReason: "no_answer_after_llm_embeddings_and_local_match",
+				lastProvider: null,
+			});
+		} catch {
+			const localResponse = generateLocalResumeAnswer(
+				trimmedQuestion,
+				resume,
+				snippets,
+			);
+
+			if (localResponse) {
+				addAssistantMessage(localResponse.answer, {
+					status: localResponse.status,
+					citations: resolveResumeSnippetCitations(
+						localResponse.citations,
+						snippets,
+					),
+				});
+				updateDebugState({
+					usedClosestMatchFallback: false,
+					fallbackReason: "request_failed_fell_back_to_local_match",
+					lastProvider: null,
+				});
+				return;
+			}
+
+			addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
+				status: "missing",
+			});
+			updateDebugState({
+				usedClosestMatchFallback: false,
+				fallbackReason: "request_failed_no_local_match",
 				lastProvider: null,
 			});
 		} finally {
@@ -638,27 +735,42 @@ export function ResumeAssistant() {
 											: "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80",
 									)}
 								>
-									<p className="break-words">{message.content}</p>
+									{renderMessageContent(
+										message.content,
+										message.citations,
+										resume,
+									)}
 									{message.citations?.length ? (
 										<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
 											{message.citations.map((citation) => {
-												const href = getCitationHref(citation);
+												const href = getSnippetHref(citation);
 
 												return href ? (
-													<NextLink href={href} key={citation.id}>
+													<NextLink
+														href={href}
+														key={citation.id}
+														rel="noreferrer"
+														target="_blank"
+													>
 														<Tooltip delay={0}>
 															<Chip
-																className="max-w-full border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12 cursor-pointer"
+																className="max-w-full cursor-pointer border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
 																size="sm"
 																variant="secondary"
 															>
-																<Chip.Label className="max-w-full truncate">
-																	{citation.title}
+																<Chip.Label className="flex max-w-full items-center gap-1 truncate">
+																	<span className="truncate">
+																		{citation.title}
+																	</span>
+																	<HiOutlineArrowTopRightOnSquare
+																		className="shrink-0"
+																		size={12}
+																	/>
 																</Chip.Label>
 															</Chip>
 															<Tooltip.Content showArrow>
 																<Tooltip.Arrow />
-																<p>Click to view more about {citation.title}</p>
+																<p>Open {citation.title} in a new tab</p>
 															</Tooltip.Content>
 														</Tooltip>
 													</NextLink>
@@ -799,6 +911,17 @@ export function ResumeAssistant() {
 										aria-label={`Ask a question about ${personName}`}
 										className="min-h-28 w-full resize-y rounded-2xl border border-default-200/80 bg-content1/90 px-4 py-3 text-sm leading-6 text-foreground shadow-none outline-none transition-colors placeholder:text-default-400 dark:border-default-100/14 dark:bg-[#13233c] focus:border-primary/45"
 										onChange={(event) => setDraft(event.target.value)}
+										onKeyDown={(event) => {
+											if (event.key !== "Enter" || event.shiftKey) {
+												return;
+											}
+
+											event.preventDefault();
+
+											if (canSubmitDraft) {
+												void submitQuestion(draft);
+											}
+										}}
 										placeholder={`Ask about ${personName}'s background, education, experience, skills, work, projects, case studies, or system thinking...`}
 										rows={3}
 										value={draft}
@@ -829,7 +952,7 @@ export function ResumeAssistant() {
 											</Button>
 											<Button
 												className="flex-1 rounded-full bg-primary px-3.5 text-white shadow-sm shadow-primary/20 hover:opacity-95 sm:flex-none"
-												isDisabled={isSending || !resume}
+												isDisabled={!canSubmitDraft}
 												type="submit"
 											>
 												<span className="flex items-center justify-center gap-2">
