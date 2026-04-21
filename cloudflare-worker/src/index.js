@@ -257,7 +257,10 @@ function isRateLimitLikeFailure(status, payload) {
 		.toLowerCase()
 		.trim();
 
-	return normalizedError.includes("rate limit");
+	return (
+		normalizedError.includes("rate limit") ||
+		normalizedError.includes("too many requests")
+	);
 }
 
 function toChatCompletionsPayload(content, model) {
