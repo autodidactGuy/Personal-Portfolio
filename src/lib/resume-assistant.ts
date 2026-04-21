@@ -1436,36 +1436,10 @@ export function generateLocalResumeAnswer(
 		};
 	}
 
-	if (isSmallTalk(normalizedQuestion)) {
-		if (SMALL_TALK_FAREWELL_PATTERN.test(normalizedQuestion)) {
-			return {
-				status: "answered",
-				answer: `Goodbye! Feel free to come back if you have more questions about ${personName}.`,
-				citations: [],
-			};
-		}
+	const smallTalkResponse = generateLocalSmallTalkAnswer(question, resume);
 
-		if (SMALL_TALK_THANKS_PATTERN.test(normalizedQuestion)) {
-			return {
-				status: "answered",
-				answer: `You're welcome! Let me know if there's anything else you'd like to know about ${personName}.`,
-				citations: [],
-			};
-		}
-
-		if (SMALL_TALK_GREETING_PATTERN.test(normalizedQuestion)) {
-			return {
-				status: "answered",
-				answer: `Hello! Feel free to ask me anything about ${personPossessiveName} experience, projects, skills, or background.`,
-				citations: [],
-			};
-		}
-
-		return {
-			status: "answered",
-			answer: `Thanks! Is there anything you'd like to know about ${personName}?`,
-			citations: [],
-		};
+	if (smallTalkResponse) {
+		return smallTalkResponse;
 	}
 
 	if (
@@ -1671,6 +1645,53 @@ export function generateLocalResumeAnswer(
 				),
 			};
 		}
+	}
+
+	return null;
+}
+
+export function generateLocalSmallTalkAnswer(
+	question: string,
+	resume: ResumePayload,
+): AssistantResponse | null {
+	const normalizedQuestion = question.trim().toLowerCase();
+	const personName = resume.name || "This person";
+	const personPossessiveName = possessiveName(personName);
+
+	if (!normalizedQuestion || !isSmallTalk(normalizedQuestion)) {
+		return null;
+	}
+
+	if (isSmallTalk(normalizedQuestion)) {
+		if (SMALL_TALK_FAREWELL_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `Goodbye! Feel free to come back if you have more questions about ${personName}.`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_THANKS_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `You're welcome! Let me know if there's anything else you'd like to know about ${personName}.`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_GREETING_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `Hello! Feel free to ask me anything about ${personPossessiveName} experience, projects, skills, or background.`,
+				citations: [],
+			};
+		}
+
+		return {
+			status: "answered",
+			answer: `Thanks! Is there anything you'd like to know about ${personName}?`,
+			citations: [],
+		};
 	}
 
 	return null;

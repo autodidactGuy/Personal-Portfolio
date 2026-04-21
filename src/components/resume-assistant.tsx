@@ -26,6 +26,7 @@ import {
 	findAssistantInlineLinkMatches,
 	type GuardrailResult,
 	generateLocalResumeAnswer,
+	generateLocalSmallTalkAnswer,
 	getAssistantWorkerUrl,
 	getEmbeddingsCacheKey,
 	getSnippetHref,
@@ -510,6 +511,22 @@ export function ResumeAssistant() {
 		const userMessage = createMessage("user", trimmedQuestion);
 		setMessages((currentMessages) => [...currentMessages, userMessage]);
 		setDraft("");
+
+		const smallTalkResponse = generateLocalSmallTalkAnswer(
+			trimmedQuestion,
+			resume,
+		);
+
+		if (smallTalkResponse) {
+			addAssistantMessage(smallTalkResponse.answer, {
+				status: smallTalkResponse.status,
+				citations: resolveResumeSnippetCitations(
+					smallTalkResponse.citations,
+					snippets,
+				),
+			});
+			return;
+		}
 
 		if (!workerUrl) {
 			const localResponse = generateLocalResumeAnswer(
