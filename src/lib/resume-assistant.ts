@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicEnv } from "@/config/public-env";
+import { siteConfig } from "@/config/site";
 
 export const GITHUB_MODELS_API_VERSION = "2026-03-10";
 export const GITHUB_MODELS_CHAT_URL =
@@ -185,6 +186,7 @@ export type AssistantResponse = {
 	status: "answered" | "missing" | "rejected";
 	answer: string;
 	citations: string[];
+	provider?: string | null;
 };
 
 export type RetrievalEntry = {
@@ -521,6 +523,17 @@ function extractSnippetContentDate(snippet: ResumeSnippet) {
 	return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function isBroadProfileQuestion(question: string) {
+	return (
+		/\b(who is|tell me more|more about|background|overview|summary|introduce)\b/i.test(
+			question,
+		) ||
+		new RegExp(`\\babout\\b.*\\b(${siteConfig.name}|him|his)\\b`, "i").test(
+			question,
+		)
+	);
+}
+
 function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
 	if (isCareerTimelineQuestion(question) && snippet.category === "experience") {
 		return 6;
@@ -549,6 +562,24 @@ function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
 		snippet.category === "case-study"
 	) {
 		return 3;
+	}
+
+	if (isBroadProfileQuestion(question)) {
+		if (snippet.category === "about") {
+			return 12;
+		}
+
+		if (snippet.category === "summary") {
+			return 10;
+		}
+
+		if (snippet.category === "experience") {
+			return 8;
+		}
+
+		if (snippet.category === "recommendation") {
+			return -3;
+		}
 	}
 
 	return 0;
@@ -1677,6 +1708,7 @@ export async function fetchAssistantResponse(args: {
 			};
 		}>;
 	};
+	const provider = response.headers.get("X-Assistant-Provider");
 
 	const rawContent = payload.choices?.[0]?.message?.content;
 
@@ -1695,6 +1727,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			provider,
 		} satisfies AssistantResponse;
 	}
 
@@ -1703,6 +1736,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			provider,
 		} satisfies AssistantResponse;
 	}
 
@@ -1711,6 +1745,7 @@ export async function fetchAssistantResponse(args: {
 			status: "rejected",
 			answer: UNRELATED_QUESTION_MESSAGE,
 			citations: [],
+			provider,
 		} satisfies AssistantResponse;
 	}
 
@@ -1718,5 +1753,6 @@ export async function fetchAssistantResponse(args: {
 		status: "answered",
 		answer: parsed.answer,
 		citations: filteredCitations,
+		provider,
 	} satisfies AssistantResponse;
 }

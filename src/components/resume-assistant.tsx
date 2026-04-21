@@ -57,6 +57,7 @@ type AssistantDebugState = {
 	retrievalResult: RetrievalResult | null;
 	usedClosestMatchFallback: boolean;
 	fallbackReason: string | null;
+	lastProvider: string | null;
 };
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
@@ -147,6 +148,7 @@ export function ResumeAssistant() {
 		retrievalResult: null,
 		usedClosestMatchFallback: false,
 		fallbackReason: null,
+		lastProvider: null,
 	});
 	const workerUrl = getAssistantWorkerUrl();
 
@@ -485,6 +487,7 @@ export function ResumeAssistant() {
 			retrievalResult: null,
 			usedClosestMatchFallback: false,
 			fallbackReason: null,
+			lastProvider: null,
 		});
 
 		try {
@@ -498,6 +501,7 @@ export function ResumeAssistant() {
 			);
 			updateDebugState({
 				retrievalResult,
+				lastProvider: null,
 			});
 			const relevantSnippets = retrievalResult.entries.map(
 				(entry) => entry.snippet,
@@ -516,6 +520,9 @@ export function ResumeAssistant() {
 				question: trimmedQuestion,
 				recentMessages,
 				snippets: relevantSnippets,
+			});
+			updateDebugState({
+				lastProvider: assistantResponse.provider || null,
 			});
 			const responseCitationIds = new Set<string>(assistantResponse.citations);
 
@@ -552,6 +559,7 @@ export function ResumeAssistant() {
 					updateDebugState({
 						usedClosestMatchFallback: true,
 						fallbackReason: "model_request_failed_with_strong_retrieval_match",
+						lastProvider: null,
 					});
 					addAssistantMessage(closestMatchFallback.answer, {
 						status: closestMatchFallback.status,
@@ -569,6 +577,7 @@ export function ResumeAssistant() {
 			updateDebugState({
 				usedClosestMatchFallback: false,
 				fallbackReason: "no_safe_closest_match_fallback",
+				lastProvider: null,
 			});
 		} finally {
 			setIsSending(false);
@@ -725,6 +734,12 @@ export function ResumeAssistant() {
 											Fallback reason:{" "}
 											<span className="font-mono">
 												{debugState.fallbackReason || "n/a"}
+											</span>
+										</p>
+										<p>
+											Last provider:{" "}
+											<span className="font-mono">
+												{debugState.lastProvider || "n/a"}
 											</span>
 										</p>
 										{debugState.retrievalResult?.entries?.length ? (
