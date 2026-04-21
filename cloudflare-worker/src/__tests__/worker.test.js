@@ -328,6 +328,36 @@ describe("/assistant", () => {
 		expect(response.status).toBe(422);
 		expect((await response.json()).error).toBe("Validation failed");
 	});
+
+	it("returns a graceful assistant payload when direct chat upstream rate limits", async () => {
+		vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+			new Response("Too many requests. Please try again later.", {
+				status: 429,
+				headers: { "Content-Type": "text/plain" },
+			}),
+		);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [{ role: "user", content: "Tell me about Hassan" }],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+			},
+		);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Rate-Limited")).toBe("true");
+		expect(JSON.parse(data.choices[0].message.content)).toEqual({
+			status: "missing",
+			answer: "I don't have that information available.",
+			citations: [],
+		});
+	});
 });
 
 describe("/assistant-routed", () => {

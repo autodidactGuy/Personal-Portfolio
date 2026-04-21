@@ -289,6 +289,12 @@ function createGracefulRateLimitedAssistantResponse(model, origin, provider) {
 	});
 }
 
+async function shouldGracefullyHandleAssistantRateLimit(response) {
+	const payload = await parseJsonResponse(response.clone()).catch(() => null);
+
+	return isRateLimitLikeFailure(response.status, payload);
+}
+
 async function callCloudflareAi(body, env) {
 	if (!env.AI || !env.CLOUDFLARE_AI_MODEL) {
 		return createAssistantFetchResponse(
@@ -791,7 +797,10 @@ async function handleAssistantRequest(request, env, url, options = {}) {
 		headers.set(key, value);
 	}
 
-	if (data.action === "chat" && proxyResponse.status === 429) {
+	if (
+		data.action === "chat" &&
+		(await shouldGracefullyHandleAssistantRateLimit(proxyResponse))
+	) {
 		return createGracefulRateLimitedAssistantResponse(
 			data.model,
 			origin,
