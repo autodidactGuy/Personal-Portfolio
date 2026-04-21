@@ -343,13 +343,12 @@ describe("/assistant-routed", () => {
 				'{"status":"answered","answer":"Cloudflare answer","citations":["experience-1"]}',
 		});
 
-		fetchSpy
-			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ error: "rate limited" }), {
-					status: 429,
-					headers: { "Content-Type": "application/json" },
-				}),
-			);
+		fetchSpy.mockResolvedValueOnce(
+			new Response(JSON.stringify({ error: "rate limited" }), {
+				status: 429,
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
 
 		const response = await worker.fetch(
 			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
