@@ -183,6 +183,231 @@ async function callGitHubModels(pathname, env, body) {
 	);
 }
 
+async function parseJsonResponse(response) {
+	const contentType = response.headers.get("Content-Type") || "";
+	return contentType.includes("application/json")
+		? await response.json()
+		: await response.text();
+}
+
+function normalizeAssistantErrorPayload(payload, fallbackMessage) {
+	if (typeof payload === "string" && payload.trim()) {
+		return payload;
+	}
+
+	if (payload && typeof payload === "object") {
+		if (typeof payload.error === "string" && payload.error.trim()) {
+			return payload.error;
+		}
+
+		if (
+			payload.error &&
+			typeof payload.error === "object" &&
+			typeof payload.error.message === "string" &&
+			payload.error.message.trim()
+		) {
+			return payload.error.message;
+		}
+
+		if (typeof payload.message === "string" && payload.message.trim()) {
+			return payload.message;
+		}
+	}
+
+	return fallbackMessage;
+}
+
+function createAssistantFetchResponse(response, payload, provider) {
+	return {
+		ok: response.ok,
+		status: response.status,
+		payload,
+		provider,
+	};
+}
+
+function toChatCompletionsPayload(content, model) {
+	return {
+		id: crypto.randomUUID(),
+		object: "chat.completion",
+		created: Math.floor(Date.now() / 1000),
+		model,
+		choices: [
+			{
+				index: 0,
+				finish_reason: "stop",
+				message: {
+					role: "assistant",
+					content,
+				},
+			},
+		],
+	};
+}
+
+async function callCloudflareAi(body, env) {
+	if (!env.AI || !env.CLOUDFLARE_AI_MODEL) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{ error: "Cloudflare AI is not configured" },
+			"cloudflare",
+		);
+	}
+
+	try {
+		const result = await env.AI.run(env.CLOUDFLARE_AI_MODEL, {
+			messages: body.messages,
+			temperature: body.temperature ?? 0,
+			max_tokens: body.max_tokens ?? 220,
+			response_format: body.response_format,
+		});
+
+		const rawContent =
+			typeof result?.response === "string"
+				? result.response
+				: typeof result?.result?.response === "string"
+					? result.result.response
+					: result?.response && typeof result.response === "object"
+						? JSON.stringify(result.response)
+						: null;
+
+		if (!rawContent) {
+			return createAssistantFetchResponse(
+				new Response(null, { status: 502 }),
+				{ error: "Cloudflare AI returned an empty response" },
+				"cloudflare",
+			);
+		}
+
+		return createAssistantFetchResponse(
+			new Response(null, { status: 200 }),
+			toChatCompletionsPayload(rawContent, env.CLOUDFLARE_AI_MODEL),
+			"cloudflare",
+		);
+	} catch (error) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{
+				error:
+					error instanceof Error
+						? error.message
+						: "Cloudflare AI request failed",
+			},
+			"cloudflare",
+		);
+	}
+}
+
+async function callHuggingFace(body, env) {
+	if (!env.HUGGING_FACE_API_TOKEN || !env.HUGGING_FACE_MODEL) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{ error: "Hugging Face is not configured" },
+			"huggingface",
+		);
+	}
+
+	const response = await fetch(
+		"https://router.huggingface.co/v1/chat/completions",
+		{
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${env.HUGGING_FACE_API_TOKEN}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				model: env.HUGGING_FACE_MODEL,
+				temperature: body.temperature ?? 0,
+				max_tokens: body.max_tokens ?? 220,
+				response_format: body.response_format,
+				messages: body.messages,
+			}),
+		},
+	);
+
+	return createAssistantFetchResponse(
+		response,
+		await parseJsonResponse(response),
+		"huggingface",
+	);
+}
+
+async function callAssistantChatWithRouting(env, body) {
+	const providerAttempts = [];
+
+	if (env.GITHUB_MODELS_TOKEN) {
+		const githubResponse = await callGitHubModels(
+			"/inference/chat/completions",
+			env,
+			{
+				model: body.model,
+				temperature: body.temperature ?? 0,
+				max_tokens: body.max_tokens ?? 220,
+				response_format: body.response_format,
+				messages: body.messages,
+			},
+		);
+		const payload = await parseJsonResponse(githubResponse);
+
+		if (githubResponse.ok) {
+			return jsonResponse(payload, githubResponse.status, {
+				"X-Assistant-Provider": "github-models",
+			});
+		}
+
+		providerAttempts.push({
+			provider: "github-models",
+			status: githubResponse.status,
+			error: normalizeAssistantErrorPayload(
+				payload,
+				"GitHub Models request failed",
+			),
+		});
+	}
+
+	const cloudflareResponse = await callCloudflareAi(body, env);
+
+	if (cloudflareResponse.ok) {
+		return jsonResponse(cloudflareResponse.payload, cloudflareResponse.status, {
+			"X-Assistant-Provider": "cloudflare",
+		});
+	}
+
+	providerAttempts.push({
+		provider: "cloudflare",
+		status: cloudflareResponse.status,
+		error: normalizeAssistantErrorPayload(
+			cloudflareResponse.payload,
+			"Cloudflare AI request failed",
+		),
+	});
+
+	const huggingFaceResponse = await callHuggingFace(body, env);
+
+	if (huggingFaceResponse.ok) {
+		return jsonResponse(huggingFaceResponse.payload, huggingFaceResponse.status, {
+			"X-Assistant-Provider": "huggingface",
+		});
+	}
+
+	providerAttempts.push({
+		provider: "huggingface",
+		status: huggingFaceResponse.status,
+		error: normalizeAssistantErrorPayload(
+			huggingFaceResponse.payload,
+			"Hugging Face request failed",
+		),
+	});
+
+	return jsonResponse(
+		{
+			error: "Too many requests. Please try again later.",
+			providers: providerAttempts,
+		},
+		429,
+	);
+}
+
 async function verifyTurnstile(token, ip, secretKey) {
 	const form = new URLSearchParams();
 	form.append("secret", secretKey);
@@ -367,6 +592,102 @@ function validateAssistantPayload(data) {
 
 	const errors = result.error.issues.map((issue) => issue.message);
 	return { valid: false, data: null, errors };
+}
+
+async function handleAssistantRequest(request, env, url, options = {}) {
+	const { routeChatWithFallbacks = false } = options;
+	const origin = getRequestOrigin(request, url);
+
+	if (!origin || !isAllowedOrigin(origin, env)) {
+		return jsonResponse({ error: "Invalid origin" }, 403);
+	}
+
+	if (request.method === "OPTIONS") {
+		return new Response(null, {
+			status: 204,
+			headers: corsHeaders(origin),
+		});
+	}
+
+	if (request.method !== "POST") {
+		return jsonResponse(
+			{ error: "Method not allowed" },
+			405,
+			corsHeaders(origin),
+		);
+	}
+
+	const contentType = request.headers.get("Content-Type") || "";
+
+	if (!contentType.includes("application/json")) {
+		return jsonResponse(
+			{ error: "Content-Type must be application/json" },
+			415,
+			corsHeaders(origin),
+		);
+	}
+
+	let body;
+
+	try {
+		body = await parseJsonRequest(request, corsHeaders(origin));
+	} catch (response) {
+		return response;
+	}
+
+	const clientIp = request.headers.get("CF-Connecting-IP") || null;
+
+	if (
+		clientIp &&
+		isRateLimited(`assistant:${clientIp}`, {
+			windowMs: ASSISTANT_RATE_LIMIT_WINDOW_MS,
+			max: ASSISTANT_RATE_LIMIT_MAX,
+		})
+	) {
+		return jsonResponse(
+			{ error: "Too many requests. Please try again later." },
+			429,
+			corsHeaders(origin),
+		);
+	}
+
+	const { valid, data, errors } = validateAssistantPayload(body);
+
+	if (!valid || !data) {
+		return jsonResponse(
+			{ error: "Validation failed", fields: errors },
+			422,
+			corsHeaders(origin),
+		);
+	}
+
+	const proxyResponse =
+		data.action === "embeddings"
+			? await callGitHubModels("/inference/embeddings", env, {
+					model: data.model,
+					input: data.input,
+					encoding_format: "float",
+				})
+			: routeChatWithFallbacks
+				? await callAssistantChatWithRouting(env, data)
+				: await callGitHubModels("/inference/chat/completions", env, {
+						model: data.model,
+						temperature: data.temperature ?? 0,
+						max_tokens: data.max_tokens ?? 220,
+						response_format: data.response_format,
+						messages: data.messages,
+					});
+
+	const headers = new Headers(proxyResponse.headers);
+
+	for (const [key, value] of Object.entries(corsHeaders(origin))) {
+		headers.set(key, value);
+	}
+
+	return new Response(proxyResponse.body, {
+		status: proxyResponse.status,
+		headers,
+	});
 }
 
 function getRequestOrigin(request, url) {
@@ -681,95 +1002,12 @@ export default {
 		}
 
 		if (url.pathname === "/assistant") {
-			const origin = getRequestOrigin(request, url);
+			return handleAssistantRequest(request, env, url);
+		}
 
-			if (!origin || !isAllowedOrigin(origin, env)) {
-				return jsonResponse({ error: "Invalid origin" }, 403);
-			}
-
-			if (request.method === "OPTIONS") {
-				return new Response(null, {
-					status: 204,
-					headers: corsHeaders(origin),
-				});
-			}
-
-			if (request.method !== "POST") {
-				return jsonResponse(
-					{ error: "Method not allowed" },
-					405,
-					corsHeaders(origin),
-				);
-			}
-
-			const contentType = request.headers.get("Content-Type") || "";
-
-			if (!contentType.includes("application/json")) {
-				return jsonResponse(
-					{ error: "Content-Type must be application/json" },
-					415,
-					corsHeaders(origin),
-				);
-			}
-
-			let body;
-
-			try {
-				body = await parseJsonRequest(request, corsHeaders(origin));
-			} catch (response) {
-				return response;
-			}
-
-			const clientIp = request.headers.get("CF-Connecting-IP") || null;
-
-			if (
-				clientIp &&
-				isRateLimited(`assistant:${clientIp}`, {
-					windowMs: ASSISTANT_RATE_LIMIT_WINDOW_MS,
-					max: ASSISTANT_RATE_LIMIT_MAX,
-				})
-			) {
-				return jsonResponse(
-					{ error: "Too many requests. Please try again later." },
-					429,
-					corsHeaders(origin),
-				);
-			}
-
-			const { valid, data, errors } = validateAssistantPayload(body);
-
-			if (!valid || !data) {
-				return jsonResponse(
-					{ error: "Validation failed", fields: errors },
-					422,
-					corsHeaders(origin),
-				);
-			}
-
-			const proxyResponse =
-				data.action === "embeddings"
-					? await callGitHubModels("/inference/embeddings", env, {
-							model: data.model,
-							input: data.input,
-							encoding_format: "float",
-						})
-					: await callGitHubModels("/inference/chat/completions", env, {
-							model: data.model,
-							temperature: data.temperature ?? 0,
-							max_tokens: data.max_tokens ?? 220,
-							response_format: data.response_format,
-							messages: data.messages,
-						});
-
-			const headers = new Headers(proxyResponse.headers);
-
-			for (const [key, value] of Object.entries(corsHeaders(origin))) {
-				headers.set(key, value);
-			}
-
-			return new Response(proxyResponse.body, {
-				status: proxyResponse.status,
-				headers,
+		if (url.pathname === "/assistant-routed") {
+			return handleAssistantRequest(request, env, url, {
+				routeChatWithFallbacks: true,
 			});
 		}
 
