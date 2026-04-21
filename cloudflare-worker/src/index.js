@@ -360,6 +360,50 @@ async function callCloudflareAi(body, env) {
 	}
 }
 
+async function callGroq(body, env) {
+	if (!env.GROQ_API_KEY || !env.GROQ_MODEL) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{ error: "Groq is not configured" },
+			"groq",
+		);
+	}
+
+	try {
+		const response = await fetch(
+			"https://api.groq.com/openai/v1/chat/completions",
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${env.GROQ_API_KEY}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					model: env.GROQ_MODEL,
+					temperature: body.temperature ?? 0,
+					max_tokens: body.max_tokens ?? 220,
+					response_format: body.response_format,
+					messages: body.messages,
+				}),
+			},
+		);
+
+		return createAssistantFetchResponse(
+			response,
+			await parseJsonResponse(response),
+			"groq",
+		);
+	} catch (error) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{
+				error: error instanceof Error ? error.message : "Groq request failed",
+			},
+			"groq",
+		);
+	}
+}
+
 async function callHuggingFace(body, env) {
 	if (!env.HUGGING_FACE_API_TOKEN || !env.HUGGING_FACE_MODEL) {
 		return createAssistantFetchResponse(
@@ -453,6 +497,41 @@ async function callAssistantChatWithRouting(env, body) {
 				},
 			);
 		}
+	}
+
+	const groqResponse = await callGroq(body, env);
+
+	if (groqResponse.ok) {
+		return jsonResponse(groqResponse.payload, groqResponse.status, {
+			"X-Assistant-Provider": "groq",
+		});
+	}
+
+	const groqError = normalizeAssistantErrorPayload(
+		groqResponse.payload,
+		"Groq request failed",
+	);
+
+	providerAttempts.push({
+		provider: "groq",
+		status: groqResponse.status,
+		error: groqError,
+	});
+
+	if (
+		groqResponse.status !== 503 &&
+		!isRateLimitLikeFailure(groqResponse.status, groqResponse.payload)
+	) {
+		return jsonResponse(
+			{
+				error: groqError,
+				providers: providerAttempts,
+			},
+			groqResponse.status,
+			{
+				"X-Assistant-Provider": "groq",
+			},
+		);
 	}
 
 	const cloudflareResponse = await callCloudflareAi(body, env);
