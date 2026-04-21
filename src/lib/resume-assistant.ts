@@ -1965,17 +1965,20 @@ export async function fetchEmbeddings(
 	model: string,
 	input: string | string[],
 ) {
-	const response = await fetch(new URL("/assistant", workerUrl).toString(), {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
+	const response = await fetch(
+		new URL("/assistant-routed", workerUrl).toString(),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				action: "embeddings",
+				model,
+				input,
+			}),
 		},
-		body: JSON.stringify({
-			action: "embeddings",
-			model,
-			input,
-		}),
-	});
+	);
 
 	if (!response.ok) {
 		throw new Error(

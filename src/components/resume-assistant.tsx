@@ -32,6 +32,7 @@ import {
 	getSnippetHref,
 	hashResumePayload,
 	MISSING_INFORMATION_MESSAGE,
+	RESPONSE_CACHE_PREFIX,
 	type ResumePayload,
 	type ResumeSnippet,
 	type RetrievalResult,
@@ -66,6 +67,76 @@ type AssistantDebugState = {
 	fallbackReason: string | null;
 	lastProvider: string | null;
 };
+
+function isEmbeddingsRateLimitError(error: unknown) {
+	return (
+		error instanceof Error &&
+		(/status 429/i.test(error.message) ||
+			/too many requests/i.test(error.message) ||
+			/rate limit/i.test(error.message))
+	);
+}
+
+function readLegacyEmbeddingsCache(args: {
+	hash: string;
+	model: string;
+	snippetCount: number;
+}) {
+	if (typeof window === "undefined") {
+		return null;
+	}
+
+	const { hash, model, snippetCount } = args;
+	const currentKey = getEmbeddingsCacheKey(hash, model);
+	const suffix = `:${model}:${hash}`;
+	const matchingKeys: string[] = [];
+
+	for (let index = 0; index < window.localStorage.length; index += 1) {
+		const key = window.localStorage.key(index);
+
+		if (
+			key &&
+			key !== currentKey &&
+			key.startsWith(`${RESPONSE_CACHE_PREFIX}:`) &&
+			key.endsWith(suffix)
+		) {
+			matchingKeys.push(key);
+		}
+	}
+
+	for (const key of matchingKeys.sort().reverse()) {
+		try {
+			const cachedValue = window.localStorage.getItem(key);
+
+			if (!cachedValue) {
+				continue;
+			}
+
+			const parsed = JSON.parse(cachedValue) as
+				| number[][]
+				| EmbeddingsCachePayload;
+			const parsedEmbeddings = Array.isArray(parsed)
+				? parsed
+				: parsed.embeddings;
+			const cacheAge = Array.isArray(parsed)
+				? Number.POSITIVE_INFINITY
+				: Date.now() - parsed.createdAt;
+			const cacheIsFresh = cacheAge <= EMBEDDINGS_CACHE_TTL_MS;
+
+			if (
+				cacheIsFresh &&
+				Array.isArray(parsedEmbeddings) &&
+				parsedEmbeddings.length === snippetCount
+			) {
+				return parsedEmbeddings;
+			}
+		} catch {
+			// Ignore malformed legacy cache entries.
+		}
+	}
+
+	return null;
+}
 
 function renderMessageContent(
 	content: string,
@@ -375,7 +446,26 @@ export function ResumeAssistant() {
 						} satisfies EmbeddingsCachePayload),
 					);
 				}
-			} catch {
+			} catch (error) {
+				const legacyEmbeddings = isEmbeddingsRateLimitError(error)
+					? readLegacyEmbeddingsCache({
+							hash: resumeHash,
+							model: DEFAULT_EMBEDDING_MODEL,
+							snippetCount: snippets.length,
+						})
+					: null;
+
+				if (legacyEmbeddings) {
+					if (!isCancelled) {
+						setSnippetEmbeddings(legacyEmbeddings);
+						setEmbeddingStatus("ready");
+						setStatusMessage(
+							"Using a previous embeddings cache because the embeddings API is rate-limited.",
+						);
+					}
+					return;
+				}
+
 				if (!isCancelled) {
 					setEmbeddingStatus("fallback");
 					setSnippetEmbeddings([]);
@@ -440,22 +530,28 @@ export function ResumeAssistant() {
 			embeddingStatus === "ready" &&
 			snippetEmbeddings.length === snippets.length
 		) {
-			const [questionEmbedding] = await fetchEmbeddings(
-				workerUrl,
-				DEFAULT_EMBEDDING_MODEL,
-				retrievalQuery,
-			);
-
-			return {
-				query: retrievalQuery,
-				mode: "embeddings",
-				entries: rankSnippetEntriesByEmbeddings(
+			try {
+				const [questionEmbedding] = await fetchEmbeddings(
+					workerUrl,
+					DEFAULT_EMBEDDING_MODEL,
 					retrievalQuery,
-					questionEmbedding,
-					snippets,
-					snippetEmbeddings,
-				),
-			};
+				);
+
+				return {
+					query: retrievalQuery,
+					mode: "embeddings",
+					entries: rankSnippetEntriesByEmbeddings(
+						retrievalQuery,
+						questionEmbedding,
+						snippets,
+						snippetEmbeddings,
+					),
+				};
+			} catch {
+				setStatusMessage(
+					"Question embeddings are unavailable right now, so retrieval is using keyword matching instead.",
+				);
+			}
 		}
 
 		return {
@@ -465,8 +561,6 @@ export function ResumeAssistant() {
 		};
 	};
 
-	const canUseEmbeddingRetrieval =
-		embeddingStatus === "ready" && snippetEmbeddings.length === snippets.length;
 	const canSubmitDraft = Boolean(draft.trim()) && !isSending && Boolean(resume);
 
 	const addAssistantResponseMessage = (
@@ -592,44 +686,36 @@ export function ResumeAssistant() {
 			}
 
 			let retrievalResult: RetrievalResult | null = null;
+			retrievalResult = await getRelevantSnippets(
+				trimmedQuestion,
+				recentMessages,
+			);
+			updateDebugState({
+				retrievalResult,
+				lastProvider: null,
+			});
+			const relevantSnippets = buildAssistantContextSnippets({
+				question: trimmedQuestion,
+				result: retrievalResult,
+				allSnippets: snippets,
+			});
 
-			if (canUseEmbeddingRetrieval) {
-				retrievalResult = await getRelevantSnippets(
-					trimmedQuestion,
-					recentMessages,
-				);
-				updateDebugState({
-					retrievalResult,
-					lastProvider: null,
-				});
-				const relevantSnippets = buildAssistantContextSnippets({
+			if (relevantSnippets.length) {
+				const assistantResponse = await fetchAssistantResponse({
+					workerUrl,
+					model: DEFAULT_CHAT_MODEL,
 					question: trimmedQuestion,
-					result: retrievalResult,
-					allSnippets: snippets,
+					recentMessages,
+					snippets: relevantSnippets,
 				});
-
-				if (relevantSnippets.length) {
-					const assistantResponse = await fetchAssistantResponse({
-						workerUrl,
-						model: DEFAULT_CHAT_MODEL,
-						question: trimmedQuestion,
-						recentMessages,
-						snippets: relevantSnippets,
-					});
-					updateDebugState({
-						lastProvider: assistantResponse.provider || null,
-					});
-
-					if (assistantResponse.status !== "missing") {
-						addAssistantResponseMessage(assistantResponse, relevantSnippets);
-						return;
-					}
-				}
-			} else {
 				updateDebugState({
-					retrievalResult: null,
-					fallbackReason: "embeddings_unavailable_skipped_retrieval",
+					lastProvider: assistantResponse.provider || null,
 				});
+
+				if (assistantResponse.status !== "missing") {
+					addAssistantResponseMessage(assistantResponse, relevantSnippets);
+					return;
+				}
 			}
 
 			const localResponse = generateLocalResumeAnswer(
