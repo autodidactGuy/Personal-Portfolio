@@ -223,7 +223,7 @@ function buildResumePayload() {
         href: getAbsoluteUrl(siteUrl, site.navigation.headerQuickLink.href),
       },
     },
-    recommendations: {
+	recommendations: {
       title: recommendations.title,
       items: recommendations.items.map((item) => ({
         name: item.name,
@@ -233,6 +233,7 @@ function buildResumePayload() {
         highlight: item.highlight || undefined,
         featured: Boolean(item.featured),
         linkedin: item.linkedin || undefined,
+        cta: item.cta || undefined,
       })),
     },
     experience: experience.map((item) => ({
