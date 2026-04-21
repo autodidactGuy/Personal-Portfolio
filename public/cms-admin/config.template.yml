@@ -94,6 +94,7 @@ collections:
               - { label: "Highlight", name: "highlight", widget: "string", required: false, default: "" }
               - { label: "Featured", name: "featured", widget: "boolean", default: false }
               - { label: "LinkedIn", name: "linkedin", widget: "string", required: false }
+              - { label: "CTA Link", name: "cta", widget: "string", required: false, hint: "Optional custom link displayed as a globe icon alongside the LinkedIn icon." }
   - name: "about"
     label: "About"
     media_folder: "/public/images/about"
