@@ -88,9 +88,12 @@ collections:
             widget: "list"
             fields:
               - { label: "Name", name: "name", widget: "string" }
+              - { label: "Relationship", name: "relationship", widget: "string", required: false, default: "Teammate & Collaborator" }
               - { label: "Role", name: "role", widget: "string" }
               - { label: "Quote", name: "quote", widget: "text" }
+              - { label: "Highlight", name: "highlight", widget: "string", required: false, default: "" }
               - { label: "Featured", name: "featured", widget: "boolean", default: false }
+              - { label: "LinkedIn", name: "linkedin", widget: "string", required: false }
   - name: "about"
     label: "About"
     media_folder: "/public/images/about"
@@ -132,6 +135,9 @@ collections:
               - { label: "Location", name: "location", widget: "string" }
               - { label: "From", name: "from", widget: "string" }
               - { label: "To", name: "to", widget: "string" }
+              - { label: "Highlight", name: "highlight", widget: "text" }
+              - { label: "Details", name: "details", widget: "list", required: false }
+              - { label: "Tech", name: "tech", widget: "list", required: false }
               - { label: "Image", name: "image", widget: "image" }
       - name: "education"
         label: "Education"
@@ -149,7 +155,7 @@ collections:
               - { label: "Location", name: "location", widget: "string" }
               - { label: "From", name: "from", widget: "string" }
               - { label: "To", name: "to", widget: "string" }
-              - { label: "Result", name: "result", widget: "string" }
+              - { label: "Result", name: "result", widget: "string", required: false }
               - { label: "Image", name: "image", widget: "image" }
   - name: "settings"
     label: "Settings"
@@ -173,8 +179,8 @@ collections:
             widget: "object"
             fields:
               - { label: "Enabled", name: "enabled", widget: "boolean", default: false }
-              - { label: "Headline", name: "headline", widget: "string" }
-              - { label: "Description", name: "description", widget: "text" }
+              - { label: "Headline", name: "headline", widget: "string", required: false }
+              - { label: "Description", name: "description", widget: "text", required: false }
           - label: "Navigation"
             name: "navigation"
             widget: "object"
@@ -190,7 +196,7 @@ collections:
                 widget: "object"
                 fields:
                   - { label: "Label", name: "label", widget: "string" }
-                  - { label: "Icon", name: "icon", widget: "string", hint: "Use the generated icon id format pack:name, for example md:MdMail. Full metadata is available in /cms-admin/content-icons.json." }
+                  - { label: "Icon", name: "icon", widget: "string", required: false, hint: "Use the generated icon id format pack:name, for example md:MdMail. Full metadata is available in /cms-admin/content-icons.json." }
                   - { label: "Href", name: "href", widget: "string" }
           - label: "Links"
             name: "links"
@@ -229,9 +235,13 @@ collections:
         widget: "select"
         options:
           - { label: "Article", value: "article" }
+          - { label: "Note", value: "note" }
           - { label: "Case Study", value: "case-study" }
+          - { label: "Tutorial", value: "tutorial" }
+          - { label: "Announcement", value: "announcement" }
           - { label: "News", value: "news" }
           - { label: "Project", value: "project" }
+          - { label: "Other", value: "other" }
       - { label: "Body", name: "body", widget: "markdown" }
       - { label: "Tags", name: "tags", widget: "list", required: false }
       - { label: "Cover Image", name: "coverImage", widget: "image", required: false }
