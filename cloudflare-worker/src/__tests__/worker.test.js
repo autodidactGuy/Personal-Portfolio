@@ -478,6 +478,42 @@ describe("/assistant-routed", () => {
 		expect(data.error).toBe("Too many requests. Please try again later.");
 		expect(data.providers).toHaveLength(3);
 	});
+
+	it("does not fall back past GitHub Models on non-rate-limit failures", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		const aiRun = vi.fn();
+
+		fetchSpy.mockResolvedValueOnce(
+			new Response(JSON.stringify({ error: "bad gateway" }), {
+				status: 502,
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [{ role: "user", content: "Tell me about Hassan" }],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				AI: {
+					run: aiRun,
+				},
+				HUGGING_FACE_API_TOKEN: "hf_test",
+				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
+			},
+		);
+		const data = await response.json();
+
+		expect(response.status).toBe(502);
+		expect(data.error).toBe("bad gateway");
+		expect(aiRun).not.toHaveBeenCalled();
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
 });
 
 describe("/contact email delivery", () => {

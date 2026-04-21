@@ -226,6 +226,18 @@ function createAssistantFetchResponse(response, payload, provider) {
 	};
 }
 
+function isRateLimitLikeFailure(status, payload) {
+	if (status === 429) {
+		return true;
+	}
+
+	const normalizedError = normalizeAssistantErrorPayload(payload, "")
+		.toLowerCase()
+		.trim();
+
+	return normalizedError.includes("rate limit");
+}
+
 function toChatCompletionsPayload(content, model) {
 	return {
 		id: crypto.randomUUID(),
@@ -355,14 +367,29 @@ async function callAssistantChatWithRouting(env, body) {
 			});
 		}
 
+		const githubError = normalizeAssistantErrorPayload(
+			payload,
+			"GitHub Models request failed",
+		);
+
 		providerAttempts.push({
 			provider: "github-models",
 			status: githubResponse.status,
-			error: normalizeAssistantErrorPayload(
-				payload,
-				"GitHub Models request failed",
-			),
+			error: githubError,
 		});
+
+		if (!isRateLimitLikeFailure(githubResponse.status, payload)) {
+			return jsonResponse(
+				{
+					error: githubError,
+					providers: providerAttempts,
+				},
+				githubResponse.status,
+				{
+					"X-Assistant-Provider": "github-models",
+				},
+			);
+		}
 	}
 
 	const cloudflareResponse = await callCloudflareAi(body, env);
@@ -373,14 +400,35 @@ async function callAssistantChatWithRouting(env, body) {
 		});
 	}
 
+	const cloudflareError = normalizeAssistantErrorPayload(
+		cloudflareResponse.payload,
+		"Cloudflare AI request failed",
+	);
+
 	providerAttempts.push({
 		provider: "cloudflare",
 		status: cloudflareResponse.status,
-		error: normalizeAssistantErrorPayload(
-			cloudflareResponse.payload,
-			"Cloudflare AI request failed",
-		),
+		error: cloudflareError,
 	});
+
+	if (
+		cloudflareResponse.status !== 503 &&
+		!isRateLimitLikeFailure(
+			cloudflareResponse.status,
+			cloudflareResponse.payload,
+		)
+	) {
+		return jsonResponse(
+			{
+				error: cloudflareError,
+				providers: providerAttempts,
+			},
+			cloudflareResponse.status,
+			{
+				"X-Assistant-Provider": "cloudflare",
+			},
+		);
+	}
 
 	const huggingFaceResponse = await callHuggingFace(body, env);
 

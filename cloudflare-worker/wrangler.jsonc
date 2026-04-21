@@ -18,7 +18,7 @@
     "REPO_BASE_PATH": "",
     "CONTACT_EMAIL": "hassanraza632@gmail.com",
     "FROM_EMAIL": "noreply@contact.hassanraza.us",
-    "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "HUGGING_FACE_MODEL": "Qwen/Qwen2.5-7B-Instruct-1M"
   },
   // Secrets (set via `wrangler secret put`):
