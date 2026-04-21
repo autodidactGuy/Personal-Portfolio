@@ -412,45 +412,140 @@ describe("/assistant-routed", () => {
 		);
 	});
 
-	// it("falls back to Cloudflare AI when GitHub Models returns a non-429 too-many-requests error", async () => {
-	// 	const fetchSpy = vi.spyOn(globalThis, "fetch");
-	// 	const aiRun = vi.fn().mockResolvedValue({
-	// 		response:
-	// 			'{"status":"answered","answer":"Cloudflare answer","citations":["experience-1"]}',
-	// 	});
+	it("falls back to Cloudflare AI when GitHub Models returns a non-429 too-many-requests error", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		const aiRun = vi.fn().mockResolvedValue({
+			response:
+				'{"status":"answered","answer":"Cloudflare answer","citations":["experience-1"]}',
+		});
 
-	// 	fetchSpy.mockResolvedValueOnce(
-	// 		new Response("Too many requests. Please try again later.", {
-	// 			status: 503,
-	// 			headers: { "Content-Type": "application/json" },
-	// 		}),
-	// 	);
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response("Too many requests. Please try again later.", {
+					status: 503,
+					headers: { "Content-Type": "application/json" },
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						error:
+							"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+					}),
+					{ status: 400, headers: { "Content-Type": "application/json" } },
+				),
+			);
 
-	// 	const response = await worker.fetch(
-	// 		buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
-	// 			action: "chat",
-	// 			model: "openai/gpt-4.1-mini",
-	// 			messages: [{ role: "user", content: "Tell me about Hassan" }],
-	// 		}),
-	// 		{
-	// 			...env,
-	// 			GITHUB_MODELS_TOKEN: "ghm_test",
-	// 			GROQ_API_KEY: "groq_test",
-	// 			GROQ_MODEL: "llama-3.3-70b-versatile",
-	// 			CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
-	// 			AI: {
-	// 				run: aiRun,
-	// 			},
-	// 		},
-	// 	);
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [{ role: "user", content: "Tell me about Hassan" }],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "llama-3.3-70b-versatile",
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				AI: {
+					run: aiRun,
+				},
+			},
+		);
 
-	// 	expect(response.status).toBe(200);
-	// 	expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
-	// 	expect(fetchSpy.mock.calls[0][0]).toBe(
-	// 		"https://models.github.ai/inference/chat/completions",
-	// 	);
-	// 	expect(aiRun).toHaveBeenCalled();
-	// });
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
+		expect(fetchSpy.mock.calls[0][0]).toBe(
+			"https://models.github.ai/inference/chat/completions",
+		);
+		expect(fetchSpy.mock.calls[1][0]).toBe(
+			"https://api.groq.com/openai/v1/chat/completions",
+		);
+		expect(aiRun).toHaveBeenCalled();
+	});
+
+	it("normalizes Groq messages and falls through when Groq rejects structured output generation", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		const aiRun = vi.fn().mockResolvedValue({
+			response:
+				'{"status":"answered","answer":"Cloudflare answer","citations":["summary"]}',
+		});
+
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: "rate limited" }), {
+					status: 429,
+					headers: { "Content-Type": "application/json" },
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						error:
+							"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+					}),
+					{ status: 400, headers: { "Content-Type": "application/json" } },
+				),
+			);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						name: "resume_assistant_response",
+						schema: {
+							type: "object",
+							properties: {
+								status: { type: "string" },
+								answer: { type: "string" },
+								citations: { type: "array", items: { type: "string" } },
+							},
+							required: ["status", "answer", "citations"],
+						},
+					},
+				},
+				messages: [
+					{ role: "system", content: "System instruction" },
+					{ role: "developer", content: "Developer instruction" },
+					{ role: "user", content: "Tell me about Hassan" },
+				],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "openai/gpt-oss-20b",
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				AI: {
+					run: aiRun,
+				},
+			},
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
+
+		const groqRequestInit = fetchSpy.mock.calls[1][1];
+		const groqBody = JSON.parse(groqRequestInit.body);
+
+		expect(groqBody.max_completion_tokens).toBeDefined();
+		expect(groqBody.max_tokens).toBeUndefined();
+		expect(groqBody.messages).toEqual([
+			{
+				role: "system",
+				content: "System instruction\n\nDeveloper instruction",
+			},
+			{
+				role: "user",
+				content: "Tell me about Hassan",
+			},
+		]);
+		expect(aiRun).toHaveBeenCalled();
+	});
 
 	it("falls back to Groq when GitHub Models rate limits", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");

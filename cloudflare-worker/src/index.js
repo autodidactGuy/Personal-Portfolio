@@ -263,6 +263,69 @@ function isRateLimitLikeFailure(status, payload) {
 	);
 }
 
+function normalizeAssistantMessagesForGroq(messages) {
+	if (!Array.isArray(messages) || messages.length === 0) {
+		return [];
+	}
+
+	const normalizedMessages = [];
+	let leadingInstructionBlock = "";
+
+	for (const message of messages) {
+		if (!message || typeof message.content !== "string") {
+			continue;
+		}
+
+		if (
+			normalizedMessages.length === 0 &&
+			(message.role === "system" || message.role === "developer")
+		) {
+			leadingInstructionBlock = leadingInstructionBlock
+				? `${leadingInstructionBlock}\n\n${message.content}`
+				: message.content;
+			continue;
+		}
+
+		normalizedMessages.push({
+			role: message.role === "developer" ? "system" : message.role,
+			content: message.content,
+		});
+	}
+
+	if (leadingInstructionBlock) {
+		normalizedMessages.unshift({
+			role: "system",
+			content: leadingInstructionBlock,
+		});
+	}
+
+	return normalizedMessages;
+}
+
+function isGroqFallbackWorthyFailure(status, payload) {
+	if (status === 503 || isRateLimitLikeFailure(status, payload)) {
+		return true;
+	}
+
+	if (status !== 400) {
+		return false;
+	}
+
+	const normalizedError = normalizeAssistantErrorPayload(payload, "")
+		.toLowerCase()
+		.trim();
+
+	return (
+		normalizedError.includes("failed to generate json") ||
+		normalizedError.includes("generated json does not match") ||
+		normalizedError.includes("json_schema") ||
+		normalizedError.includes("response_format") ||
+		normalizedError.includes("developer role") ||
+		normalizedError.includes("unsupported value") ||
+		normalizedError.includes("failed_generation")
+	);
+}
+
 function toChatCompletionsPayload(content, model) {
 	return {
 		id: crypto.randomUUID(),
@@ -381,9 +444,9 @@ async function callGroq(body, env) {
 				body: JSON.stringify({
 					model: env.GROQ_MODEL,
 					temperature: body.temperature ?? 0,
-					max_tokens: body.max_tokens ?? 220,
+					max_completion_tokens: body.max_tokens ?? 220,
 					response_format: body.response_format,
-					messages: body.messages,
+					messages: normalizeAssistantMessagesForGroq(body.messages),
 				}),
 			},
 		);
@@ -518,10 +581,7 @@ async function callAssistantChatWithRouting(env, body) {
 		error: groqError,
 	});
 
-	if (
-		groqResponse.status !== 503 &&
-		!isRateLimitLikeFailure(groqResponse.status, groqResponse.payload)
-	) {
+	if (!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload)) {
 		return jsonResponse(
 			{
 				error: groqError,
