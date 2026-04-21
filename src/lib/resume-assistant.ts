@@ -15,6 +15,7 @@ export const RESPONSE_CACHE_PREFIX = "portfolio-assistant-embeddings";
 export const EMBEDDINGS_CACHE_VERSION = "v2";
 export const EMBEDDINGS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_CONTEXT_CHUNKS = 5;
+export const MAX_BROAD_CONTEXT_CHUNKS = 8;
 export const MAX_RETRIEVAL_CONTEXT_MESSAGES = 4;
 
 export const MISSING_INFORMATION_MESSAGE =
@@ -523,7 +524,7 @@ function extractSnippetContentDate(snippet: ResumeSnippet) {
 	return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function isBroadProfileQuestion(question: string) {
+export function isBroadProfileQuestion(question: string) {
 	return (
 		/\b(who is|tell me more|more about|background|overview|summary|introduce)\b/i.test(
 			question,
@@ -1508,6 +1509,65 @@ export function rankSnippetsByEmbeddings(
 		snippetEmbeddings,
 		limit,
 	).map((entry) => entry.snippet);
+}
+
+export function buildAssistantContextSnippets(args: {
+	question: string;
+	result: RetrievalResult;
+	allSnippets: ResumeSnippet[];
+}) {
+	const { question, result, allSnippets } = args;
+	const contextLimit = isBroadProfileQuestion(question)
+		? MAX_BROAD_CONTEXT_CHUNKS
+		: MAX_CONTEXT_CHUNKS;
+	const selectedSnippets: ResumeSnippet[] = [];
+	const selectedIds = new Set<string>();
+
+	const addSnippet = (snippet: ResumeSnippet | undefined) => {
+		if (!snippet || selectedIds.has(snippet.id)) {
+			return;
+		}
+
+		selectedSnippets.push(snippet);
+		selectedIds.add(snippet.id);
+	};
+
+	if (isBroadProfileQuestion(question)) {
+		addSnippet(findSnippetById(allSnippets, "summary"));
+		addSnippet(findSnippetById(allSnippets, "about"));
+
+		for (const entry of result.entries) {
+			if (entry.snippet.category === "experience") {
+				addSnippet(entry.snippet);
+			}
+
+			if (selectedSnippets.length >= contextLimit) {
+				break;
+			}
+		}
+	}
+
+	for (const entry of result.entries) {
+		addSnippet(entry.snippet);
+
+		if (selectedSnippets.length >= contextLimit) {
+			break;
+		}
+	}
+
+	if (isBroadProfileQuestion(question)) {
+		for (const snippet of allSnippets) {
+			if (snippet.category === "experience") {
+				addSnippet(snippet);
+			}
+
+			if (selectedSnippets.length >= contextLimit) {
+				break;
+			}
+		}
+	}
+
+	return selectedSnippets.slice(0, contextLimit);
 }
 
 export function shouldUseClosestMatchFallback(args: {

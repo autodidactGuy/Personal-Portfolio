@@ -11,6 +11,7 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
+	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
 	buildResumeSnippets,
 	buildRetrievalQuery,
@@ -503,9 +504,11 @@ export function ResumeAssistant() {
 				retrievalResult,
 				lastProvider: null,
 			});
-			const relevantSnippets = retrievalResult.entries.map(
-				(entry) => entry.snippet,
-			);
+			const relevantSnippets = buildAssistantContextSnippets({
+				question: trimmedQuestion,
+				result: retrievalResult,
+				allSnippets: snippets,
+			});
 
 			if (!relevantSnippets.length) {
 				addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
