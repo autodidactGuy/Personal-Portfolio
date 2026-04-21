@@ -162,26 +162,38 @@ async function callGitHubModels(pathname, env, body) {
 		return jsonResponse({ error: "Assistant service is not configured" }, 503);
 	}
 
-	const response = await fetch(`https://models.github.ai${pathname}`, {
-		method: "POST",
-		headers: {
-			Accept: "application/vnd.github+json",
-			Authorization: `Bearer ${env.GITHUB_MODELS_TOKEN}`,
-			"Content-Type": "application/json",
-			"X-GitHub-Api-Version": "2026-03-10",
-		},
-		body: JSON.stringify(body),
-	});
+	try {
+		const response = await fetch(`https://models.github.ai${pathname}`, {
+			method: "POST",
+			headers: {
+				Accept: "application/vnd.github+json",
+				Authorization: `Bearer ${env.GITHUB_MODELS_TOKEN}`,
+				"Content-Type": "application/json",
+				"X-GitHub-Api-Version": "2026-03-10",
+			},
+			body: JSON.stringify(body),
+		});
 
-	const contentType = response.headers.get("Content-Type") || "";
-	const payload = contentType.includes("application/json")
-		? await response.json()
-		: await response.text();
+		const contentType = response.headers.get("Content-Type") || "";
+		const payload = contentType.includes("application/json")
+			? await response.json()
+			: await response.text();
 
-	return jsonResponse(
-		typeof payload === "string" ? { error: payload } : payload,
-		response.status,
-	);
+		return jsonResponse(
+			typeof payload === "string" ? { error: payload } : payload,
+			response.status,
+		);
+	} catch (error) {
+		return jsonResponse(
+			{
+				error:
+					error instanceof Error
+						? error.message
+						: "GitHub Models request failed",
+			},
+			503,
+		);
+	}
 }
 
 async function parseJsonResponse(response) {
@@ -320,29 +332,42 @@ async function callHuggingFace(body, env) {
 		);
 	}
 
-	const response = await fetch(
-		"https://router.huggingface.co/v1/chat/completions",
-		{
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${env.HUGGING_FACE_API_TOKEN}`,
-				"Content-Type": "application/json",
+	try {
+		const response = await fetch(
+			"https://router.huggingface.co/v1/chat/completions",
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${env.HUGGING_FACE_API_TOKEN}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					model: env.HUGGING_FACE_MODEL,
+					temperature: body.temperature ?? 0,
+					max_tokens: body.max_tokens ?? 220,
+					response_format: body.response_format,
+					messages: body.messages,
+				}),
 			},
-			body: JSON.stringify({
-				model: env.HUGGING_FACE_MODEL,
-				temperature: body.temperature ?? 0,
-				max_tokens: body.max_tokens ?? 220,
-				response_format: body.response_format,
-				messages: body.messages,
-			}),
-		},
-	);
+		);
 
-	return createAssistantFetchResponse(
-		response,
-		await parseJsonResponse(response),
-		"huggingface",
-	);
+		return createAssistantFetchResponse(
+			response,
+			await parseJsonResponse(response),
+			"huggingface",
+		);
+	} catch (error) {
+		return createAssistantFetchResponse(
+			new Response(null, { status: 503 }),
+			{
+				error:
+					error instanceof Error
+						? error.message
+						: "Hugging Face request failed",
+			},
+			"huggingface",
+		);
+	}
 }
 
 async function callAssistantChatWithRouting(env, body) {
