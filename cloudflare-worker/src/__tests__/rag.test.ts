@@ -114,6 +114,42 @@ describe("/ask", () => {
 		expect(env.AI.run).toHaveBeenCalledTimes(1);
 	});
 
+	it("allows /ask when the request origin matches the worker origin", async () => {
+		const env = {
+			...baseEnv,
+			ALLOWED_ORIGINS: "https://hassanraza.us",
+			AI: {
+				run: vi.fn().mockResolvedValueOnce({
+					data: [[0.1, 0.2, 0.3]],
+				}),
+			},
+			VECTOR_INDEX: {
+				query: vi.fn().mockResolvedValue({ matches: [] }),
+			},
+			RAG_KV: {
+				get: vi.fn(),
+			},
+		};
+
+		const response = await app.fetch(
+			new Request("https://worker.test/ask", {
+				method: "POST",
+				headers: {
+					Origin: "https://worker.test",
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ question: "What projects has Hassan built?" }),
+			}),
+			env as never,
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+			"https://worker.test",
+		);
+		expect((await response.json()).status).toBe("no_match");
+	});
+
 	it("returns an answered payload with citations when retrieval succeeds", async () => {
 		const env = {
 			...baseEnv,

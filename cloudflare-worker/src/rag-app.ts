@@ -208,7 +208,7 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 	const url = new URL(request.url);
 	const origin = getRequestOrigin(request, url);
 
-	if (!origin || !isAllowedOrigin(origin, env)) {
+	if (!origin || !isAllowedOrigin(origin, env, url.origin)) {
 		return jsonResponse({ error: "Invalid origin" }, 403, origin);
 	}
 

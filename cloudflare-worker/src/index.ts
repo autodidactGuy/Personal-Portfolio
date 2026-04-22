@@ -258,9 +258,10 @@ function validateRawProviderPayload(data: unknown) {
 }
 
 const requireAllowedOrigin = createMiddleware(async (c, next) => {
-	const origin = getRequestOrigin(c.req.raw, new URL(c.req.raw.url));
+	const requestUrl = new URL(c.req.raw.url);
+	const origin = getRequestOrigin(c.req.raw, requestUrl);
 
-	if (!origin || !isAllowedOrigin(origin, c.env)) {
+	if (!origin || !isAllowedOrigin(origin, c.env, requestUrl.origin)) {
 		return jsonResponse({ error: "Invalid origin" }, 403);
 	}
 
@@ -602,7 +603,7 @@ app.all("/auth", async (c) => {
 	const callbackUrl = `${url.origin}/callback`;
 	const requestedOrigin = getRequestOrigin(request, url);
 
-	if (!requestedOrigin || !isAllowedOrigin(requestedOrigin, env)) {
+	if (!requestedOrigin || !isAllowedOrigin(requestedOrigin, env, url.origin)) {
 		return new Response("Invalid origin", {
 			status: 400,
 			headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -653,7 +654,7 @@ app.all("/callback", async (c) => {
 		});
 	}
 
-	if (!openerOrigin || !isAllowedOrigin(openerOrigin, env)) {
+	if (!openerOrigin || !isAllowedOrigin(openerOrigin, env, url.origin)) {
 		return new Response("Invalid opener origin", {
 			status: 400,
 			headers: withClearedOauthCookies(

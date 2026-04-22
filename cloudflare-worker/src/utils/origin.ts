@@ -25,7 +25,15 @@ export function isLocalDevelopmentOrigin(origin: string) {
 	}
 }
 
-export function isAllowedOrigin(origin: string, env: OriginEnv) {
+export function isAllowedOrigin(
+	origin: string,
+	env: OriginEnv,
+	requestOrigin?: string | null,
+) {
+	if (requestOrigin && origin === requestOrigin) {
+		return true;
+	}
+
 	if (getAllowedOrigins(env).includes(origin)) {
 		return true;
 	}
