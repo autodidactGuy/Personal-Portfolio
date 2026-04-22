@@ -2123,7 +2123,7 @@ export function buildAssistantChatRequestBody(args: {
 		action: "chat",
 		...(model ? { model } : {}),
 		temperature,
-		max_tokens: maxTokens ?? (broadProfileQuestion ? 320 : 220),
+		max_tokens: maxTokens ?? (broadProfileQuestion ? 600 : 400),
 		response_format: structuredOutput
 			? {
 					type: "json_schema" as const,
