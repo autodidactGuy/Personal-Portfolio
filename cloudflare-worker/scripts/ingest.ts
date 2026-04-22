@@ -14,6 +14,9 @@ const ingestOptionsSchema = z.object({
 	embeddingBatchSize: z.coerce.number().int().positive().max(96).default(32),
 	kvBatchSize: z.coerce.number().int().positive().max(10000).default(500),
 	vectorBatchSize: z.coerce.number().int().positive().max(1000).default(200),
+	apiMaxRetries: z.coerce.number().int().min(0).max(10).default(5),
+	apiBaseRetryDelayMs: z.coerce.number().int().positive().max(60000).default(1200),
+	skipKvWriteFailures: z.coerce.boolean().default(true),
 	targetChars: z.coerce.number().int().positive().default(900),
 	maxChars: z.coerce.number().int().positive().default(1200),
 	overlapChars: z.coerce.number().int().nonnegative().default(120),
@@ -32,6 +35,9 @@ function readOptions() {
 		embeddingBatchSize: process.env.RAG_EMBED_BATCH_SIZE,
 		kvBatchSize: process.env.RAG_KV_BATCH_SIZE,
 		vectorBatchSize: process.env.RAG_VECTOR_BATCH_SIZE,
+		apiMaxRetries: process.env.RAG_API_MAX_RETRIES,
+		apiBaseRetryDelayMs: process.env.RAG_API_BASE_RETRY_DELAY_MS,
+		skipKvWriteFailures: process.env.RAG_SKIP_KV_WRITE_FAILURES,
 		targetChars: process.env.RAG_CHUNK_TARGET_CHARS,
 		maxChars: process.env.RAG_CHUNK_MAX_CHARS,
 		overlapChars: process.env.RAG_CHUNK_OVERLAP_CHARS,
@@ -60,6 +66,8 @@ async function main() {
 	const client = new CloudflareApiClient({
 		accountId: options.accountId,
 		apiToken: options.apiToken,
+		maxRetries: options.apiMaxRetries,
+		baseRetryDelayMs: options.apiBaseRetryDelayMs,
 	});
 
 	const chunkBatches = chunkArray(chunks, options.embeddingBatchSize);
@@ -95,7 +103,18 @@ async function main() {
 			})),
 			options.kvBatchSize,
 		)) {
-			await client.bulkWriteKv(options.kvNamespaceId, kvBatch);
+			try {
+				await client.bulkWriteKv(options.kvNamespaceId, kvBatch);
+			} catch (error) {
+				if (!options.skipKvWriteFailures) {
+					throw error;
+				}
+
+				console.warn(
+					`Skipping KV batch write for ${kvBatch.length} chunks after Cloudflare KV write failure.`,
+					error instanceof Error ? error.message : error,
+				);
+			}
 		}
 
 		console.log(
