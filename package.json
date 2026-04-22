@@ -17,7 +17,8 @@
     "build": "yarn lint && yarn seo:assets && yarn resume:generate && yarn search:generate && yarn build:site",
     "start": "serve out",
     "lint": "biome check src cloudflare-worker/src",
-    "lint:fix": "biome check --write src cloudflare-worker/src"
+    "lint:fix": "biome check --write src cloudflare-worker/src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@heroui/react": "3.0.3",

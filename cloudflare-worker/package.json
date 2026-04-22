@@ -16,9 +16,11 @@
     "rag:ingest": "tsx scripts/ingest.ts",
     "rag:types": "wrangler types",
     "start": "wrangler dev",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260405.0",
     "@types/node": "^24.9.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
