@@ -1,45 +1,32 @@
 import type { RagAskResponse, RagCitation, RagConfig } from "./types";
 
-function buildCorsHeaders(origin: string) {
+function buildCorsHeaders(origin: string | null) {
 	return {
-		"Access-Control-Allow-Origin": origin,
+		"Access-Control-Allow-Origin": origin || "*",
 		"Access-Control-Allow-Methods": "POST, OPTIONS",
 		"Access-Control-Allow-Headers": "Content-Type",
 		Vary: "Origin",
 	};
 }
 
-export function resolveCorsOrigin(request: Request, allowedOrigins: string[]) {
-	if (allowedOrigins.includes("*")) {
-		return "*";
-	}
-
-	const origin = request.headers.get("Origin");
-	if (origin && allowedOrigins.includes(origin)) {
-		return origin;
-	}
-
-	return "";
-}
-
 export function jsonResponse(
 	body: RagAskResponse | { error: string; fields?: string[] },
 	status: number,
-	origin: string,
+	origin: string | null,
 ) {
 	return new Response(JSON.stringify(body), {
 		status,
 		headers: {
 			"Content-Type": "application/json; charset=utf-8",
-			...buildCorsHeaders(origin || "*"),
+			...buildCorsHeaders(origin),
 		},
 	});
 }
 
-export function preflightResponse(origin: string) {
+export function preflightResponse(origin: string | null) {
 	return new Response(null, {
 		status: 204,
-		headers: buildCorsHeaders(origin || "*"),
+		headers: buildCorsHeaders(origin),
 	});
 }
 

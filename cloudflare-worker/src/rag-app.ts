@@ -1,14 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { getRagConfig } from "./rag/config";
-import {
-	createAskResponse,
-	jsonResponse,
-	preflightResponse,
-	resolveCorsOrigin,
-} from "./rag/response";
+import { createAskResponse, jsonResponse } from "./rag/response";
 import { generateAnswer, retrieveChunks } from "./rag/retrieve";
 import type { RagEnv } from "./rag/types";
+import { corsHeaders } from "./utils/http";
+import { getRequestOrigin, isAllowedOrigin } from "./utils/origin";
 
 const askRequestSchema = z.object({
 	question: z
@@ -20,7 +17,7 @@ const askRequestSchema = z.object({
 
 const app = new Hono<{ Bindings: RagEnv }>();
 
-function renderHomePage() {
+export function renderRagHomePage() {
 	return `<!doctype html>
 <html lang="en">
   <head>
@@ -198,23 +195,28 @@ function renderHomePage() {
 </html>`;
 }
 
-app.get(
-	"/",
-	() =>
-		new Response(renderHomePage(), {
-			headers: {
-				"Content-Type": "text/html; charset=utf-8",
-			},
-		}),
-);
+export function handleRagHomeRequest() {
+	return new Response(renderRagHomePage(), {
+		headers: {
+			"Content-Type": "text/html; charset=utf-8",
+		},
+	});
+}
 
-app.all("/ask", async (c) => {
-	const request = c.req.raw;
-	const config = getRagConfig(c.env);
-	const origin = resolveCorsOrigin(request, config.allowedOrigins);
+export async function handleAskRequest(request: Request, env: RagEnv) {
+	const config = getRagConfig(env);
+	const url = new URL(request.url);
+	const origin = getRequestOrigin(request, url);
+
+	if (!origin || !isAllowedOrigin(origin, env)) {
+		return jsonResponse({ error: "Invalid origin" }, 403, origin);
+	}
 
 	if (request.method === "OPTIONS") {
-		return preflightResponse(origin);
+		return new Response(null, {
+			status: 204,
+			headers: corsHeaders(origin),
+		});
 	}
 
 	if (request.method !== "POST") {
@@ -251,7 +253,7 @@ app.all("/ask", async (c) => {
 	}
 
 	try {
-		const retrieval = await retrieveChunks(parsed.data.question, c.env, config);
+		const retrieval = await retrieveChunks(parsed.data.question, env, config);
 
 		if (retrieval.status === "no_match") {
 			return jsonResponse(
@@ -285,7 +287,7 @@ app.all("/ask", async (c) => {
 		const answer = await generateAnswer(
 			parsed.data.question,
 			retrieval.chunks,
-			c.env,
+			env,
 			config,
 		);
 		return jsonResponse(
@@ -316,11 +318,14 @@ app.all("/ask", async (c) => {
 			origin,
 		);
 	}
-});
+}
+
+app.get("/", () => handleRagHomeRequest());
+
+app.all("/ask", async (c) => handleAskRequest(c.req.raw, c.env));
 
 app.notFound((c) => {
-	const config = getRagConfig(c.env);
-	const origin = resolveCorsOrigin(c.req.raw, config.allowedOrigins);
+	const origin = getRequestOrigin(c.req.raw, new URL(c.req.raw.url));
 	return jsonResponse({ error: "Not found" }, 404, origin);
 });
 

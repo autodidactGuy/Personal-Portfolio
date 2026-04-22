@@ -1130,6 +1130,7 @@ export function ResumeAssistant() {
 														<option value="groq">Groq</option>
 														<option value="huggingface">Hugging Face</option>
 														<option value="cloudflare">Cloudflare AI</option>
+														<option value="portfolio-rag">Portfolio RAG</option>
 													</select>
 												</label>
 												<label className="flex flex-col gap-1">

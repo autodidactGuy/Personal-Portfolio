@@ -18,9 +18,5 @@ export function getRagConfig(env: RagEnv): RagConfig {
 		similarityThreshold: parseFloatValue(env.RAG_SIMILARITY_THRESHOLD, 0.72),
 		maxContextChunks: parseInteger(env.RAG_MAX_CONTEXT_CHUNKS, 4),
 		maxOutputTokens: parseInteger(env.RAG_MAX_OUTPUT_TOKENS, 300),
-		allowedOrigins: String(env.RAG_ALLOWED_ORIGINS || "*")
-			.split(",")
-			.map((value) => value.trim())
-			.filter(Boolean),
 	};
 }

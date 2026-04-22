@@ -1,4 +1,6 @@
-import { corsHeaders, jsonResponse, parseMaybeJsonResponse } from "./http.js";
+import { extractQuestionFromMessages, runRagQuestion } from "../rag/service";
+import type { RagEnv } from "../rag/types";
+import { corsHeaders, jsonResponse, parseMaybeJsonResponse } from "./http";
 
 const ASSISTANT_MISSING_MESSAGE = "I don't have that information available.";
 const ASSISTANT_REJECTED_MESSAGE =
@@ -6,7 +8,55 @@ const ASSISTANT_REJECTED_MESSAGE =
 const SNIPPET_ID_PATTERN =
 	/\b(summary|about|skills|links|contact|hero|focus|stats|experience:[a-z0-9-]+|education:[a-z0-9-]+|project:[a-z0-9-]+|article:[a-z0-9-]+|case-study:[a-z0-9-]+|recommendation:[a-z0-9-]+)\b/gi;
 
-function toChatCompletionsPayload(content, model) {
+type AssistantMessage = {
+	role: "system" | "developer" | "user" | "assistant";
+	content: string;
+};
+
+type AssistantChatBody = {
+	model?: string;
+	temperature?: number;
+	max_tokens?: number;
+	response_format?: Record<string, unknown>;
+	messages: AssistantMessage[];
+};
+
+type ProviderAttempt = {
+	provider: string;
+	status: number;
+	error: string | null;
+};
+
+type WorkerProviderEnv = Record<string, unknown> & {
+	GITHUB_MODELS_TOKEN?: string;
+	GITHUB_MODELS_CHAT_MODEL?: string;
+	GROQ_API_KEY?: string;
+	GROQ_MODEL?: string;
+	HUGGING_FACE_API_TOKEN?: string;
+	HUGGING_FACE_MODEL?: string;
+	CLOUDFLARE_AI_MODEL?: string;
+	RAG_CHAT_MODEL?: string;
+	AI?: {
+		run(model: string, input: Record<string, unknown>): Promise<unknown>;
+	};
+};
+
+type AssistantFetchResponse = {
+	ok: boolean;
+	status: number;
+	payload: unknown;
+	provider: string;
+};
+
+type AssistantChoice = {
+	message?: {
+		role?: string;
+		content?: string;
+	};
+	[key: string]: unknown;
+};
+
+function toChatCompletionsPayload(content: string, model: string) {
 	return {
 		id: crypto.randomUUID(),
 		object: "chat.completion",
@@ -25,7 +75,7 @@ function toChatCompletionsPayload(content, model) {
 	};
 }
 
-function inferAssistantStatusFromAnswer(answer) {
+function inferAssistantStatusFromAnswer(answer: string) {
 	const normalizedAnswer = String(answer || "").trim();
 
 	if (normalizedAnswer === ASSISTANT_MISSING_MESSAGE) {
@@ -39,7 +89,7 @@ function inferAssistantStatusFromAnswer(answer) {
 	return "answered";
 }
 
-function extractKnownAssistantAnswer(rawValue) {
+function extractKnownAssistantAnswer(rawValue: unknown) {
 	const stringValue = String(rawValue || "");
 
 	if (!stringValue.trim()) {
@@ -63,7 +113,7 @@ function extractKnownAssistantAnswer(rawValue) {
 	return null;
 }
 
-function extractSnippetIdsFromText(rawValue) {
+function extractSnippetIdsFromText(rawValue: unknown) {
 	const stringValue = String(rawValue || "");
 
 	if (!stringValue.trim()) {
@@ -72,16 +122,20 @@ function extractSnippetIdsFromText(rawValue) {
 
 	const matches = stringValue.match(SNIPPET_ID_PATTERN) || [];
 
-	return [...new Set(matches.map((match) => match.toLowerCase()))];
+	return Array.from(new Set(matches.map((match) => match.toLowerCase())));
 }
 
-function coerceAssistantStructuredObject(value) {
+function coerceAssistantStructuredObject(value: unknown) {
 	if (!value) {
 		return null;
 	}
 
 	if (
 		typeof value === "object" &&
+		value !== null &&
+		"status" in value &&
+		"answer" in value &&
+		"citations" in value &&
 		typeof value.status === "string" &&
 		typeof value.answer === "string" &&
 		Array.isArray(value.citations)
@@ -91,12 +145,14 @@ function coerceAssistantStructuredObject(value) {
 		return {
 			status: value.status,
 			answer: value.answer,
-			citations: [
-				...new Set([
-					...value.citations.filter((citation) => typeof citation === "string"),
+			citations: Array.from(
+				new Set([
+					...value.citations.filter(
+						(citation): citation is string => typeof citation === "string",
+					),
 					...extractedCitations,
 				]),
-			],
+			),
 		};
 	}
 
@@ -116,7 +172,7 @@ function coerceAssistantStructuredObject(value) {
 
 	if (Array.isArray(value)) {
 		const answer = value
-			.filter((item) => typeof item === "string")
+			.filter((item): item is string => typeof item === "string")
 			.map((item) => item.trim())
 			.filter(Boolean)
 			.join(" ");
@@ -134,19 +190,31 @@ function coerceAssistantStructuredObject(value) {
 
 	if (
 		typeof value === "object" &&
-		value.schema &&
+		value !== null &&
+		"schema" in value &&
 		typeof value.schema === "object" &&
-		value.schema.properties &&
-		typeof value.schema.properties === "object"
+		value.schema !== null &&
+		"properties" in value.schema &&
+		typeof value.schema.properties === "object" &&
+		value.schema.properties !== null
 	) {
-		const { status, answer, citations } = value.schema.properties;
+		const properties = value.schema.properties as {
+			status?: unknown;
+			answer?: unknown;
+			citations?: unknown;
+		};
 
-		if (typeof status === "string" && typeof answer === "string") {
+		if (
+			typeof properties.status === "string" &&
+			typeof properties.answer === "string"
+		) {
 			return {
-				status,
-				answer,
-				citations: Array.isArray(citations)
-					? citations.filter((citation) => typeof citation === "string")
+				status: properties.status,
+				answer: properties.answer,
+				citations: Array.isArray(properties.citations)
+					? properties.citations.filter(
+							(citation): citation is string => typeof citation === "string",
+						)
 					: [],
 			};
 		}
@@ -167,10 +235,14 @@ function coerceAssistantStructuredObject(value) {
 	return null;
 }
 
-function normalizeAssistantChatPayload(payload, fallbackModel = "assistant") {
+function normalizeAssistantChatPayload(
+	payload: unknown,
+	fallbackModel = "assistant",
+) {
 	if (
 		!payload ||
 		typeof payload !== "object" ||
+		!("choices" in payload) ||
 		!Array.isArray(payload.choices)
 	) {
 		return payload;
@@ -182,7 +254,7 @@ function normalizeAssistantChatPayload(payload, fallbackModel = "assistant") {
 		return payload;
 	}
 
-	let parsedContent;
+	let parsedContent: unknown;
 
 	try {
 		parsedContent = JSON.parse(rawContent);
@@ -196,13 +268,19 @@ function normalizeAssistantChatPayload(payload, fallbackModel = "assistant") {
 		return payload;
 	}
 
+	const typedPayload = payload as {
+		model?: string;
+		choices: AssistantChoice[];
+		[key: string]: unknown;
+	};
+
 	return {
-		...payload,
+		...typedPayload,
 		model:
-			typeof payload.model === "string" && payload.model.trim()
-				? payload.model
+			typeof typedPayload.model === "string" && typedPayload.model.trim()
+				? typedPayload.model
 				: fallbackModel,
-		choices: payload.choices.map((choice, index) =>
+		choices: typedPayload.choices.map((choice, index) =>
 			index === 0
 				? {
 						...choice,
@@ -217,10 +295,11 @@ function normalizeAssistantChatPayload(payload, fallbackModel = "assistant") {
 	};
 }
 
-function isIncompleteAssistantChatPayload(payload) {
+function isIncompleteAssistantChatPayload(payload: unknown) {
 	if (
 		!payload ||
 		typeof payload !== "object" ||
+		!("choices" in payload) ||
 		!Array.isArray(payload.choices)
 	) {
 		return false;
@@ -235,10 +314,11 @@ function isIncompleteAssistantChatPayload(payload) {
 	return finishReason === "length";
 }
 
-function getAssistantStructuredStatus(payload) {
+function getAssistantStructuredStatus(payload: unknown) {
 	if (
 		!payload ||
 		typeof payload !== "object" ||
+		!("choices" in payload) ||
 		!Array.isArray(payload.choices)
 	) {
 		return null;
@@ -251,8 +331,7 @@ function getAssistantStructuredStatus(payload) {
 	}
 
 	try {
-		const parsedContent = JSON.parse(rawContent);
-
+		const parsedContent = JSON.parse(rawContent) as { status?: string };
 		return typeof parsedContent?.status === "string"
 			? parsedContent.status
 			: null;
@@ -261,38 +340,49 @@ function getAssistantStructuredStatus(payload) {
 	}
 }
 
-function isMissingAssistantResponse(payload) {
+function isMissingAssistantResponse(payload: unknown) {
 	return getAssistantStructuredStatus(payload) === "missing";
 }
 
-function normalizeAssistantErrorPayload(payload, fallbackMessage) {
+function normalizeAssistantErrorPayload(
+	payload: unknown,
+	fallbackMessage: string,
+) {
 	if (typeof payload === "string" && payload.trim()) {
 		return payload;
 	}
 
 	if (payload && typeof payload === "object") {
-		if (typeof payload.error === "string" && payload.error.trim()) {
-			return payload.error;
+		const payloadRecord = payload as {
+			error?: string | { message?: string };
+			message?: string;
+		};
+
+		if (typeof payloadRecord.error === "string" && payloadRecord.error.trim()) {
+			return payloadRecord.error;
 		}
 
 		if (
-			payload.error &&
-			typeof payload.error === "object" &&
-			typeof payload.error.message === "string" &&
-			payload.error.message.trim()
+			payloadRecord.error &&
+			typeof payloadRecord.error === "object" &&
+			typeof payloadRecord.error.message === "string" &&
+			payloadRecord.error.message.trim()
 		) {
-			return payload.error.message;
+			return payloadRecord.error.message;
 		}
 
-		if (typeof payload.message === "string" && payload.message.trim()) {
-			return payload.message;
+		if (
+			typeof payloadRecord.message === "string" &&
+			payloadRecord.message.trim()
+		) {
+			return payloadRecord.message;
 		}
 	}
 
 	return fallbackMessage;
 }
 
-export function isRateLimitLikeFailure(status, payload) {
+export function isRateLimitLikeFailure(status: number, payload: unknown) {
 	if (status === 429) {
 		return true;
 	}
@@ -307,7 +397,7 @@ export function isRateLimitLikeFailure(status, payload) {
 	);
 }
 
-function isGroqFallbackWorthyFailure(status, payload) {
+function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
 	if (status === 503 || isRateLimitLikeFailure(status, payload)) {
 		return true;
 	}
@@ -332,12 +422,12 @@ function isGroqFallbackWorthyFailure(status, payload) {
 	);
 }
 
-function normalizeAssistantMessagesForGroq(messages) {
+function normalizeAssistantMessagesForGroq(messages: AssistantMessage[]) {
 	if (!Array.isArray(messages) || messages.length === 0) {
 		return [];
 	}
 
-	const normalizedMessages = [];
+	const normalizedMessages: Array<{ role: string; content: string }> = [];
 	let leadingInstructionBlock = "";
 
 	for (const message of messages) {
@@ -371,7 +461,10 @@ function normalizeAssistantMessagesForGroq(messages) {
 	return normalizedMessages;
 }
 
-function ensureGroqJsonInstruction(messages, responseFormat) {
+function ensureGroqJsonInstruction(
+	messages: Array<{ role: string; content: string }>,
+	responseFormat: Record<string, unknown> | undefined,
+) {
 	if (
 		!responseFormat ||
 		typeof responseFormat !== "object" ||
@@ -414,7 +507,9 @@ function ensureGroqJsonInstruction(messages, responseFormat) {
 	];
 }
 
-function normalizeResponseFormatForOpenAiCompat(responseFormat) {
+function normalizeResponseFormatForOpenAiCompat(
+	responseFormat: Record<string, unknown> | undefined,
+) {
 	if (!responseFormat || typeof responseFormat !== "object") {
 		return undefined;
 	}
@@ -426,33 +521,43 @@ function normalizeResponseFormatForOpenAiCompat(responseFormat) {
 	return responseFormat;
 }
 
-function normalizeResponseFormatForCloudflare(responseFormat) {
+function normalizeResponseFormatForCloudflare(
+	responseFormat: Record<string, unknown> | undefined,
+) {
 	if (!responseFormat || typeof responseFormat !== "object") {
 		return undefined;
 	}
 
 	if (
 		responseFormat.type === "json_schema" &&
-		responseFormat.json_schema &&
 		typeof responseFormat.json_schema === "object" &&
-		responseFormat.json_schema.schema &&
-		typeof responseFormat.json_schema.schema === "object"
+		responseFormat.json_schema !== null &&
+		typeof (responseFormat.json_schema as Record<string, unknown>).schema ===
+			"object" &&
+		(responseFormat.json_schema as Record<string, unknown>).schema !== null
 	) {
 		return {
 			type: "json_schema",
-			json_schema: responseFormat.json_schema.schema,
+			json_schema: (responseFormat.json_schema as Record<string, unknown>)
+				.schema,
 		};
 	}
 
 	return responseFormat;
 }
 
-function extractCloudflareAssistantContent(result) {
+function extractCloudflareAssistantContent(result: unknown) {
+	const responseResult = result as {
+		response?: unknown;
+		result?: {
+			response?: unknown;
+		};
+	};
 	const candidate =
-		result?.response !== undefined
-			? result.response
-			: result?.result?.response !== undefined
-				? result.result.response
+		responseResult?.response !== undefined
+			? responseResult.response
+			: responseResult?.result?.response !== undefined
+				? responseResult.result.response
 				: null;
 
 	if (typeof candidate === "string" && candidate.trim()) {
@@ -463,15 +568,28 @@ function extractCloudflareAssistantContent(result) {
 		return null;
 	}
 
+	const candidateRecord = candidate as {
+		status?: unknown;
+		answer?: unknown;
+		citations?: unknown;
+		schema?: {
+			properties?: {
+				status?: unknown;
+				answer?: unknown;
+				citations?: unknown;
+			};
+		};
+	};
+
 	if (
-		typeof candidate.status === "string" &&
-		typeof candidate.answer === "string" &&
-		Array.isArray(candidate.citations)
+		typeof candidateRecord.status === "string" &&
+		typeof candidateRecord.answer === "string" &&
+		Array.isArray(candidateRecord.citations)
 	) {
 		return JSON.stringify(candidate);
 	}
 
-	const echoedProperties = candidate?.schema?.properties;
+	const echoedProperties = candidateRecord.schema?.properties;
 
 	if (
 		echoedProperties &&
@@ -490,27 +608,38 @@ function extractCloudflareAssistantContent(result) {
 	return JSON.stringify(candidate);
 }
 
-function createAssistantFetchResponse(response, payload, provider) {
+function createAssistantFetchResponse(
+	response: Response,
+	payload: unknown,
+	provider: string,
+) {
 	return {
 		ok: response.ok,
 		status: response.status,
 		payload,
 		provider,
-	};
+	} satisfies AssistantFetchResponse;
 }
 
-function buildProviderContextHeaders(provider, providerAttempts) {
+function buildProviderContextHeaders(
+	provider: string,
+	providerAttempts: ProviderAttempt[],
+) {
 	return {
 		"X-Assistant-Provider": provider,
 		"X-Assistant-Providers": JSON.stringify(providerAttempts),
 	};
 }
 
-async function parseJsonResponse(response) {
+async function parseJsonResponse(response: Response) {
 	return parseMaybeJsonResponse(response);
 }
 
-async function callGitHubModelsRaw(pathname, env, body) {
+async function callGitHubModelsRaw(
+	pathname: string,
+	env: WorkerProviderEnv,
+	body: Record<string, unknown>,
+) {
 	if (!env.GITHUB_MODELS_TOKEN) {
 		return jsonResponse({ error: "Assistant service is not configured" }, 503);
 	}
@@ -539,7 +668,7 @@ async function callGitHubModelsRaw(pathname, env, body) {
 	}
 }
 
-async function callGroqRaw(body, env) {
+async function callGroqRaw(body: AssistantChatBody, env: WorkerProviderEnv) {
 	if (!env.GROQ_API_KEY || !env.GROQ_MODEL) {
 		return jsonResponse({ error: "Groq is not configured" }, 503);
 	}
@@ -576,7 +705,10 @@ async function callGroqRaw(body, env) {
 	}
 }
 
-async function callHuggingFaceRaw(body, env) {
+async function callHuggingFaceRaw(
+	body: AssistantChatBody,
+	env: WorkerProviderEnv,
+) {
 	if (!env.HUGGING_FACE_API_TOKEN || !env.HUGGING_FACE_MODEL) {
 		return jsonResponse({ error: "Hugging Face is not configured" }, 503);
 	}
@@ -611,7 +743,10 @@ async function callHuggingFaceRaw(body, env) {
 	}
 }
 
-async function callCloudflareRaw(body, env) {
+async function callCloudflareRaw(
+	body: AssistantChatBody,
+	env: WorkerProviderEnv,
+) {
 	if (!env.AI || !env.CLOUDFLARE_AI_MODEL) {
 		return jsonResponse({ error: "Cloudflare AI is not configured" }, 503);
 	}
@@ -623,7 +758,7 @@ async function callCloudflareRaw(body, env) {
 			max_tokens: body.max_tokens ?? 220,
 			response_format: normalizeResponseFormatForCloudflare(
 				body.response_format,
-			),
+			) as Record<string, unknown> | undefined,
 		});
 
 		return jsonResponse(result, 200);
@@ -640,7 +775,11 @@ async function callCloudflareRaw(body, env) {
 	}
 }
 
-export async function callRawAssistantProvider(provider, body, env) {
+export async function callRawAssistantProvider(
+	provider: string,
+	body: AssistantChatBody,
+	env: WorkerProviderEnv,
+) {
 	switch (provider) {
 		case "github-models":
 			return callGitHubModelsRaw("/inference/chat/completions", env, {
@@ -674,12 +813,51 @@ export async function callRawAssistantProvider(provider, body, env) {
 				},
 				env,
 			);
+		case "portfolio-rag": {
+			const question = extractQuestionFromMessages(body.messages);
+
+			if (!question) {
+				return jsonResponse(
+					{ error: "Portfolio RAG requires at least one message with content" },
+					422,
+				);
+			}
+
+			try {
+				const payload = await runRagQuestion(
+					question,
+					env as unknown as RagEnv,
+				);
+
+				return jsonResponse(
+					toChatCompletionsPayload(
+						JSON.stringify(payload),
+						env.RAG_CHAT_MODEL || "portfolio-rag",
+					),
+					200,
+				);
+			} catch (error) {
+				return jsonResponse(
+					{
+						error:
+							error instanceof Error
+								? error.message
+								: "Portfolio RAG request failed",
+					},
+					503,
+				);
+			}
+		}
 		default:
 			return jsonResponse({ error: "Unsupported provider" }, 422);
 	}
 }
 
-export async function callGitHubModels(pathname, env, body) {
+export async function callGitHubModels(
+	pathname: string,
+	env: WorkerProviderEnv,
+	body: Record<string, unknown>,
+) {
 	const response = await callGitHubModelsRaw(pathname, env, body);
 	const payload = await parseMaybeJsonResponse(response.clone());
 
@@ -689,7 +867,10 @@ export async function callGitHubModels(pathname, env, body) {
 	);
 }
 
-async function callCloudflareAi(body, env) {
+async function callCloudflareAi(
+	body: AssistantChatBody,
+	env: WorkerProviderEnv,
+) {
 	const rawResponse = await callCloudflareRaw(
 		{
 			...body,
@@ -716,12 +897,15 @@ async function callCloudflareAi(body, env) {
 
 	return createAssistantFetchResponse(
 		new Response(null, { status: 200 }),
-		toChatCompletionsPayload(rawContent, env.CLOUDFLARE_AI_MODEL),
+		toChatCompletionsPayload(
+			rawContent,
+			env.CLOUDFLARE_AI_MODEL || "cloudflare",
+		),
 		"cloudflare",
 	);
 }
 
-async function callGroq(body, env) {
+async function callGroq(body: AssistantChatBody, env: WorkerProviderEnv) {
 	const rawResponse = await callGroqRaw(
 		{
 			...body,
@@ -738,7 +922,10 @@ async function callGroq(body, env) {
 	);
 }
 
-async function callHuggingFace(body, env) {
+async function callHuggingFace(
+	body: AssistantChatBody,
+	env: WorkerProviderEnv,
+) {
 	const rawResponse = await callHuggingFaceRaw(
 		{
 			...body,
@@ -755,7 +942,9 @@ async function callHuggingFace(body, env) {
 	);
 }
 
-export function createGracefulRateLimitedAssistantPayload(model) {
+export function createGracefulRateLimitedAssistantPayload(
+	model: string | null,
+) {
 	return toChatCompletionsPayload(
 		JSON.stringify({
 			status: "missing",
@@ -767,9 +956,9 @@ export function createGracefulRateLimitedAssistantPayload(model) {
 }
 
 export function createGracefulRateLimitedAssistantResponse(
-	model,
-	origin,
-	provider,
+	model: string | null,
+	origin: string | null,
+	provider: string,
 ) {
 	return jsonResponse(createGracefulRateLimitedAssistantPayload(model), 200, {
 		...(origin ? corsHeaders(origin) : {}),
@@ -778,15 +967,24 @@ export function createGracefulRateLimitedAssistantResponse(
 	});
 }
 
-export async function shouldGracefullyHandleAssistantRateLimit(response) {
+export async function shouldGracefullyHandleAssistantRateLimit(
+	response: Response,
+) {
 	const payload = await parseJsonResponse(response.clone()).catch(() => null);
 
 	return isRateLimitLikeFailure(response.status, payload);
 }
 
-export async function callAssistantChatWithRouting(env, body) {
-	const providerAttempts = [];
-	let lastMissingResponse = null;
+export async function callAssistantChatWithRouting(
+	env: WorkerProviderEnv,
+	body: AssistantChatBody,
+) {
+	const providerAttempts: ProviderAttempt[] = [];
+	let lastMissingResponse: {
+		payload: unknown;
+		status: number;
+		provider: string;
+	} | null = null;
 
 	if (env.GITHUB_MODELS_TOKEN) {
 		const githubResponse = await callGitHubModels(
@@ -1057,6 +1255,42 @@ export async function callAssistantChatWithRouting(env, body) {
 		);
 	}
 
+	const ragQuestion = extractQuestionFromMessages(body.messages);
+
+	if (ragQuestion) {
+		try {
+			const ragPayload = await runRagQuestion(
+				ragQuestion,
+				env as unknown as RagEnv,
+			);
+
+			return jsonResponse(
+				toChatCompletionsPayload(
+					JSON.stringify(ragPayload),
+					env.RAG_CHAT_MODEL || "portfolio-rag",
+				),
+				200,
+				buildProviderContextHeaders("portfolio-rag", [
+					...providerAttempts,
+					{
+						provider: "portfolio-rag",
+						status: 200,
+						error: null,
+					},
+				]),
+			);
+		} catch (error) {
+			providerAttempts.push({
+				provider: "portfolio-rag",
+				status: 503,
+				error:
+					error instanceof Error
+						? error.message
+						: "Portfolio RAG request failed",
+			});
+		}
+	}
+
 	if (lastMissingResponse) {
 		return jsonResponse(
 			lastMissingResponse.payload,
@@ -1069,7 +1303,7 @@ export async function callAssistantChatWithRouting(env, body) {
 	}
 
 	return jsonResponse(
-		createGracefulRateLimitedAssistantPayload(body.model),
+		createGracefulRateLimitedAssistantPayload(body.model || null),
 		200,
 		{
 			...buildProviderContextHeaders("rate-limit-fallback", providerAttempts),

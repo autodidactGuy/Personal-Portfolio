@@ -1,9 +1,9 @@
-export function parseCookies(cookieHeader) {
+export function parseCookies(cookieHeader: string | null) {
 	return String(cookieHeader || "")
 		.split(";")
 		.map((part) => part.trim())
 		.filter(Boolean)
-		.reduce((cookies, part) => {
+		.reduce<Record<string, string>>((cookies, part) => {
 			const separatorIndex = part.indexOf("=");
 
 			if (separatorIndex === -1) {
@@ -17,7 +17,11 @@ export function parseCookies(cookieHeader) {
 		}, {});
 }
 
-export function serializeCookie(name, value, maxAgeSeconds) {
+export function serializeCookie(
+	name: string,
+	value: string,
+	maxAgeSeconds: number,
+) {
 	const segments = [
 		`${name}=${encodeURIComponent(value)}`,
 		"Path=/",
@@ -35,7 +39,10 @@ export function withClearedOauthCookies(headers = new Headers()) {
 	return headers;
 }
 
-export function createRedirectResponse(location, headers = new Headers()) {
+export function createRedirectResponse(
+	location: string,
+	headers = new Headers(),
+) {
 	headers.set("Location", location);
 	return new Response(null, {
 		status: 302,
@@ -43,9 +50,9 @@ export function createRedirectResponse(location, headers = new Headers()) {
 	});
 }
 
-export function corsHeaders(origin) {
+export function corsHeaders(origin: string | null) {
 	return {
-		"Access-Control-Allow-Origin": origin,
+		"Access-Control-Allow-Origin": origin || "*",
 		"Access-Control-Allow-Methods": "POST, OPTIONS",
 		"Access-Control-Allow-Headers": "Content-Type",
 		"Access-Control-Expose-Headers":
@@ -55,7 +62,11 @@ export function corsHeaders(origin) {
 	};
 }
 
-export function jsonResponse(body, status, extraHeaders = {}) {
+export function jsonResponse(
+	body: unknown,
+	status: number,
+	extraHeaders: Record<string, string> = {},
+) {
 	return new Response(JSON.stringify(body), {
 		status,
 		headers: {
@@ -65,7 +76,10 @@ export function jsonResponse(body, status, extraHeaders = {}) {
 	});
 }
 
-export async function parseJsonRequest(request, cors) {
+export async function parseJsonRequest(
+	request: Request,
+	cors: Record<string, string>,
+) {
 	try {
 		return await request.json();
 	} catch {
@@ -73,7 +87,7 @@ export async function parseJsonRequest(request, cors) {
 	}
 }
 
-export async function parseMaybeJsonResponse(response) {
+export async function parseMaybeJsonResponse(response: Response) {
 	const rawText = await response.text();
 	const contentType = response.headers.get("Content-Type") || "";
 
@@ -82,7 +96,7 @@ export async function parseMaybeJsonResponse(response) {
 	}
 
 	try {
-		return JSON.parse(rawText);
+		return JSON.parse(rawText) as unknown;
 	} catch {
 		return rawText;
 	}

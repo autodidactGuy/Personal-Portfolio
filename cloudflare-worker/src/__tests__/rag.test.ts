@@ -3,7 +3,8 @@ import { buildChunks } from "../../scripts/lib/chunking";
 import app from "../rag-app";
 
 const baseEnv = {
-	RAG_ALLOWED_ORIGINS: "*",
+	ALLOWED_ORIGINS: "https://hassanraza.us",
+	ORIGIN: "https://hassanraza.us",
 	RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 	RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
 	RAG_TOP_K: "6",
@@ -67,6 +68,7 @@ describe("/ask", () => {
 			new Request("https://worker.test/ask", {
 				method: "POST",
 				headers: {
+					Origin: "https://hassanraza.us",
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({}),
@@ -98,6 +100,7 @@ describe("/ask", () => {
 			new Request("https://worker.test/ask", {
 				method: "POST",
 				headers: {
+					Origin: "https://hassanraza.us",
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ question: "What projects has Hassan built?" }),
@@ -155,6 +158,7 @@ describe("/ask", () => {
 			new Request("https://worker.test/ask", {
 				method: "POST",
 				headers: {
+					Origin: "https://hassanraza.us",
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({

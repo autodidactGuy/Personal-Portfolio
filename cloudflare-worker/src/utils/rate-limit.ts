@@ -3,20 +3,25 @@ const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_MAX_ENTRIES = 10000;
 const RATE_LIMIT_PRUNE_INTERVAL_MS = 60 * 1000;
 
-export const rateLimitMap = new Map();
+type RateLimitEntry = {
+	timestamps: number[];
+};
+
+export const rateLimitMap = new Map<string, RateLimitEntry>();
 
 let lastPruneTime = 0;
 
-function pruneExpiredEntries(now) {
+function pruneExpiredEntries(now: number) {
 	if (now - lastPruneTime < RATE_LIMIT_PRUNE_INTERVAL_MS) {
 		return;
 	}
 
 	lastPruneTime = now;
 
-	for (const [ip, entry] of rateLimitMap) {
+	for (const entryPair of Array.from(rateLimitMap.entries())) {
+		const [ip, entry] = entryPair;
 		const valid = entry.timestamps.filter(
-			(timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS,
+			(timestamp: number) => now - timestamp < RATE_LIMIT_WINDOW_MS,
 		);
 
 		if (valid.length === 0) {
@@ -35,11 +40,17 @@ function pruneExpiredEntries(now) {
 	const iterator = rateLimitMap.keys();
 
 	for (let index = 0; index < excess; index += 1) {
-		rateLimitMap.delete(iterator.next().value);
+		const next = iterator.next().value;
+		if (typeof next === "string") {
+			rateLimitMap.delete(next);
+		}
 	}
 }
 
-export function isRateLimited(ip, options = {}) {
+export function isRateLimited(
+	ip: string,
+	options: { windowMs?: number; max?: number } = {},
+) {
 	const { windowMs = RATE_LIMIT_WINDOW_MS, max = RATE_LIMIT_MAX } = options;
 	const now = Date.now();
 

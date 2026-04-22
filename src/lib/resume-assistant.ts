@@ -201,7 +201,8 @@ export type AssistantDebugProvider =
 	| "github-models"
 	| "groq"
 	| "huggingface"
-	| "cloudflare";
+	| "cloudflare"
+	| "portfolio-rag";
 
 export type AssistantChatRequestMessage = {
 	role: "system" | "developer" | "user" | "assistant";

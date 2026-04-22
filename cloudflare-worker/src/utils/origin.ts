@@ -1,11 +1,16 @@
-export function getAllowedOrigins(env) {
+type OriginEnv = {
+	ALLOWED_ORIGINS?: string;
+	ORIGIN?: string;
+};
+
+export function getAllowedOrigins(env: OriginEnv) {
 	return String(env.ALLOWED_ORIGINS || env.ORIGIN || "")
 		.split(",")
 		.map((value) => value.trim())
 		.filter(Boolean);
 }
 
-export function isLocalDevelopmentOrigin(origin) {
+export function isLocalDevelopmentOrigin(origin: string) {
 	try {
 		const url = new URL(origin);
 
@@ -20,7 +25,7 @@ export function isLocalDevelopmentOrigin(origin) {
 	}
 }
 
-export function isAllowedOrigin(origin, env) {
+export function isAllowedOrigin(origin: string, env: OriginEnv) {
 	if (getAllowedOrigins(env).includes(origin)) {
 		return true;
 	}
@@ -28,7 +33,7 @@ export function isAllowedOrigin(origin, env) {
 	return isLocalDevelopmentOrigin(origin);
 }
 
-export function sanitizeOriginCandidate(value) {
+export function sanitizeOriginCandidate(value: string | null) {
 	if (!value) {
 		return null;
 	}
@@ -48,7 +53,7 @@ export function sanitizeOriginCandidate(value) {
 	}
 }
 
-export function getRequestOrigin(request, url) {
+export function getRequestOrigin(request: Request, url: URL) {
 	const explicitOrigin = sanitizeOriginCandidate(
 		url.searchParams.get("origin"),
 	);

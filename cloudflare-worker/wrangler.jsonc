@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "personal-portfolio",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "compatibility_date": "2026-04-04",
   "workers_dev": true,
   "observability": {
@@ -10,6 +10,19 @@
   "ai": {
     "binding": "AI"
   },
+  "vectorize": [
+    {
+      "binding": "VECTOR_INDEX",
+      "index_name": "portfolio-rag-index"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RAG_KV",
+      "id": "YOUR_KV_NAMESPACE_ID",
+      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID"
+    }
+  ],
   "vars": {
     "GITHUB_OAUTH_SCOPE": "public_repo",
     "ALLOWED_GITHUB_USERS": "autodidactGuy",
@@ -21,7 +34,16 @@
     "GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
     "GROQ_MODEL": "openai/gpt-oss-120b",
     "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-    "HUGGING_FACE_MODEL": "openai/gpt-oss-120b"
+    "HUGGING_FACE_MODEL": "openai/gpt-oss-120b",
+    "RAG_EMBED_MODEL": "@cf/baai/bge-small-en-v1.5",
+    "RAG_CHAT_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "RAG_TOP_K": "6",
+    "RAG_SIMILARITY_THRESHOLD": "0.72",
+    "RAG_MAX_CONTEXT_CHUNKS": "4",
+    "RAG_MAX_OUTPUT_TOKENS": "300",
+    "RAG_CHUNK_TARGET_CHARS": "900",
+    "RAG_CHUNK_MAX_CHARS": "1200",
+    "RAG_CHUNK_OVERLAP_CHARS": "120"
   },
   // Secrets (set via `wrangler secret put`):
   //   GITHUB_CLIENT_ID      – GitHub OAuth app client ID
@@ -37,4 +59,11 @@
   //   GROQ_MODEL             – Groq chat model identifier
   //   CLOUDFLARE_AI_MODEL    – Workers AI model for native env.AI.run() fallback
   //   HUGGING_FACE_MODEL     – Hugging Face router chat model identifier
+  //   RAG_EMBED_MODEL        – Workers AI embedding model for portfolio RAG
+  //   RAG_CHAT_MODEL         – Workers AI generation model for portfolio RAG
+  //   RAG_TOP_K              – Vectorize top-k retrieval count
+  //   RAG_SIMILARITY_THRESHOLD – Similarity threshold for retrieval acceptance
+  //
+  // Replace the placeholder KV namespace IDs above before local deploy/dev,
+  // or generate a temporary config in CI with the real secret values.
 }

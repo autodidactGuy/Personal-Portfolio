@@ -71,7 +71,8 @@ export type RagEnv = {
 	RAG_SIMILARITY_THRESHOLD?: string;
 	RAG_MAX_CONTEXT_CHUNKS?: string;
 	RAG_MAX_OUTPUT_TOKENS?: string;
-	RAG_ALLOWED_ORIGINS?: string;
+	ALLOWED_ORIGINS?: string;
+	ORIGIN?: string;
 };
 
 export type RagConfig = {
@@ -81,5 +82,4 @@ export type RagConfig = {
 	similarityThreshold: number;
 	maxContextChunks: number;
 	maxOutputTokens: number;
-	allowedOrigins: string[];
 };

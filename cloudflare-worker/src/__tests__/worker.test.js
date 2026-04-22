@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import worker, { rateLimitMap, resetRateLimitState } from "../index.js";
+import worker, { rateLimitMap, resetRateLimitState } from "../index.ts";
 
 const ALLOWED_ORIGIN = "https://hassanraza.us";
 
@@ -529,6 +529,73 @@ describe("/assistant-provider-raw", () => {
 
 		expect(response.status).toBe(200);
 		expect(groqBody.response_format).toBeUndefined();
+	});
+
+	it("supports portfolio-rag in raw debug mode", async () => {
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response: "Hassan built payment systems.",
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-provider-raw", "POST", ALLOWED_ORIGIN, {
+				provider: "portfolio-rag",
+				request: {
+					action: "chat",
+					messages: [
+						{ role: "user", content: "What kind of systems has Hassan built?" },
+					],
+				},
+			}),
+			{
+				...env,
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({
+						matches: [{ id: "vec-1", score: 0.92 }],
+					}),
+				},
+				RAG_KV: {
+					get: vi.fn().mockResolvedValue(
+						new Map([
+							[
+								"vec-1",
+								JSON.stringify({
+									vectorId: "vec-1",
+									id: "experience:overflow:overview:0",
+									text: "Built fintech systems for payments and analytics.",
+									sourceType: "experience",
+									title: "Senior Software Engineer at Overflow App Inc",
+									slug: "overflow",
+									url: "https://example.com/about",
+									section: "overview",
+								}),
+							],
+						]),
+					),
+				},
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
+				RAG_TOP_K: "6",
+				RAG_SIMILARITY_THRESHOLD: "0.72",
+				RAG_MAX_CONTEXT_CHUNKS: "4",
+				RAG_MAX_OUTPUT_TOKENS: "300",
+			},
+		);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("portfolio-rag");
+		expect(JSON.parse(data.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			citations: ["experience:overflow:overview:0"],
+		});
 	});
 });
 
@@ -1361,6 +1428,110 @@ describe("/assistant-routed", () => {
 		expect(data.error).toBe("bad gateway");
 		expect(aiRun).not.toHaveBeenCalled();
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("falls back to portfolio-rag after other providers miss or fail", async () => {
+		vi.spyOn(globalThis, "fetch")
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: "rate limited" }), {
+					status: 429,
+					headers: { "Content-Type": "application/json" },
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: "provider unavailable" }), {
+					status: 503,
+					headers: { "Content-Type": "application/json" },
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"missing","answer":"I don\'t have that information available.","citations":[]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
+
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response:
+					'{"status":"answered","answer":"Hassan worked on payment infrastructure at Overflow.","citations":["experience:overflow:overview:0"]}',
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [
+					{
+						role: "user",
+						content: "Has Hassan worked on payment infrastructure?",
+					},
+				],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "openai/gpt-oss-20b",
+				HUGGING_FACE_API_TOKEN: "hf_test",
+				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({
+						matches: [{ id: "vec-1", score: 0.91 }],
+					}),
+				},
+				RAG_KV: {
+					get: vi.fn().mockResolvedValue(
+						new Map([
+							[
+								"vec-1",
+								JSON.stringify({
+									vectorId: "vec-1",
+									id: "experience:overflow:overview:0",
+									text: "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds.",
+									sourceType: "experience",
+									title: "Senior Software Engineer at Overflow App Inc",
+									slug: "overflow",
+									url: "https://example.com/about",
+									section: "overview",
+								}),
+							],
+						]),
+					),
+				},
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
+				RAG_TOP_K: "6",
+				RAG_SIMILARITY_THRESHOLD: "0.72",
+				RAG_MAX_CONTEXT_CHUNKS: "4",
+				RAG_MAX_OUTPUT_TOKENS: "300",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("portfolio-rag");
+		expect(JSON.parse(payload.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			answer: "Hassan worked on payment infrastructure at Overflow.",
+			citations: ["experience:overflow:overview:0"],
+		});
 	});
 });
 
