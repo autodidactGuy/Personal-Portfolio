@@ -60,7 +60,7 @@ describe("/ask", () => {
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toContain("text/html");
-		expect(await response.text()).toContain("Ask /ask");
+		expect(await response.text()).toContain("Call /assistant-provider-raw");
 	});
 
 	it("returns 400 for invalid request bodies", async () => {
