@@ -2026,6 +2026,18 @@ const BROAD_ASSISTANT_CATEGORY_ORDER: ResumeSnippet["category"][] = [
 	"article",
 ];
 
+const ALWAYS_INCLUDED_ROUTED_CATEGORIES: ResumeSnippet["category"][] = [
+	"summary",
+	"hero",
+	"focus",
+	"stats",
+	"about",
+	"experience",
+	"education",
+	"contact",
+	"recommendation",
+];
+
 function collectSnippetContext(args: {
 	allSnippets: ResumeSnippet[];
 	limit: number;
@@ -2083,6 +2095,8 @@ function getFoundationalAssistantSnippets(allSnippets: ResumeSnippet[]) {
 		"focus",
 		"stats",
 		"skills",
+		"experience",
+		"education",
 		"recommendation",
 		"links",
 		"contact",
@@ -2090,6 +2104,12 @@ function getFoundationalAssistantSnippets(allSnippets: ResumeSnippet[]) {
 
 	return allSnippets.filter((snippet) =>
 		foundationalCategories.includes(snippet.category),
+	);
+}
+
+function getAlwaysIncludedRoutedSnippets(allSnippets: ResumeSnippet[]) {
+	return allSnippets.filter((snippet) =>
+		ALWAYS_INCLUDED_ROUTED_CATEGORIES.includes(snippet.category),
 	);
 }
 
@@ -2128,12 +2148,21 @@ export function buildInitialAssistantContextSnippets(
 	question: string,
 	allSnippets: ResumeSnippet[],
 ) {
-	const contextLimit = isBroadProfileQuestion(question)
+	const alwaysIncludedSnippets = getAlwaysIncludedRoutedSnippets(allSnippets);
+	const baseContextLimit = isBroadProfileQuestion(question)
 		? MAX_BROAD_CONTEXT_CHUNKS
 		: 14;
+	const contextLimit = Math.max(
+		baseContextLimit,
+		alwaysIncludedSnippets.length,
+	);
 	const prioritizedSnippets = isBroadProfileQuestion(question)
-		? getFoundationalAssistantSnippets(allSnippets)
+		? [
+				...alwaysIncludedSnippets,
+				...getFoundationalAssistantSnippets(allSnippets),
+			]
 		: [
+				...alwaysIncludedSnippets,
 				...rankSnippetsByKeywords(
 					question,
 					allSnippets,
@@ -2156,15 +2185,22 @@ export function buildAssistantContextSnippets(args: {
 	allSnippets: ResumeSnippet[];
 }) {
 	const { question, result, allSnippets } = args;
-	const contextLimit = isBroadProfileQuestion(question)
+	const alwaysIncludedSnippets = getAlwaysIncludedRoutedSnippets(allSnippets);
+	const baseContextLimit = isBroadProfileQuestion(question)
 		? MAX_BROAD_CONTEXT_CHUNKS
 		: MAX_TARGETED_CONTEXT_CHUNKS;
+	const contextLimit = Math.max(
+		baseContextLimit,
+		alwaysIncludedSnippets.length,
+	);
 	const prioritizedSnippets = isBroadProfileQuestion(question)
 		? [
+				...alwaysIncludedSnippets,
 				...result.entries.map((entry) => entry.snippet),
 				...getFoundationalAssistantSnippets(allSnippets),
 			]
 		: [
+				...alwaysIncludedSnippets,
 				...result.entries.map((entry) => entry.snippet),
 				...getQuestionAwareSupportSnippets(question, allSnippets),
 				...getFoundationalAssistantSnippets(allSnippets),
