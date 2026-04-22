@@ -3,6 +3,8 @@ import { corsHeaders, jsonResponse, parseMaybeJsonResponse } from "./http.js";
 const ASSISTANT_MISSING_MESSAGE = "I don't have that information available.";
 const ASSISTANT_REJECTED_MESSAGE =
 	"I can only answer questions based on the information available on this site.";
+const SNIPPET_ID_PATTERN =
+	/\b(summary|about|skills|links|contact|hero|focus|stats|experience:[a-z0-9-]+|education:[a-z0-9-]+|project:[a-z0-9-]+|article:[a-z0-9-]+|case-study:[a-z0-9-]+|recommendation:[a-z0-9-]+)\b/gi;
 
 function toChatCompletionsPayload(content, model) {
 	return {
@@ -61,6 +63,18 @@ function extractKnownAssistantAnswer(rawValue) {
 	return null;
 }
 
+function extractSnippetIdsFromText(rawValue) {
+	const stringValue = String(rawValue || "");
+
+	if (!stringValue.trim()) {
+		return [];
+	}
+
+	const matches = stringValue.match(SNIPPET_ID_PATTERN) || [];
+
+	return [...new Set(matches.map((match) => match.toLowerCase()))];
+}
+
 function coerceAssistantStructuredObject(value) {
 	if (!value) {
 		return null;
@@ -72,12 +86,17 @@ function coerceAssistantStructuredObject(value) {
 		typeof value.answer === "string" &&
 		Array.isArray(value.citations)
 	) {
+		const extractedCitations = extractSnippetIdsFromText(value.answer);
+
 		return {
 			status: value.status,
 			answer: value.answer,
-			citations: value.citations.filter(
-				(citation) => typeof citation === "string",
-			),
+			citations: [
+				...new Set([
+					...value.citations.filter((citation) => typeof citation === "string"),
+					...extractedCitations,
+				]),
+			],
 		};
 	}
 
@@ -91,7 +110,7 @@ function coerceAssistantStructuredObject(value) {
 		return {
 			status: inferAssistantStatusFromAnswer(answer),
 			answer,
-			citations: [],
+			citations: extractSnippetIdsFromText(answer),
 		};
 	}
 
@@ -109,7 +128,7 @@ function coerceAssistantStructuredObject(value) {
 		return {
 			status: inferAssistantStatusFromAnswer(answer),
 			answer,
-			citations: [],
+			citations: extractSnippetIdsFromText(answer),
 		};
 	}
 
@@ -140,7 +159,7 @@ function coerceAssistantStructuredObject(value) {
 			return {
 				status: inferAssistantStatusFromAnswer(extractedAnswer),
 				answer: extractedAnswer,
-				citations: [],
+				citations: extractSnippetIdsFromText(JSON.stringify(value)),
 			};
 		}
 	}

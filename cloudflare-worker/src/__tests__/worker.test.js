@@ -1262,7 +1262,30 @@ describe("/assistant-routed", () => {
 					}),
 					{ status: 200, headers: { "Content-Type": "application/json" } },
 				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						id: "hf-plain-missing",
+						object: "chat.completion",
+						choices: [
+							{
+								message: {
+									role: "assistant",
+									content: "I don't have that information available.",
+								},
+								finish_reason: "stop",
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
 			);
+
+		const aiRun = vi.fn().mockResolvedValue({
+			response:
+				"Based on the provided snippets, Hassan Raza's recent projects include Building a Resume-Native AI Assistant for My Portfolio [project:building-a-resume-native-ai-assistant], Designing a Content System That Scales Beyond a Portfolio [case-study:designing-a-content-system-that-scales-beyond-a-portoflio], and Building Financial Infrastructure for Modern Nonprofits [project:building-financial-infrastructure-for-modern-nonprofits].",
+		});
 
 		const response = await worker.fetch(
 			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
@@ -1276,10 +1299,7 @@ describe("/assistant-routed", () => {
 				GROQ_API_KEY: "groq_test",
 				GROQ_MODEL: "openai/gpt-oss-120b",
 				AI: {
-					run: vi.fn().mockResolvedValue({
-						response:
-							"Based on the provided snippets, Hassan Raza's recent projects include: Building a Resume-Native AI Assistant for My Portfolio, Designing a Content System That Scales Beyond a Portfolio, and Building Financial Infrastructure for Modern Nonprofits.",
-					}),
+					run: aiRun,
 				},
 				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 				HUGGING_FACE_API_TOKEN: "hf_test",
@@ -1288,14 +1308,23 @@ describe("/assistant-routed", () => {
 		);
 		const data = await response.json();
 
-		// expect(response.status).toBe(200);
-		// expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
-		// expect(fetchSpy.mock.calls[1][0]).toBe(
-		// 	"https://api.groq.com/openai/v1/chat/completions",
-		// );
-		// expect(JSON.parse(data.choices[0].message.content)).toMatchObject({
-		// 	status: "answered",
-		// });
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
+		expect(fetchSpy.mock.calls[1][0]).toBe(
+			"https://api.groq.com/openai/v1/chat/completions",
+		);
+		expect(fetchSpy.mock.calls[2][0]).toBe(
+			"https://router.huggingface.co/v1/chat/completions",
+		);
+		expect(aiRun).toHaveBeenCalled();
+		expect(JSON.parse(data.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			citations: expect.arrayContaining([
+				"project:building-a-resume-native-ai-assistant",
+				"project:building-financial-infrastructure-for-modern-nonprofits",
+				"case-study:designing-a-content-system-that-scales-beyond-a-portoflio",
+			]),
+		});
 	});
 
 	it("does not fall back past GitHub Models on non-rate-limit failures", async () => {

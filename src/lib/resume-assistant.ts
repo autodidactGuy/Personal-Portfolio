@@ -416,9 +416,58 @@ function isCareerTimelineQuestion(question: string) {
 		/\bwhen\b.*\bstart(ed|ing)?\b.*\bcareer\b/i,
 		/\bwhen\b.*\bprofessional(ly)?\b/i,
 		/\bfirst job\b/i,
+		/\bearliest\b.*\b(job|role|work|company|experience)\b/i,
+		/\bfirst\b.*\b(role|position|company|experience)\b/i,
+		/\b(oldest|initial)\b.*\b(job|role|company|experience)\b/i,
+		/\b(work|career|experience)\s+history\b/i,
+		/\bprofessional\s+history\b/i,
+		/\bearly career\b/i,
+		/\bstart of\b.*\bcareer\b/i,
 		/\bearliest role\b/i,
 		/\bbegan\b.*\bcareer\b/i,
 	].some((pattern) => pattern.test(question));
+}
+
+function isEducationQuestion(question: string) {
+	return [
+		/\beducation\b/i,
+		/\bstud(y|ied|ies|ying)\b/i,
+		/\bdegree\b/i,
+		/\buniversity\b/i,
+		/\bcollege\b/i,
+		/\bschool\b/i,
+		/\bacademic\b/i,
+		/\bcomputer science\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function isRecommendationQuestion(question: string) {
+	return [
+		/\brecommendation(s)?\b/i,
+		/\btestimonial(s)?\b/i,
+		/\bendorsement(s)?\b/i,
+		/\breferences?\b/i,
+		/\bwhat do .* say about\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function isContactQuestion(question: string) {
+	return [
+		/\bcontact\b/i,
+		/\breach\b/i,
+		/\bemail\b/i,
+		/\bphone\b/i,
+		/\bbook\b/i,
+		/\bschedule\b/i,
+		/\bcalendly\b/i,
+		/\blinkedin\b/i,
+		/\bgithub\b/i,
+		/\bwebsite\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function prefersLatestCareer(question: string) {
+	return /\b(latest|recent|newest|current|present)\b/i.test(question);
 }
 
 function isContentTimelineQuestion(question: string) {
@@ -565,6 +614,27 @@ function extractSnippetContentDate(snippet: ResumeSnippet) {
 	return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function sortExperienceByStartDate(experience: ResumeExperience[] = []) {
+	return [...experience].sort((a, b) => {
+		const aStart = parseMonthYear(a.from);
+		const bStart = parseMonthYear(b.from);
+
+		if (aStart && bStart) {
+			return aStart.getTime() - bStart.getTime();
+		}
+
+		if (aStart) {
+			return -1;
+		}
+
+		if (bStart) {
+			return 1;
+		}
+
+		return a.company.localeCompare(b.company);
+	});
+}
+
 export function isBroadProfileQuestion(question: string) {
 	return (
 		/\b(who is|tell me more|more about|background|overview|summary|introduce)\b/i.test(
@@ -578,7 +648,25 @@ export function isBroadProfileQuestion(question: string) {
 
 function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
 	if (isCareerTimelineQuestion(question) && snippet.category === "experience") {
-		return 6;
+		return 10;
+	}
+
+	if (isEducationQuestion(question) && snippet.category === "education") {
+		return 8;
+	}
+
+	if (
+		isRecommendationQuestion(question) &&
+		snippet.category === "recommendation"
+	) {
+		return 8;
+	}
+
+	if (
+		isContactQuestion(question) &&
+		["links", "contact"].includes(snippet.category)
+	) {
+		return 8;
 	}
 
 	if (
@@ -649,6 +737,10 @@ function compareSnippetsForQuestion(
 			const bStart = extractSnippetStartDate(b.snippet);
 
 			if (aStart && bStart) {
+				if (prefersLatestCareer(question)) {
+					return bStart.getTime() - aStart.getTime();
+				}
+
 				return aStart.getTime() - bStart.getTime();
 			}
 		}
@@ -1552,6 +1644,67 @@ export function generateLocalResumeAnswer(
 		};
 	}
 
+	const experienceByStartDate = sortExperienceByStartDate(
+		resume.experience || [],
+	);
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\bearliest\b.*\b(job|role|company|experience)\b/i,
+			/\bfirst\b.*\b(job|role|company|experience)\b/i,
+			/\bstart of\b.*\bcareer\b/i,
+			/\bearly career\b/i,
+			/\bwork history\b/i,
+		]) &&
+		experienceByStartDate.length
+	) {
+		const earliestExperience = experienceByStartDate[0];
+		const earliestSnippet = findExperienceSnippetByCompany(
+			snippets,
+			earliestExperience.company,
+		);
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName}'s earliest listed role was ${earliestExperience.title} at ${earliestExperience.company} from ${earliestExperience.from} to ${earliestExperience.to}.`,
+				earliestExperience.highlight,
+			]),
+			citations: unique([earliestSnippet?.id || "", "summary", "about"]).filter(
+				Boolean,
+			),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\blatest\b.*\b(job|role|company|experience)\b/i,
+			/\bmost recent\b.*\b(job|role|company|experience)\b/i,
+			/\bcurrent\b.*\b(job|role|company|experience)\b/i,
+		]) &&
+		experienceByStartDate.length
+	) {
+		const currentExperience =
+			(resume.experience || []).find(
+				(item) => item.to.toLowerCase() === "present",
+			) || experienceByStartDate[experienceByStartDate.length - 1];
+		const currentSnippet = findExperienceSnippetByCompany(
+			snippets,
+			currentExperience.company,
+		);
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName}'s most recent listed role is ${currentExperience.title} at ${currentExperience.company} from ${currentExperience.from} to ${currentExperience.to}.`,
+				currentExperience.highlight,
+			]),
+			citations: unique([currentSnippet?.id || "", "summary", "about"]).filter(
+				Boolean,
+			),
+		};
+	}
+
 	if (
 		hasQuestionMatch(normalizedQuestion, [
 			/\btechnolog(y|ies)\b/i,
@@ -1925,13 +2078,48 @@ function getFoundationalAssistantSnippets(allSnippets: ResumeSnippet[]) {
 	const foundationalCategories: ResumeSnippet["category"][] = [
 		"summary",
 		"about",
+		"hero",
+		"focus",
+		"stats",
 		"skills",
+		"recommendation",
 		"links",
 		"contact",
 	];
 
 	return allSnippets.filter((snippet) =>
 		foundationalCategories.includes(snippet.category),
+	);
+}
+
+function getQuestionAwareSupportSnippets(
+	question: string,
+	allSnippets: ResumeSnippet[],
+) {
+	const preferredCategories: ResumeSnippet["category"][] = [];
+
+	if (isCareerTimelineQuestion(question)) {
+		preferredCategories.push("experience", "summary", "about");
+	}
+
+	if (isEducationQuestion(question)) {
+		preferredCategories.push("education", "summary", "about");
+	}
+
+	if (isRecommendationQuestion(question)) {
+		preferredCategories.push("recommendation", "about", "summary");
+	}
+
+	if (isContactQuestion(question)) {
+		preferredCategories.push("links", "contact");
+	}
+
+	if (!preferredCategories.length) {
+		return [];
+	}
+
+	return allSnippets.filter((snippet) =>
+		preferredCategories.includes(snippet.category),
 	);
 }
 
@@ -1950,6 +2138,7 @@ export function buildInitialAssistantContextSnippets(
 					allSnippets,
 					Math.min(MAX_TARGETED_CONTEXT_CHUNKS, contextLimit),
 				),
+				...getQuestionAwareSupportSnippets(question, allSnippets),
 				...getFoundationalAssistantSnippets(allSnippets),
 			];
 
@@ -1976,6 +2165,7 @@ export function buildAssistantContextSnippets(args: {
 			]
 		: [
 				...result.entries.map((entry) => entry.snippet),
+				...getQuestionAwareSupportSnippets(question, allSnippets),
 				...getFoundationalAssistantSnippets(allSnippets),
 			];
 
@@ -2123,7 +2313,7 @@ export function buildAssistantChatRequestBody(args: {
 		action: "chat",
 		...(model ? { model } : {}),
 		temperature,
-		max_tokens: maxTokens ?? (broadProfileQuestion ? 600 : 400),
+		max_tokens: maxTokens ?? (broadProfileQuestion ? 700 : 500),
 		response_format: structuredOutput
 			? {
 					type: "json_schema" as const,
@@ -2164,8 +2354,12 @@ export function buildAssistantChatRequestBody(args: {
 					"Use only the SUPPORTING_RESUME_SNIPPETS below.",
 					`If the snippets do not contain the answer, respond with status "missing" and answer exactly: ${MISSING_INFORMATION_MESSAGE}`,
 					`If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: ${UNRELATED_QUESTION_MESSAGE}`,
+					"If the snippets do contain the answer, do not respond with a missing or rejected message.",
+					"Do not say you can only answer based on this site unless the question is truly unrelated to the person described in the snippets.",
+					"If an experience, education, recommendation, contact, or profile snippet directly answers the question, answer from that snippet instead of refusing.",
 					"Do not infer, invent, generalize, or use outside knowledge.",
 					"Every factual answer must be grounded in the snippet IDs you cite.",
+					"When responding without structured output, include supporting snippet IDs inline in square brackets, for example [summary] or [project:example-slug].",
 					"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
 					"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
 					"If the question is broad or asks for an overview, synthesize a fuller profile using summary, about, experience, education, recommendations, and relevant content snippets instead of giving a minimal generic summary.",

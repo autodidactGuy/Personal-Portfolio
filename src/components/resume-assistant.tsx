@@ -292,7 +292,7 @@ export function ResumeAssistant() {
 	const [rawDebugQuestion, setRawDebugQuestion] = useState("");
 	const [rawDebugModel, setRawDebugModel] = useState("");
 	const [rawDebugTemperature, setRawDebugTemperature] = useState("0");
-	const [rawDebugMaxTokens, setRawDebugMaxTokens] = useState("400");
+	const [rawDebugMaxTokens, setRawDebugMaxTokens] = useState("500");
 	const [rawDebugStructuredOutput, setRawDebugStructuredOutput] =
 		useState(true);
 	const [rawDebugLoading, setRawDebugLoading] = useState(false);
@@ -581,7 +581,7 @@ export function ResumeAssistant() {
 				snippets: initialSnippets,
 				model: rawDebugModel.trim() || undefined,
 				temperature: Number(rawDebugTemperature) || 0,
-				maxTokens: Number(rawDebugMaxTokens) || 400,
+				maxTokens: Number(rawDebugMaxTokens) || 500,
 				structuredOutput: rawDebugStructuredOutput,
 			});
 
