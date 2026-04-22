@@ -2,18 +2,31 @@
   "name": "portfolio-decap-auth-worker",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "dev:remote": "wrangler dev --remote",
+    "rag:dataset": "tsx scripts/build-rag-dataset.ts",
+    "rag:dev": "wrangler dev --config wrangler.rag.example.toml",
+    "rag:dev:remote": "wrangler dev --remote --config wrangler.rag.example.toml",
+    "rag:build": "yarn rag:dataset && yarn rag:ingest .generated/portfolio-rag.json",
+    "rag:deploy": "yarn rag:build && wrangler deploy --config wrangler.rag.example.toml",
+    "rag:index:create": "wrangler vectorize create portfolio-rag-index --dimensions=384 --metric=cosine",
+    "rag:ingest": "tsx scripts/ingest.ts",
+    "rag:types": "wrangler types --config wrangler.rag.example.toml",
     "start": "wrangler dev",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/node": "^24.9.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "wrangler": "^4.9.1"
   },
   "dependencies": {
+    "gray-matter": "^4.0.3",
     "hono": "^4.12.14",
     "zod": "^4.3.6"
   }

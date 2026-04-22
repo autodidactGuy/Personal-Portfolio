@@ -1,0 +1,81 @@
+name: Deploy Cloudflare RAG Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare-worker/**"
+      - "content/**"
+      - "public/api/resume.json"
+      - "scripts/generate-resume-json.mjs"
+      - "package.json"
+      - "yarn.lock"
+      - ".github/workflows/deploy-rag-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            cloudflare-worker/yarn.lock
+
+      - name: Install root dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install worker dependencies
+        working-directory: cloudflare-worker
+        run: yarn install --frozen-lockfile
+
+      - name: Run worker tests
+        working-directory: cloudflare-worker
+        run: yarn test
+
+      - name: Prepare RAG Wrangler config
+        working-directory: cloudflare-worker
+        env:
+          CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+          CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID }}
+        run: |
+          cp wrangler.rag.example.toml wrangler.rag.toml
+          sed -i "s/YOUR_KV_NAMESPACE_ID/${CLOUDFLARE_KV_NAMESPACE_ID}/g" wrangler.rag.toml
+          if [ -n "${CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID}" ]; then
+            sed -i "s/YOUR_KV_PREVIEW_NAMESPACE_ID/${CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID}/g" wrangler.rag.toml
+          else
+            sed -i "s/YOUR_KV_PREVIEW_NAMESPACE_ID/${CLOUDFLARE_KV_NAMESPACE_ID}/g" wrangler.rag.toml
+          fi
+
+      - name: Build and ingest RAG dataset
+        working-directory: cloudflare-worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_VECTORIZE_INDEX: ${{ secrets.CLOUDFLARE_VECTORIZE_INDEX }}
+          CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+        run: yarn rag:build
+
+      - name: Deploy RAG worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: "cloudflare-worker"
+          wranglerVersion: "4"
+          command: deploy --config wrangler.rag.toml
