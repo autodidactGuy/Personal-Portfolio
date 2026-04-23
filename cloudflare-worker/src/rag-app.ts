@@ -646,7 +646,7 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 			return jsonResponse(
 				createAskResponse({
 					status: "no_match",
-					answer: "I could not find relevant context in the portfolio dataset.",
+					answer: "I could not find relevant information.",
 					citations: [],
 					retrievalMatched: 0,
 					config,
@@ -661,7 +661,7 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 				createAskResponse({
 					status: "insufficient_context",
 					answer:
-						"I found weak or incomplete matches, so I cannot answer confidently from the retrieved context.",
+						"I found weak or incomplete matches, so I cannot answer confidently from the provided information.",
 					citations: [],
 					retrievalMatched: retrieval.matched,
 					config,
@@ -682,7 +682,7 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 				status: "answered",
 				answer:
 					answer ||
-					"I found relevant context, but the generation step returned an empty answer.",
+					"I found relevant information, but the generation step returned an empty answer.",
 				citations: retrieval.citations,
 				retrievalMatched: retrieval.matched,
 				config,
