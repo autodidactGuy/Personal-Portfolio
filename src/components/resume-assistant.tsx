@@ -1172,8 +1172,8 @@ export function ResumeAssistant() {
 
 						{isSending ? (
 							<div className="flex justify-start">
-								<div className="flex items-center gap-2.5 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
-									<span className="flex items-end gap-0.5 text-primary">
+								<div className="flex max-w-[88%] min-w-0 items-center gap-2.5 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
+									<span className="flex shrink-0 items-end gap-0.5 text-primary">
 										<HiMiniSparkles className="animate-spark" size={14} />
 										<HiMiniSparkles
 											className="animate-spark-delay-1"
@@ -1184,7 +1184,7 @@ export function ResumeAssistant() {
 											size={14}
 										/>
 									</span>
-									<span>{thinkingState.label}</span>
+									<span className="truncate">{thinkingState.label}</span>
 								</div>
 							</div>
 						) : null}
