@@ -393,6 +393,7 @@ export function renderRagHomePage() {
                 <select id="provider">
                   <option value="github-models">GitHub Models</option>
                   <option value="groq">Groq</option>
+                  <option value="groq_backup">Groq Backup</option>
                   <option value="huggingface">Hugging Face</option>
                   <option value="cloudflare">Cloudflare AI</option>
                   <option value="portfolio-rag">Portfolio RAG</option>
@@ -592,8 +593,8 @@ export function renderRagHomePage() {
           : [];
         const snippetList = snippets.length
           ? snippets
-              .map((snippet) => "[" + snippet.id + "] " + snippet.title + "\n" + snippet.text)
-              .join("\n\n")
+              .map((snippet) => "[" + snippet.id + "] " + snippet.title + "\\n" + snippet.text)
+              .join("\\n\\n")
           : "None";
         const temperatureValue = Number.parseFloat(temperatureEl.value);
         const maxTokensValue = Number.parseInt(maxTokensEl.value, 10);
@@ -607,21 +608,21 @@ export function renderRagHomePage() {
           messages: [
             {
               role: "system",
-              content: 'You are an AI assistant embedded on this portfolio website.\n\nRules:\n\n* ONLY answer using provided resume data\n* If info is missing: "I don\\'t have that information available."\n* Do NOT hallucinate or guess\n* ONLY answer about the person described in the provided resume data\n* Reject unrelated questions\n\nTone:\n\n* Professional\n* Concise\n* Friendly'
+              content: 'You are an AI assistant embedded on this portfolio website.\\n\\nRules:\\n\\n* ONLY answer using provided resume data\\n* If info is missing: "I don\\'t have that information available."\\n* Do NOT hallucinate or guess\\n* ONLY answer about the person described in the provided resume data\\n* Reject unrelated questions\\n\\nTone:\\n\\n* Professional\\n* Concise\\n* Friendly'
             },
             {
               role: "developer",
               content: [
                 "Use only the SUPPORTING_RESUME_SNIPPETS below.",
-                'If the snippets do not contain the answer, respond with status "missing" and answer exactly: I don't have that information available.',
+                "If the snippets do not contain the answer, respond with status \\"missing\\" and answer exactly: I don't have that information available.",
                 'If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: I can only answer questions based on the information available on this site.',
                 "Do not infer, invent, generalize, or use outside knowledge.",
                 "Every factual answer must be grounded in the snippet IDs you cite.",
                 "",
-                "RECENT_CHAT_CONTEXT:\nNone",
+                "RECENT_CHAT_CONTEXT:\\nNone",
                 "",
-                "SUPPORTING_RESUME_SNIPPETS:\n" + snippetList
-              ].join("\n")
+                "SUPPORTING_RESUME_SNIPPETS:\\n" + snippetList
+              ].join("\\n")
             },
             {
               role: "user",

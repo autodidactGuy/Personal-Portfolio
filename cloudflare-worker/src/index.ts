@@ -212,6 +212,7 @@ const rawProviderSchema = z.object({
 	provider: z.enum([
 		"github-models",
 		"groq",
+		"groq_backup",
 		"huggingface",
 		"cloudflare",
 		"portfolio-rag",

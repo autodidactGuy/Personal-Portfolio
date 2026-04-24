@@ -25,14 +25,16 @@ export const MISSING_INFORMATION_MESSAGE =
 export const UNRELATED_QUESTION_MESSAGE =
 	"I can only answer questions based on the information available on this site.";
 
-export const SYSTEM_PROMPT = `You are an AI assistant embedded on this portfolio website.
+export const SYSTEM_PROMPT = `You are a AI assistant answering questions about one person's portfolio dataset.
 
 Rules:
 
 * ONLY answer using provided resume data
+* All the information revolves around a single person named Hassan Raza.
 * If info is missing: "I don't have that information available."
 * Do NOT hallucinate or guess
 * ONLY answer about the person described in the provided resume data
+* Allow small talks and try to understand slangs
 * Reject unrelated questions
 
 Tone:
@@ -310,14 +312,28 @@ const SMALL_TALK_FAREWELL_PATTERN =
 	/^(bye|goodbye|see (you|ya)|take care|farewell|later|cya|catch (you|ya) later|have a (good|great|nice) (day|one))(?:[!.,?]+)?$/i;
 const SMALL_TALK_THANKS_PATTERN =
 	/^(thank(s| you)( so much| a lot| very much)?|thx|ty|cheers|appreciate (it|that|this)|many thanks)(?:[!.,?]+)?$/i;
+const SMALL_TALK_WELLBEING_PATTERN =
+	/^(how are (you|you doing|things|it going)|how('?s| is) (it going|everything|life|your day)|what'?s (new|going on|up with you)|how do you do|how have you been)(?:[!.,?]+)?$/i;
+const SMALL_TALK_META_PATTERN =
+	/^(who (are you|made you|built you|created you)|what are you|are you (a |an )?(ai|bot|robot|assistant|human)|are you real|are you alive|do you (think|feel|have feelings)|can you (think|feel)|you('?re| are) (a |an )?(ai|bot|robot|assistant))(?:[!.,?]+)?$/i;
+const SMALL_TALK_CAPABILITY_PATTERN =
+	/^(what can you (do|help (with|me)|tell me)|what do you know|what (are you|can you) (good at|capable of)|how can you help( me)?|what('?s| is) your purpose|what (topics|questions) can (i|you)|help( me)?|^\?+$)$/i;
+const SMALL_TALK_POSITIVE_FEEDBACK_PATTERN =
+	/^(that (was |is )?(helpful|useful|great|good|perfect|exactly what i needed|what i was looking for)|you('?re| are) (helpful|great|amazing|awesome|good)|this is (helpful|useful|great)|very (helpful|useful|clear|informative))(?:[!.,?]+)?$/i;
 
 const smallTalkPatterns = [
 	SMALL_TALK_GREETING_PATTERN,
 	SMALL_TALK_FAREWELL_PATTERN,
 	SMALL_TALK_THANKS_PATTERN,
+	SMALL_TALK_WELLBEING_PATTERN,
+	SMALL_TALK_META_PATTERN,
+	SMALL_TALK_CAPABILITY_PATTERN,
+	SMALL_TALK_POSITIVE_FEEDBACK_PATTERN,
 	/^(nice|amazing|awesome|great|cool|wow|wonderful|excellent|fantastic|brilliant|perfect|love it|incredible|superb|impressive|good job|well done|that'?s (great|amazing|awesome|cool|nice|good))(?:[!.,?]+)?$/i,
 	/^(ok|okay|got it|understood|sure|alright|noted|sounds good|makes sense|i see|i understand)(?:[!.,?]+)?$/i,
 	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)(?:[!.,?]+)?$/i,
+	/^(interesting|tell me more|go on|continue|really|no way|seriously|wow really|that'?s (interesting|cool|neat|wild))(?:[!.,?]+)?$/i,
+	/^(yes|yeah|yep|yup|nope|no|nah|not really|maybe|possibly|perhaps|i (think|guess|suppose) so)(?:[!.,?]+)?$/i,
 ];
 
 const builtInAllowedKeywords = [
@@ -2164,9 +2180,41 @@ export function generateLocalSmallTalkAnswer(
 			};
 		}
 
+		if (SMALL_TALK_WELLBEING_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `I'm doing great, thanks for asking! Ready to help you learn about ${personName}. What would you like to know?`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_META_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `I'm an AI assistant embedded on ${personPossessiveName} site. I can answer questions about ${personPossessiveName} experience, skills, projects, education, and more. What would you like to know?`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_CAPABILITY_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `I can answer questions about ${personPossessiveName} professional background — things like work experience, skills, projects, case studies, education, recommendations, and contact details. What would you like to know?`,
+				citations: [],
+			};
+		}
+
+		if (SMALL_TALK_POSITIVE_FEEDBACK_PATTERN.test(normalizedQuestion)) {
+			return {
+				status: "answered",
+				answer: `Glad I could help! Feel free to ask anything else about ${personName}.`,
+				citations: [],
+			};
+		}
+
 		return {
 			status: "answered",
-			answer: `Thanks! Is there anything you'd like to know about ${personName}?`,
+			answer: `Got it! Is there anything you'd like to know about ${personName}?`,
 			citations: [],
 		};
 	}

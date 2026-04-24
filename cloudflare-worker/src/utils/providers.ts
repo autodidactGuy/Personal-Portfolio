@@ -40,6 +40,7 @@ type WorkerProviderEnv = Record<string, unknown> & {
 	GITHUB_MODELS_CHAT_MODEL?: string;
 	GROQ_API_KEY?: string;
 	GROQ_MODEL?: string;
+	GROQ_BACKUP_MODEL?: string;
 	HUGGING_FACE_API_TOKEN?: string;
 	HUGGING_FACE_MODEL?: string;
 	CLOUDFLARE_AI_MODEL?: string;
@@ -456,7 +457,7 @@ function isGenericRoutedFallbackWorthyFailure(
 	status: number,
 	payload: unknown,
 ) {
-	return status >= 500 || isRateLimitLikeFailure(status, payload);
+	return status >= 400 || isRateLimitLikeFailure(status, payload);
 }
 
 function getRoutedProviderPriority(env: WorkerProviderEnv) {
@@ -853,6 +854,15 @@ export async function callRawAssistantProvider(
 				{
 					...body,
 					model: body.model || env.GROQ_MODEL,
+					response_format: undefined,
+				},
+				env,
+			);
+		case "groq_backup":
+			return callGroqRaw(
+				{
+					...body,
+					model: body.model || env.GROQ_BACKUP_MODEL,
 					response_format: undefined,
 				},
 				env,
