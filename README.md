@@ -209,28 +209,79 @@ This keeps the client-side search page fast and avoids shipping the full content
 
 The portfolio includes a resume-native AI assistant embedded in the footer launcher. It is designed to answer only from content already published on the site rather than from unstated knowledge or repository activity.
 
-High-level lifecycle:
+Today the assistant has two cooperating layers:
 
-1. Build time generates `public/api/resume.json` from portfolio JSON and MDX content.
-2. The client loads that payload and converts it into normalized snippets.
-3. Common questions are answered locally first using deterministic rules.
-4. If a model is needed, the client builds a retrieval query from the current message plus a small recent conversation window.
-5. The client retrieves the most relevant snippets using embeddings or keyword fallback.
-6. The client sends only the selected snippets to the Cloudflare Worker `/assistant` endpoint.
-7. The worker validates origin, schema, content type, and rate limits before proxying to GitHub Models.
-8. The client validates the structured JSON response and renders answers with citations.
+- the main portfolio UI in `src/components/resume-assistant.tsx`
+- the unified Cloudflare Worker in `cloudflare-worker/src/index.ts`
 
-Important properties of this design:
+The site still generates a static `public/api/resume.json`, but semantic retrieval now runs through the worker against Cloudflare Vectorize + KV instead of depending on frontend-generated embeddings.
 
-- grounded only in published site content
-- no frontend exposure of the GitHub Models token
-- graceful fallback when embeddings are unavailable
-- deterministic handling for high-confidence question patterns
-- conversation-aware retrieval for follow-up questions
-- citation-aware rendering to keep answers inspectable
-- direct links for cited projects, posts, and case studies when the snippet has a URL
-- client-side embedding cache invalidation through content hash, cache version, and TTL
-- closest-match fallback when generation fails but retrieval still found strong evidence
+### Current request flow
+
+```mermaid
+flowchart TD
+    A["Visitor asks a question"] --> B["Client loads resume.json snippets"]
+    B --> C["Question guardrails + intent normalization"]
+    C --> D["Keyword retrieval on the client"]
+    C --> E["POST /assistant-retrieve"]
+    E --> F["Workers AI embeddings + Vectorize + KV"]
+    D --> G["Merge keyword + semantic snippets"]
+    F --> G
+    G --> H["POST /assistant-routed"]
+    H --> I["Routed provider chain"]
+    I --> I1["Groq"]
+    I --> I2["Groq Backup"]
+    I --> I3["Hugging Face"]
+    I --> I4["Cloudflare AI"]
+    I --> I5["Portfolio RAG fallback"]
+    I --> J["Structured answer + citations"]
+    J --> K["Client formatting + citation links + debug trail"]
+```
+
+### What the assistant now does well
+
+- grounds answers only in published portfolio content
+- merges keyword retrieval and Cloudflare semantic retrieval before generation
+- uses `POST /assistant-retrieve` to reuse build-time Vectorize/KV data from the worker
+- routes model calls through a configurable provider priority list
+- supports a backup Groq model through `GROQ_BACKUP_MODEL`
+- exposes raw provider debugging through `POST /assistant-provider-raw`
+- keeps a final portfolio-RAG fallback in `/assistant-routed`
+- handles same-origin, preview, and stage origins through the worker allowlist
+- renders citations and inline links more cleanly in the site UI
+- shows retrieval/debug metadata in development so ranking issues are inspectable
+
+### Assistant surfaces
+
+- Site assistant drawer
+  Grounded conversational UI used by visitors.
+- Site debug mode
+  Shows keyword matches, semantic matches, final snippet IDs, provider trail, and raw provider calls.
+- Worker home page at `/`
+  Small provider console that can call `/assistant-provider-raw`, `/assistant-retrieve`, `/assistant-routed`, and grounded `/ask` on the same deployment.
+
+### Retrieval strategy
+
+The assistant no longer relies on the browser to build and cache embeddings for the full snippet corpus. Instead:
+
+1. the site builds deterministic snippets from `public/api/resume.json`
+2. the client ranks snippets lexically for fast keyword coverage
+3. the worker performs semantic retrieval against Cloudflare Vectorize + KV
+4. the client merges both result sets and sends only the strongest supporting snippets to `/assistant-routed`
+
+That gives better coverage for:
+
+- short questions like `yoe`
+- link requests like `social links`
+- direct listing prompts like `list his projects`
+- broader follow-ups where semantic retrieval matters more than exact keywords
+
+### Guardrails and fallbacks
+
+- Questions are checked locally for scope before model calls.
+- Deterministic local answers still exist for high-confidence cases, but routed generation remains the main path.
+- If one routed provider returns `missing`, an unusable payload, or a fallback-worthy error, the worker continues to the next provider.
+- If all routed providers miss, the response still stays grounded and explicit rather than hallucinating.
 
 Related article:
 `https://hassanraza.us/project/building-a-resume-native-ai-assistant`

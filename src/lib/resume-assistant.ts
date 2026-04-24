@@ -202,6 +202,7 @@ export type AssistantResponse = {
 export type AssistantDebugProvider =
 	| "github-models"
 	| "groq"
+	| "groq_backup"
 	| "huggingface"
 	| "cloudflare"
 	| "portfolio-rag";

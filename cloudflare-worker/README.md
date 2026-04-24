@@ -1,6 +1,13 @@
 # Cloudflare Worker
 
-This Worker now handles the existing GitHub OAuth, contact, and assistant routes, plus the portfolio RAG home page at `/` and the grounded RAG API at `/ask`.
+This worker is the shared runtime for:
+
+- GitHub OAuth for Decap CMS
+- contact form delivery
+- assistant raw and routed model calls
+- Cloudflare semantic retrieval over the portfolio dataset
+- the lightweight assistant debugger home page at `/`
+- the grounded portfolio RAG API at `/ask`
 
 ## Files
 
@@ -8,8 +15,49 @@ This Worker now handles the existing GitHub OAuth, contact, and assistant routes
 - `wrangler.jsonc`: Worker config
 - `.dev.vars.example`: local development secret template
 - `src/rag/*`: isolated RAG runtime helpers
+- `src/utils/providers.ts`: raw provider + routed fallback logic
 - `scripts/ingest.ts`: dataset ingestion script for Vectorize + KV
 - `scripts/build-rag-dataset.ts`: builds a single RAG dataset from the existing portfolio content
+
+## Assistant architecture
+
+```mermaid
+flowchart TD
+    A["Site assistant or worker homepage"] --> B["/assistant-provider-raw"]
+    A --> C["/assistant-routed"]
+    A --> D["/assistant-retrieve"]
+    A --> E["/ask"]
+
+    D --> F["Workers AI embeddings"]
+    F --> G["Vectorize index"]
+    G --> H["KV chunk payloads"]
+
+    C --> I["Provider routing"]
+    I --> I1["Groq"]
+    I --> I2["Groq Backup"]
+    I --> I3["Hugging Face"]
+    I --> I4["Cloudflare AI"]
+    I --> I5["Portfolio RAG"]
+
+    E --> F
+    E --> G
+    E --> H
+```
+
+### Important assistant routes
+
+- `/assistant`
+  Workers AI embeddings endpoint used by the site when embeddings are needed.
+- `/assistant-provider-raw`
+  Raw per-provider debug route used by the site debug panel and worker homepage.
+- `/assistant-routed`
+  Structured routed chat endpoint with fallback between configured providers.
+- `/assistant-retrieve`
+  Semantic retrieval endpoint that returns Vectorize/KV-backed snippet chunks.
+- `/ask`
+  Grounded portfolio RAG answer route.
+- `/`
+  Small same-origin debugger UI for trying all of the above quickly.
 
 ## GitHub OAuth app
 
@@ -203,7 +251,24 @@ Notes:
 - `CLOUDFLARE_VECTORIZE_INDEX` should usually be `portfolio-rag-index`.
 - `CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID` can be the same as `CLOUDFLARE_KV_NAMESPACE_ID` if you do not want a separate preview KV namespace in CI.
 - The deploy workflow is [deploy-worker.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/workflows/deploy-worker.yml).
-- That workflow installs the root app and worker dependencies, rebuilds the resume dataset, ingests vectors and KV content, and then deploys the unified worker on pushes to `main`.
+- That workflow installs the root app and worker dependencies, rebuilds the resume dataset, ingests vectors and KV content, and then deploys the unified worker when triggered manually.
+
+### Provider configuration
+
+Important vars in `wrangler.jsonc`:
+
+- `ASSISTANT_PROVIDER_PRIORITY`
+  Comma-separated routed order such as `groq,groq_backup,huggingface,cloudflare,portfolio-rag,github-models`
+- `GROQ_MODEL`
+  Primary Groq model
+- `GROQ_BACKUP_MODEL`
+  Backup Groq model used by both raw debug and routed fallback
+- `CLOUDFLARE_AI_MODEL`
+  Workers AI fallback model
+- `RAG_EMBED_MODEL`
+  Workers AI embedding model for semantic retrieval
+- `RAG_CHAT_MODEL`
+  Workers AI generation model for the grounded `/ask` flow
 
 ### How ingestion works
 
@@ -215,8 +280,15 @@ The ingestion pipeline is:
    Loads that dataset, creates summary and body chunks, generates deterministic IDs, batches embeddings through Workers AI, upserts vectors into Vectorize, and stores full chunk payloads in KV by vector ID.
 3. `src/rag-app.ts`
    At runtime, `/ask` embeds the question, queries Vectorize, bulk-fetches matching chunk payloads from KV, and only calls the LLM when retrieval is strong enough.
+4. `src/utils/providers.ts`
+   `/assistant-routed` can also use the same Cloudflare semantic retrieval indirectly because the site first asks `/assistant-retrieve`, merges those chunks with keyword matches, and then sends the reduced snippet set through the routed endpoint.
 
-The worker also serves a tiny built-in test page on `/` so you can quickly try the same `/ask` endpoint without wiring a separate frontend first.
+The worker also serves a built-in provider console on `/` so you can:
+
+- compare raw providers
+- inspect Cloudflare semantic retrieval snippets
+- simulate a frontend-style `/assistant-routed` call
+- test grounded `/ask` behavior from the same worker origin
 
 ### Dataset expectations
 

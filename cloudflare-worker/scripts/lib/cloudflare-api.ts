@@ -55,7 +55,7 @@ export class CloudflareApiClient {
 	}
 
 	private async request(path: string, init: RequestInit) {
-		const maxRetries = this.options.maxRetries ?? 5;
+		const maxRetries = this.options.maxRetries ?? 1;
 		const url = `https://api.cloudflare.com/client/v4/accounts/${this.options.accountId}${path}`;
 
 		for (let attempt = 0; attempt <= maxRetries; attempt += 1) {

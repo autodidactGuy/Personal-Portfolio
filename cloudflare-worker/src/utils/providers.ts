@@ -30,6 +30,7 @@ type ProviderAttempt = {
 type RoutedProviderId =
 	| "github-models"
 	| "groq"
+	| "groq_backup"
 	| "huggingface"
 	| "cloudflare"
 	| "portfolio-rag";
@@ -68,6 +69,7 @@ type AssistantChoice = {
 const DEFAULT_ROUTED_PROVIDER_PRIORITY: RoutedProviderId[] = [
 	"github-models",
 	"groq",
+	"groq_backup",
 	"huggingface",
 	"cloudflare",
 	"portfolio-rag",
@@ -732,7 +734,7 @@ async function callGitHubModelsRaw(
 }
 
 async function callGroqRaw(body: AssistantChatBody, env: WorkerProviderEnv) {
-	if (!env.GROQ_API_KEY || !env.GROQ_MODEL) {
+	if (!env.GROQ_API_KEY || !body.model) {
 		return jsonResponse({ error: "Groq is not configured" }, 503);
 	}
 
@@ -748,7 +750,7 @@ async function callGroqRaw(body: AssistantChatBody, env: WorkerProviderEnv) {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				model: body.model || env.GROQ_MODEL,
+				model: body.model,
 				temperature: body.temperature ?? 0,
 				max_completion_tokens: body.max_tokens ?? 220,
 				response_format: responseFormat,
@@ -994,6 +996,23 @@ async function callGroq(body: AssistantChatBody, env: WorkerProviderEnv) {
 	);
 }
 
+async function callGroqBackup(body: AssistantChatBody, env: WorkerProviderEnv) {
+	const rawResponse = await callGroqRaw(
+		{
+			...body,
+			model: env.GROQ_BACKUP_MODEL,
+			response_format: undefined,
+		},
+		env,
+	);
+
+	return createAssistantFetchResponse(
+		rawResponse,
+		await parseJsonResponse(rawResponse.clone()),
+		"groq_backup",
+	);
+}
+
 async function callHuggingFace(
 	body: AssistantChatBody,
 	env: WorkerProviderEnv,
@@ -1214,6 +1233,90 @@ export async function callAssistantChatWithRouting(
 					{ error: groqError, providers: providerAttempts },
 					groqResponse.status,
 					buildProviderContextHeaders("groq", providerAttempts),
+				);
+			}
+
+			continue;
+		}
+
+		if (provider === "groq_backup") {
+			const groqBackupResponse = await callGroqBackup(body, env);
+			const normalizedPayload = groqBackupResponse.ok
+				? normalizeAssistantChatPayload(
+						groqBackupResponse.payload,
+						env.GROQ_BACKUP_MODEL,
+					)
+				: groqBackupResponse.payload;
+			const isExpectedPayload =
+				isExpectedAssistantChatPayload(normalizedPayload);
+			const isIncompletePayload =
+				isExpectedPayload &&
+				isIncompleteAssistantChatPayload(normalizedPayload);
+
+			if (
+				groqBackupResponse.ok &&
+				isExpectedPayload &&
+				!isMissingAssistantResponse(normalizedPayload) &&
+				!isIncompletePayload
+			) {
+				return jsonResponse(
+					normalizedPayload,
+					groqBackupResponse.status,
+					buildProviderContextHeaders("groq_backup", [
+						...providerAttempts,
+						{
+							provider: "groq_backup",
+							status: groqBackupResponse.status,
+							error: null,
+						},
+					]),
+				);
+			}
+
+			if (groqBackupResponse.ok && isExpectedPayload) {
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: groqBackupResponse.status,
+					provider: "groq_backup",
+				};
+			}
+
+			const groqBackupError = normalizeAssistantErrorPayload(
+				groqBackupResponse.ok
+					? {
+							error: !isExpectedPayload
+								? "Assistant returned an unexpected response"
+								: isIncompletePayload
+									? "Assistant returned an incomplete response"
+									: "Assistant returned missing",
+						}
+					: groqBackupResponse.payload,
+				groqBackupResponse.ok
+					? !isExpectedPayload
+						? "Assistant returned an unexpected response"
+						: isIncompletePayload
+							? "Assistant returned an incomplete response"
+							: "Assistant returned missing"
+					: "Groq backup request failed",
+			);
+
+			providerAttempts.push({
+				provider: "groq_backup",
+				status: groqBackupResponse.status,
+				error: groqBackupError,
+			});
+
+			if (
+				!groqBackupResponse.ok &&
+				!isGroqFallbackWorthyFailure(
+					groqBackupResponse.status,
+					groqBackupResponse.payload,
+				)
+			) {
+				return jsonResponse(
+					{ error: groqBackupError, providers: providerAttempts },
+					groqBackupResponse.status,
+					buildProviderContextHeaders("groq_backup", providerAttempts),
 				);
 			}
 

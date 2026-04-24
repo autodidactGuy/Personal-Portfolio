@@ -357,6 +357,7 @@ export function renderRagHomePage() {
           <div class="chips">
             <div class="chip">GitHub Models</div>
             <div class="chip">Groq</div>
+            <div class="chip">Groq Backup</div>
             <div class="chip">Hugging Face</div>
             <div class="chip">Cloudflare AI</div>
             <div class="chip">Portfolio RAG</div>
@@ -367,7 +368,7 @@ export function renderRagHomePage() {
           <div class="meta-row"><strong>Secondary action</strong><span>Cloudflare semantic retrieval</span></div>
           <div class="meta-row"><strong>Routed simulation</strong><span>Frontend-style <code>/assistant-routed</code> payload</span></div>
           <div class="meta-row"><strong>Same worker origin</strong><span>Calls stay on this deployment</span></div>
-          <div class="meta-row"><strong>Best use</strong><span>Compare provider behavior quickly</span></div>
+          <div class="meta-row"><strong>Best use</strong><span>Compare primary and backup routed providers quickly</span></div>
         </div>
       </section>
       <section class="layout">
@@ -385,7 +386,7 @@ export function renderRagHomePage() {
           <div class="panel controls">
             <div>
               <h2 class="section-title">Raw Provider Debug</h2>
-              <p class="section-copy">This mirrors the portfolio assistant debug mode and posts to <code>/assistant-provider-raw</code>. You can also inspect Vectorize-backed snippets through <code>/assistant-retrieve</code> and send those snippets through a frontend-style <code>/assistant-routed</code> request.</p>
+              <p class="section-copy">This mirrors the portfolio assistant debug mode and posts to <code>/assistant-provider-raw</code>. You can also inspect Vectorize-backed snippets through <code>/assistant-retrieve</code> and send those snippets through a frontend-style <code>/assistant-routed</code> request. The <code>groq_backup</code> option uses the same Groq API key with the model defined by <code>GROQ_BACKUP_MODEL</code>.</p>
             </div>
             <div class="control-grid">
               <label>
