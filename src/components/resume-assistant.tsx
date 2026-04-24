@@ -163,6 +163,7 @@ function renderMessageContent(
 	let paragraphBuffer: string[] = [];
 	let listBuffer: string[] = [];
 	let listOrdered = false;
+	let pendingListBreak = false;
 
 	const flushParagraphBuffer = () => {
 		if (!paragraphBuffer.length) {
@@ -188,14 +189,29 @@ function renderMessageContent(
 		});
 		listBuffer = [];
 		listOrdered = false;
+		pendingListBreak = false;
+	};
+
+	const appendToCurrentListItem = (line: string) => {
+		if (!listBuffer.length) {
+			return false;
+		}
+
+		const lastIndex = listBuffer.length - 1;
+		listBuffer[lastIndex] = `${listBuffer[lastIndex]}\n${line}`.trim();
+		return true;
 	};
 
 	for (const rawLine of lines) {
 		const line = rawLine.trim();
 
 		if (!line || isAssistantSeparatorLine(line)) {
-			flushParagraphBuffer();
-			flushListBuffer();
+			if (listBuffer.length) {
+				pendingListBreak = true;
+			} else {
+				flushParagraphBuffer();
+				flushListBuffer();
+			}
 			continue;
 		}
 
@@ -205,6 +221,7 @@ function renderMessageContent(
 				flushListBuffer();
 			}
 			listOrdered = false;
+			pendingListBreak = false;
 			listBuffer.push(line.replace(/^-\s+/, "").trim());
 			continue;
 		}
@@ -215,8 +232,18 @@ function renderMessageContent(
 				flushListBuffer();
 			}
 			listOrdered = true;
+			pendingListBreak = false;
 			listBuffer.push(line.replace(/^\d+\.\s+/, "").trim());
 			continue;
+		}
+
+		if (appendToCurrentListItem(line)) {
+			pendingListBreak = false;
+			continue;
+		}
+
+		if (pendingListBreak) {
+			flushListBuffer();
 		}
 
 		flushListBuffer();
@@ -276,11 +303,22 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\r\n/g, "\n")
 		.replace(/\\n/g, "\n")
 		.replace(/\/n/g, "\n")
+		.replace(/【[^】]+】/g, "")
+		.replace(
+			/\[(summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			"",
+		)
 		.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
 		.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
 		.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
 		.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
 		.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
+		.replace(/\*{2}\s*\n\s*/g, "**")
+		.replace(/\s*\n\s*\*{2}/g, "**")
+		.replace(/\*{1}\s*\n\s*/g, "*")
+		.replace(/\s*\n\s*\*{1}/g, "*")
+		.replace(/[ \t]+\n/g, "\n")
+		.replace(/\n[ \t]+/g, "\n")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
 }
@@ -291,26 +329,36 @@ function isAssistantSeparatorLine(line: string) {
 
 function renderBoldMarkdown(text: string) {
 	const parts: ReactNode[] = [];
-	const pattern = /\*\*([^*]+)\*\*/g;
+	const pattern = /(\*\*([^*]+)\*\*)|(\*([^*\n]+)\*)/g;
 	let lastIndex = 0;
 	let match = pattern.exec(text);
 
 	while (match) {
 		if (match.index > lastIndex) {
-			parts.push(text.slice(lastIndex, match.index));
+			parts.push(
+				stripResidualAssistantMarkers(text.slice(lastIndex, match.index)),
+			);
 		}
 
-		parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
+		if (match[2]) {
+			parts.push(<strong key={`bold-${match.index}`}>{match[2]}</strong>);
+		} else if (match[4]) {
+			parts.push(<em key={`italic-${match.index}`}>{match[4]}</em>);
+		}
 
 		lastIndex = match.index + match[0].length;
 		match = pattern.exec(text);
 	}
 
 	if (lastIndex < text.length) {
-		parts.push(text.slice(lastIndex));
+		parts.push(stripResidualAssistantMarkers(text.slice(lastIndex)));
 	}
 
 	return parts;
+}
+
+function stripResidualAssistantMarkers(text: string) {
+	return text.replace(/\*\*/g, "").replace(/\*/g, "");
 }
 
 function renderInlineMessageContent(
