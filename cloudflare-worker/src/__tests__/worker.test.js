@@ -768,6 +768,62 @@ describe("/assistant-routed", () => {
 		expect(aiRun).toHaveBeenCalled();
 	});
 
+	it("falls through to the next provider when GitHub Models returns a 500 server error", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						error:
+							"The server had an error while processing your request. Sorry about that!",
+					}),
+					{ status: 500, headers: { "Content-Type": "application/json" } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Groq answer","citations":["experience-1"]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [{ role: "user", content: "Tell me about Hassan" }],
+			}),
+			{
+				...env,
+				GITHUB_MODELS_TOKEN: "ghm_test",
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "openai/gpt-oss-20b",
+			},
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("groq");
+		expect(fetchSpy.mock.calls[0][0]).toBe(
+			"https://models.github.ai/inference/chat/completions",
+		);
+		expect(fetchSpy.mock.calls[1][0]).toBe(
+			"https://api.groq.com/openai/v1/chat/completions",
+		);
+		expect((await response.json()).choices[0].message.content).toContain(
+			"Groq answer",
+		);
+	});
+
 	it("normalizes Groq messages and falls through when Groq rejects structured output generation", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
 		const aiRun = vi.fn().mockResolvedValue({
@@ -1394,16 +1450,31 @@ describe("/assistant-routed", () => {
 		});
 	});
 
-	it("does not fall back past GitHub Models on non-rate-limit failures", async () => {
+	it("falls back past GitHub Models on server failures", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
-		const aiRun = vi.fn();
 
-		fetchSpy.mockResolvedValueOnce(
-			new Response(JSON.stringify({ error: "bad gateway" }), {
-				status: 502,
-				headers: { "Content-Type": "application/json" },
-			}),
-		);
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: "bad gateway" }), {
+					status: 502,
+					headers: { "Content-Type": "application/json" },
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Hugging Face answer","citations":["summary"]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
 
 		const response = await worker.fetch(
 			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
@@ -1414,20 +1485,20 @@ describe("/assistant-routed", () => {
 			{
 				...env,
 				GITHUB_MODELS_TOKEN: "ghm_test",
-				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
-				AI: {
-					run: aiRun,
-				},
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
 			},
 		);
 		const data = await response.json();
 
-		expect(response.status).toBe(502);
-		expect(data.error).toBe("bad gateway");
-		expect(aiRun).not.toHaveBeenCalled();
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("huggingface");
+		expect(JSON.parse(data.choices[0].message.content)).toEqual({
+			status: "answered",
+			answer: "Hugging Face answer",
+			citations: ["summary"],
+		});
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
 
 	it("falls back to portfolio-rag after other providers miss or fail", async () => {

@@ -32,6 +32,7 @@
     "CONTACT_EMAIL": "hassanraza632@gmail.com",
     "FROM_EMAIL": "noreply@contact.hassanraza.us",
     "GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
+    "ASSISTANT_PROVIDER_PRIORITY": "groq,huggingface,cloudflare,portfolio-rag,github-models",
     "GROQ_MODEL": "openai/gpt-oss-120b",
     "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "HUGGING_FACE_MODEL": "openai/gpt-oss-120b",
@@ -56,6 +57,7 @@
   //
   // Optional vars for routed assistant chat:
   //   GITHUB_MODELS_CHAT_MODEL – GitHub Models chat model for primary assistant calls
+  //   ASSISTANT_PROVIDER_PRIORITY – Comma-separated routed fallback order
   //   GROQ_MODEL             – Groq chat model identifier
   //   CLOUDFLARE_AI_MODEL    – Workers AI model for native env.AI.run() fallback
   //   HUGGING_FACE_MODEL     – Hugging Face router chat model identifier

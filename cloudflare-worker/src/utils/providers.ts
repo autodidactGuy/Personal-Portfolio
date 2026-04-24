@@ -27,7 +27,15 @@ type ProviderAttempt = {
 	error: string | null;
 };
 
+type RoutedProviderId =
+	| "github-models"
+	| "groq"
+	| "huggingface"
+	| "cloudflare"
+	| "portfolio-rag";
+
 type WorkerProviderEnv = Record<string, unknown> & {
+	ASSISTANT_PROVIDER_PRIORITY?: string;
 	GITHUB_MODELS_TOKEN?: string;
 	GITHUB_MODELS_CHAT_MODEL?: string;
 	GROQ_API_KEY?: string;
@@ -55,6 +63,14 @@ type AssistantChoice = {
 	};
 	[key: string]: unknown;
 };
+
+const DEFAULT_ROUTED_PROVIDER_PRIORITY: RoutedProviderId[] = [
+	"github-models",
+	"groq",
+	"huggingface",
+	"cloudflare",
+	"portfolio-rag",
+];
 
 function toChatCompletionsPayload(content: string, model: string) {
 	return {
@@ -344,6 +360,20 @@ function isMissingAssistantResponse(payload: unknown) {
 	return getAssistantStructuredStatus(payload) === "missing";
 }
 
+function isExpectedAssistantChatPayload(payload: unknown) {
+	if (
+		!payload ||
+		typeof payload !== "object" ||
+		!("choices" in payload) ||
+		!Array.isArray(payload.choices)
+	) {
+		return false;
+	}
+
+	const rawContent = payload.choices[0]?.message?.content;
+	return typeof rawContent === "string" && rawContent.trim().length > 0;
+}
+
 function normalizeAssistantErrorPayload(
 	payload: unknown,
 	fallbackMessage: string,
@@ -420,6 +450,38 @@ function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
 		normalizedError.includes("unsupported value") ||
 		normalizedError.includes("failed_generation")
 	);
+}
+
+function isGenericRoutedFallbackWorthyFailure(
+	status: number,
+	payload: unknown,
+) {
+	return status >= 500 || isRateLimitLikeFailure(status, payload);
+}
+
+function getRoutedProviderPriority(env: WorkerProviderEnv) {
+	const configuredPriority = String(env.ASSISTANT_PROVIDER_PRIORITY || "")
+		.split(",")
+		.map((value) => value.trim().toLowerCase())
+		.filter(Boolean) as RoutedProviderId[];
+
+	if (!configuredPriority.length) {
+		return DEFAULT_ROUTED_PROVIDER_PRIORITY;
+	}
+
+	const ordered = configuredPriority.filter(
+		(provider, index, providers) =>
+			DEFAULT_ROUTED_PROVIDER_PRIORITY.includes(provider) &&
+			providers.indexOf(provider) === index,
+	);
+
+	for (const provider of DEFAULT_ROUTED_PROVIDER_PRIORITY) {
+		if (!ordered.includes(provider)) {
+			ordered.push(provider);
+		}
+	}
+
+	return ordered;
 }
 
 function normalizeAssistantMessagesForGroq(messages: AssistantMessage[]) {
@@ -985,309 +1047,365 @@ export async function callAssistantChatWithRouting(
 		status: number;
 		provider: string;
 	} | null = null;
+	for (const provider of getRoutedProviderPriority(env)) {
+		if (provider === "github-models") {
+			if (!env.GITHUB_MODELS_TOKEN) {
+				continue;
+			}
 
-	if (env.GITHUB_MODELS_TOKEN) {
-		const githubResponse = await callGitHubModels(
-			"/inference/chat/completions",
-			env,
-			{
-				model: body.model,
-				temperature: body.temperature ?? 0,
-				max_tokens: body.max_tokens ?? 220,
-				response_format: body.response_format,
-				messages: body.messages,
-			},
-		);
-		const payload = await parseJsonResponse(githubResponse.clone());
-		const normalizedGithubPayload = githubResponse.ok
-			? normalizeAssistantChatPayload(payload, body.model)
-			: payload;
-
-		if (
-			githubResponse.ok &&
-			!isMissingAssistantResponse(normalizedGithubPayload)
-		) {
-			return jsonResponse(
-				normalizedGithubPayload,
-				githubResponse.status,
-				buildProviderContextHeaders("github-models", [
-					{
-						provider: "github-models",
-						status: githubResponse.status,
-						error: null,
-					},
-				]),
-			);
-		}
-
-		if (githubResponse.ok) {
-			lastMissingResponse = {
-				payload: normalizedGithubPayload,
-				status: githubResponse.status,
-				provider: "github-models",
-			};
-		}
-
-		const githubError = normalizeAssistantErrorPayload(
-			githubResponse.ok ? { error: "Assistant returned missing" } : payload,
-			githubResponse.ok
-				? "Assistant returned missing"
-				: "GitHub Models request failed",
-		);
-
-		providerAttempts.push({
-			provider: "github-models",
-			status: githubResponse.status,
-			error: githubError,
-		});
-
-		if (
-			githubResponse.ok ||
-			!isRateLimitLikeFailure(githubResponse.status, payload)
-		) {
-			return jsonResponse(
-				{ error: githubError, providers: providerAttempts },
-				githubResponse.status,
-				buildProviderContextHeaders("github-models", providerAttempts),
-			);
-		}
-	}
-
-	const groqResponse = await callGroq(body, env);
-	const normalizedGroqPayload = groqResponse.ok
-		? normalizeAssistantChatPayload(groqResponse.payload, env.GROQ_MODEL)
-		: groqResponse.payload;
-
-	if (
-		groqResponse.ok &&
-		!isMissingAssistantResponse(normalizedGroqPayload) &&
-		!isIncompleteAssistantChatPayload(normalizedGroqPayload)
-	) {
-		return jsonResponse(
-			normalizedGroqPayload,
-			groqResponse.status,
-			buildProviderContextHeaders("groq", [
-				...providerAttempts,
+			const githubResponse = await callGitHubModels(
+				"/inference/chat/completions",
+				env,
 				{
-					provider: "groq",
-					status: groqResponse.status,
-					error: null,
+					model: body.model,
+					temperature: body.temperature ?? 0,
+					max_tokens: body.max_tokens ?? 220,
+					response_format: body.response_format,
+					messages: body.messages,
 				},
-			]),
-		);
-	}
+			);
+			const payload = await parseJsonResponse(githubResponse.clone());
+			const normalizedPayload = githubResponse.ok
+				? normalizeAssistantChatPayload(payload, body.model)
+				: payload;
+			const isExpectedPayload =
+				isExpectedAssistantChatPayload(normalizedPayload);
 
-	if (groqResponse.ok) {
-		lastMissingResponse = {
-			payload: normalizedGroqPayload,
-			status: groqResponse.status,
-			provider: "groq",
-		};
-	}
+			if (
+				githubResponse.ok &&
+				isExpectedPayload &&
+				!isMissingAssistantResponse(normalizedPayload)
+			) {
+				return jsonResponse(
+					normalizedPayload,
+					githubResponse.status,
+					buildProviderContextHeaders("github-models", [
+						{
+							provider: "github-models",
+							status: githubResponse.status,
+							error: null,
+						},
+					]),
+				);
+			}
 
-	const groqError = normalizeAssistantErrorPayload(
-		groqResponse.ok
-			? {
-					error: isIncompleteAssistantChatPayload(normalizedGroqPayload)
-						? "Assistant returned an incomplete response"
-						: "Assistant returned missing",
-				}
-			: groqResponse.payload,
-		groqResponse.ok
-			? isIncompleteAssistantChatPayload(normalizedGroqPayload)
-				? "Assistant returned an incomplete response"
-				: "Assistant returned missing"
-			: "Groq request failed",
-	);
+			if (githubResponse.ok && isExpectedPayload) {
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: githubResponse.status,
+					provider: "github-models",
+				};
+			}
 
-	providerAttempts.push({
-		provider: "groq",
-		status: groqResponse.status,
-		error: groqError,
-	});
-
-	if (
-		(groqResponse.ok &&
-			!isIncompleteAssistantChatPayload(normalizedGroqPayload)) ||
-		(!groqResponse.ok &&
-			!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload))
-	) {
-		return jsonResponse(
-			{ error: groqError, providers: providerAttempts },
-			groqResponse.status,
-			buildProviderContextHeaders("groq", providerAttempts),
-		);
-	}
-
-	const huggingFaceResponse = await callHuggingFace(body, env);
-	const normalizedHuggingFacePayload = huggingFaceResponse.ok
-		? normalizeAssistantChatPayload(
-				huggingFaceResponse.payload,
-				env.HUGGING_FACE_MODEL,
-			)
-		: huggingFaceResponse.payload;
-
-	if (
-		huggingFaceResponse.ok &&
-		!isMissingAssistantResponse(normalizedHuggingFacePayload)
-	) {
-		return jsonResponse(
-			normalizedHuggingFacePayload,
-			huggingFaceResponse.status,
-			buildProviderContextHeaders("huggingface", [
-				...providerAttempts,
-				{
-					provider: "huggingface",
-					status: huggingFaceResponse.status,
-					error: null,
-				},
-			]),
-		);
-	}
-
-	if (huggingFaceResponse.ok) {
-		lastMissingResponse = {
-			payload: normalizedHuggingFacePayload,
-			status: huggingFaceResponse.status,
-			provider: "huggingface",
-		};
-	}
-
-	providerAttempts.push({
-		provider: "huggingface",
-		status: huggingFaceResponse.status,
-		error: normalizeAssistantErrorPayload(
-			huggingFaceResponse.ok
-				? { error: "Assistant returned missing" }
-				: huggingFaceResponse.payload,
-			huggingFaceResponse.ok
-				? "Assistant returned missing"
-				: "Hugging Face request failed",
-		),
-	});
-
-	if (
-		!huggingFaceResponse.ok &&
-		huggingFaceResponse.status !== 503 &&
-		!isRateLimitLikeFailure(
-			huggingFaceResponse.status,
-			huggingFaceResponse.payload,
-		)
-	) {
-		return jsonResponse(
-			{
-				error: normalizeAssistantErrorPayload(
-					huggingFaceResponse.payload,
-					"Hugging Face request failed",
-				),
-				providers: providerAttempts,
-			},
-			huggingFaceResponse.status,
-			buildProviderContextHeaders("huggingface", providerAttempts),
-		);
-	}
-
-	const cloudflareResponse = await callCloudflareAi(body, env);
-	const normalizedCloudflarePayload = cloudflareResponse.ok
-		? normalizeAssistantChatPayload(
-				cloudflareResponse.payload,
-				env.CLOUDFLARE_AI_MODEL,
-			)
-		: cloudflareResponse.payload;
-
-	if (
-		cloudflareResponse.ok &&
-		!isMissingAssistantResponse(normalizedCloudflarePayload)
-	) {
-		return jsonResponse(
-			normalizedCloudflarePayload,
-			cloudflareResponse.status,
-			buildProviderContextHeaders("cloudflare", [
-				...providerAttempts,
-				{
-					provider: "cloudflare",
-					status: cloudflareResponse.status,
-					error: null,
-				},
-			]),
-		);
-	}
-
-	if (cloudflareResponse.ok) {
-		lastMissingResponse = {
-			payload: normalizedCloudflarePayload,
-			status: cloudflareResponse.status,
-			provider: "cloudflare",
-		};
-	}
-
-	providerAttempts.push({
-		provider: "cloudflare",
-		status: cloudflareResponse.status,
-		error: normalizeAssistantErrorPayload(
-			cloudflareResponse.ok
-				? { error: "Assistant returned missing" }
-				: cloudflareResponse.payload,
-			cloudflareResponse.ok
-				? "Assistant returned missing"
-				: "Cloudflare AI request failed",
-		),
-	});
-
-	if (
-		!cloudflareResponse.ok &&
-		cloudflareResponse.status !== 503 &&
-		!isRateLimitLikeFailure(
-			cloudflareResponse.status,
-			cloudflareResponse.payload,
-		)
-	) {
-		return jsonResponse(
-			{
-				error: normalizeAssistantErrorPayload(
-					cloudflareResponse.payload,
-					"Cloudflare AI request failed",
-				),
-				providers: providerAttempts,
-			},
-			cloudflareResponse.status,
-			buildProviderContextHeaders("cloudflare", providerAttempts),
-		);
-	}
-
-	const ragQuestion = extractQuestionFromMessages(body.messages);
-
-	if (ragQuestion) {
-		try {
-			const ragPayload = await runRagQuestion(
-				ragQuestion,
-				env as unknown as RagEnv,
+			const githubError = normalizeAssistantErrorPayload(
+				githubResponse.ok
+					? {
+							error: isExpectedPayload
+								? "Assistant returned missing"
+								: "Assistant returned an unexpected response",
+						}
+					: payload,
+				githubResponse.ok
+					? isExpectedPayload
+						? "Assistant returned missing"
+						: "Assistant returned an unexpected response"
+					: "GitHub Models request failed",
 			);
 
-			return jsonResponse(
-				toChatCompletionsPayload(
-					JSON.stringify(ragPayload),
-					env.RAG_CHAT_MODEL || "portfolio-rag",
-				),
-				200,
-				buildProviderContextHeaders("portfolio-rag", [
-					...providerAttempts,
-					{
-						provider: "portfolio-rag",
-						status: 200,
-						error: null,
-					},
-				]),
-			);
-		} catch (error) {
 			providerAttempts.push({
-				provider: "portfolio-rag",
-				status: 503,
-				error:
-					error instanceof Error
-						? error.message
-						: "Portfolio RAG request failed",
+				provider: "github-models",
+				status: githubResponse.status,
+				error: githubError,
 			});
+
+			if (
+				githubResponse.ok ||
+				!isGenericRoutedFallbackWorthyFailure(githubResponse.status, payload)
+			) {
+				return jsonResponse(
+					{ error: githubError, providers: providerAttempts },
+					githubResponse.status,
+					buildProviderContextHeaders("github-models", providerAttempts),
+				);
+			}
+
+			continue;
+		}
+
+		if (provider === "groq") {
+			const groqResponse = await callGroq(body, env);
+			const normalizedPayload = groqResponse.ok
+				? normalizeAssistantChatPayload(groqResponse.payload, env.GROQ_MODEL)
+				: groqResponse.payload;
+			const isExpectedPayload =
+				isExpectedAssistantChatPayload(normalizedPayload);
+			const isIncompletePayload =
+				isExpectedPayload &&
+				isIncompleteAssistantChatPayload(normalizedPayload);
+
+			if (
+				groqResponse.ok &&
+				isExpectedPayload &&
+				!isMissingAssistantResponse(normalizedPayload) &&
+				!isIncompletePayload
+			) {
+				return jsonResponse(
+					normalizedPayload,
+					groqResponse.status,
+					buildProviderContextHeaders("groq", [
+						...providerAttempts,
+						{
+							provider: "groq",
+							status: groqResponse.status,
+							error: null,
+						},
+					]),
+				);
+			}
+
+			if (groqResponse.ok && isExpectedPayload) {
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: groqResponse.status,
+					provider: "groq",
+				};
+			}
+
+			const groqError = normalizeAssistantErrorPayload(
+				groqResponse.ok
+					? {
+							error: !isExpectedPayload
+								? "Assistant returned an unexpected response"
+								: isIncompletePayload
+									? "Assistant returned an incomplete response"
+									: "Assistant returned missing",
+						}
+					: groqResponse.payload,
+				groqResponse.ok
+					? !isExpectedPayload
+						? "Assistant returned an unexpected response"
+						: isIncompletePayload
+							? "Assistant returned an incomplete response"
+							: "Assistant returned missing"
+					: "Groq request failed",
+			);
+
+			providerAttempts.push({
+				provider: "groq",
+				status: groqResponse.status,
+				error: groqError,
+			});
+
+			if (
+				(groqResponse.ok && (!isExpectedPayload || !isIncompletePayload)) ||
+				(!groqResponse.ok &&
+					!isGroqFallbackWorthyFailure(
+						groqResponse.status,
+						groqResponse.payload,
+					))
+			) {
+				return jsonResponse(
+					{ error: groqError, providers: providerAttempts },
+					groqResponse.status,
+					buildProviderContextHeaders("groq", providerAttempts),
+				);
+			}
+
+			continue;
+		}
+
+		if (provider === "huggingface") {
+			const huggingFaceResponse = await callHuggingFace(body, env);
+			const normalizedPayload = huggingFaceResponse.ok
+				? normalizeAssistantChatPayload(
+						huggingFaceResponse.payload,
+						env.HUGGING_FACE_MODEL,
+					)
+				: huggingFaceResponse.payload;
+			const isExpectedPayload =
+				isExpectedAssistantChatPayload(normalizedPayload);
+
+			if (
+				huggingFaceResponse.ok &&
+				isExpectedPayload &&
+				!isMissingAssistantResponse(normalizedPayload)
+			) {
+				return jsonResponse(
+					normalizedPayload,
+					huggingFaceResponse.status,
+					buildProviderContextHeaders("huggingface", [
+						...providerAttempts,
+						{
+							provider: "huggingface",
+							status: huggingFaceResponse.status,
+							error: null,
+						},
+					]),
+				);
+			}
+
+			if (huggingFaceResponse.ok && isExpectedPayload) {
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: huggingFaceResponse.status,
+					provider: "huggingface",
+				};
+			}
+
+			const errorMessage = normalizeAssistantErrorPayload(
+				huggingFaceResponse.ok
+					? {
+							error: isExpectedPayload
+								? "Assistant returned missing"
+								: "Assistant returned an unexpected response",
+						}
+					: huggingFaceResponse.payload,
+				huggingFaceResponse.ok
+					? isExpectedPayload
+						? "Assistant returned missing"
+						: "Assistant returned an unexpected response"
+					: "Hugging Face request failed",
+			);
+
+			providerAttempts.push({
+				provider: "huggingface",
+				status: huggingFaceResponse.status,
+				error: errorMessage,
+			});
+
+			if (
+				(huggingFaceResponse.ok && !isExpectedPayload) ||
+				(!huggingFaceResponse.ok &&
+					!isGenericRoutedFallbackWorthyFailure(
+						huggingFaceResponse.status,
+						huggingFaceResponse.payload,
+					))
+			) {
+				return jsonResponse(
+					{ error: errorMessage, providers: providerAttempts },
+					huggingFaceResponse.status,
+					buildProviderContextHeaders("huggingface", providerAttempts),
+				);
+			}
+
+			continue;
+		}
+
+		if (provider === "cloudflare") {
+			const cloudflareResponse = await callCloudflareAi(body, env);
+			const normalizedPayload = cloudflareResponse.ok
+				? normalizeAssistantChatPayload(
+						cloudflareResponse.payload,
+						env.CLOUDFLARE_AI_MODEL,
+					)
+				: cloudflareResponse.payload;
+			const isExpectedPayload =
+				isExpectedAssistantChatPayload(normalizedPayload);
+
+			if (
+				cloudflareResponse.ok &&
+				isExpectedPayload &&
+				!isMissingAssistantResponse(normalizedPayload)
+			) {
+				return jsonResponse(
+					normalizedPayload,
+					cloudflareResponse.status,
+					buildProviderContextHeaders("cloudflare", [
+						...providerAttempts,
+						{
+							provider: "cloudflare",
+							status: cloudflareResponse.status,
+							error: null,
+						},
+					]),
+				);
+			}
+
+			if (cloudflareResponse.ok && isExpectedPayload) {
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: cloudflareResponse.status,
+					provider: "cloudflare",
+				};
+			}
+
+			const errorMessage = normalizeAssistantErrorPayload(
+				cloudflareResponse.ok
+					? {
+							error: isExpectedPayload
+								? "Assistant returned missing"
+								: "Assistant returned an unexpected response",
+						}
+					: cloudflareResponse.payload,
+				cloudflareResponse.ok
+					? isExpectedPayload
+						? "Assistant returned missing"
+						: "Assistant returned an unexpected response"
+					: "Cloudflare AI request failed",
+			);
+
+			providerAttempts.push({
+				provider: "cloudflare",
+				status: cloudflareResponse.status,
+				error: errorMessage,
+			});
+
+			if (
+				(cloudflareResponse.ok && !isExpectedPayload) ||
+				(!cloudflareResponse.ok &&
+					!isGenericRoutedFallbackWorthyFailure(
+						cloudflareResponse.status,
+						cloudflareResponse.payload,
+					))
+			) {
+				return jsonResponse(
+					{ error: errorMessage, providers: providerAttempts },
+					cloudflareResponse.status,
+					buildProviderContextHeaders("cloudflare", providerAttempts),
+				);
+			}
+
+			continue;
+		}
+
+		if (provider === "portfolio-rag") {
+			const ragQuestion = extractQuestionFromMessages(body.messages);
+
+			if (!ragQuestion) {
+				continue;
+			}
+
+			try {
+				const ragPayload = await runRagQuestion(
+					ragQuestion,
+					env as unknown as RagEnv,
+				);
+
+				return jsonResponse(
+					toChatCompletionsPayload(
+						JSON.stringify(ragPayload),
+						env.RAG_CHAT_MODEL || "portfolio-rag",
+					),
+					200,
+					buildProviderContextHeaders("portfolio-rag", [
+						...providerAttempts,
+						{
+							provider: "portfolio-rag",
+							status: 200,
+							error: null,
+						},
+					]),
+				);
+			} catch (error) {
+				providerAttempts.push({
+					provider: "portfolio-rag",
+					status: 503,
+					error:
+						error instanceof Error
+							? error.message
+							: "Portfolio RAG request failed",
+				});
+			}
 		}
 	}
 

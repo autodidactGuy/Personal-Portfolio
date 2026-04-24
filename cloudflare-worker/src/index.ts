@@ -41,6 +41,7 @@ type WorkerEnv = Record<string, unknown> & {
 	FROM_EMAIL?: string;
 	TURNSTILE_SECRET_KEY?: string;
 	GITHUB_MODELS_CHAT_MODEL?: string;
+	ASSISTANT_PROVIDER_PRIORITY?: string;
 };
 
 type ContactPayload = {
