@@ -25,7 +25,7 @@ const retrieveRequestSchema = z.object({
 		.string()
 		.trim()
 		.min(1, "query is required")
-		.max(2000, "query is too long")
+		.max(5000, "query is too long")
 		.optional(),
 });
 
