@@ -98,7 +98,7 @@ describe("/ask", () => {
 		);
 	});
 
-	it("returns no_match without calling the generation model", async () => {
+	it("returns missing without calling the generation model", async () => {
 		const env = {
 			...baseEnv,
 			AI: {
@@ -126,7 +126,7 @@ describe("/ask", () => {
 
 		const payload = (await response.json()) as { status: string };
 		expect(response.status).toBe(200);
-		expect(payload.status).toBe("no_match");
+		expect(payload.status).toBe("missing");
 		expect(env.AI.run).toHaveBeenCalledTimes(1);
 	});
 
@@ -162,7 +162,7 @@ describe("/ask", () => {
 			"https://worker.test",
 		);
 		expect(((await response.json()) as { status: string }).status).toBe(
-			"no_match",
+			"missing",
 		);
 	});
 

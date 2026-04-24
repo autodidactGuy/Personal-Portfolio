@@ -23,7 +23,7 @@ export type RagCitation = {
 
 export type RagAskResponse = {
 	ok: boolean;
-	status: "answered" | "insufficient_context" | "no_match" | "error";
+	status: "answered" | "missing" | "rejected" | "error";
 	answer: string;
 	citations: RagCitation[];
 	retrieval: {

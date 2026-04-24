@@ -822,8 +822,8 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 		if (retrieval.status === "no_match") {
 			return jsonResponse(
 				createAskResponse({
-					status: "no_match",
-					answer: "I could not find relevant information.",
+					status: "missing",
+					answer: "I don't have that information available.",
 					citations: [],
 					retrievalMatched: 0,
 					config,
@@ -836,9 +836,8 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 		if (retrieval.status === "insufficient_context") {
 			return jsonResponse(
 				createAskResponse({
-					status: "insufficient_context",
-					answer:
-						"I found weak or incomplete matches, so I cannot answer confidently from the provided information.",
+					status: "missing",
+					answer: "I don't have that information available.",
 					citations: [],
 					retrievalMatched: retrieval.matched,
 					config,
@@ -848,19 +847,40 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 			);
 		}
 
-		const answer = await generateAnswer(
+		const generated = await generateAnswer(
 			parsed.data.question,
 			retrieval.chunks,
 			env,
 			config,
 		);
+		const validCitationIds = new Set(
+			retrieval.citations.map((citation) => citation.id),
+		);
+		const generatedCitationIds =
+			generated?.citations.filter((citation) =>
+				validCitationIds.has(citation),
+			) || [];
+		const responseStatus =
+			generated?.status === "answered" ||
+			generated?.status === "rejected" ||
+			generated?.status === "missing"
+				? generated.status
+				: "missing";
+
 		return jsonResponse(
 			createAskResponse({
-				status: "answered",
+				status: responseStatus,
 				answer:
-					answer ||
+					generated?.answer ||
 					"I found relevant information, but the generation step returned an empty answer.",
-				citations: retrieval.citations,
+				citations:
+					responseStatus === "answered"
+						? retrieval.citations.filter((citation) =>
+								generatedCitationIds.length
+									? generatedCitationIds.includes(citation.id)
+									: true,
+							)
+						: [],
 				retrievalMatched: retrieval.matched,
 				config,
 			}),

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { rateLimitMap, resetRateLimitState } from "../index.ts";
+import { resetGroqApiKeyRotation } from "../utils/providers.ts";
 
 const ALLOWED_ORIGIN = "https://hassanraza.us";
 
@@ -300,6 +301,7 @@ describe("/assistant", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 		resetRateLimitState();
+		resetGroqApiKeyRotation();
 	});
 
 	it("proxies embeddings requests for an allowed origin", async () => {
@@ -666,6 +668,87 @@ describe("/assistant-provider-raw", () => {
 			status: "answered",
 			citations: ["experience:overflow:overview:0"],
 		});
+	});
+
+	it("uses provided resume snippets and recent context when portfolio-rag is selected", async () => {
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response: {
+					status: "answered",
+					answer:
+						"His latest work is Building a Resume-Native AI Assistant for My Portfolio.",
+					citations: ["project:building-a-resume-native-ai-assistant"],
+				},
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-provider-raw", "POST", ALLOWED_ORIGIN, {
+				provider: "portfolio-rag",
+				request: {
+					action: "chat",
+					messages: [
+						{
+							role: "developer",
+							content: [
+								"RECENT_CHAT_CONTEXT:",
+								"USER: tell me more",
+								"",
+								"SUPPORTING_RESUME_SNIPPETS:",
+								"[project:building-a-resume-native-ai-assistant] Building a Resume-Native AI Assistant for My Portfolio",
+								"Date: 2026-04-01",
+								"A portfolio-native assistant grounded in resume and recommendation data.",
+							].join("\n"),
+						},
+						{
+							role: "user",
+							content: "what's the latest work or project he did",
+						},
+					],
+				},
+			}),
+			{
+				...env,
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({ matches: [] }),
+				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket(),
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+				RAG_EMBED_MODEL: "@cf/baai/bge-base-en-v1.5",
+				RAG_TOP_K: "10",
+				RAG_SIMILARITY_THRESHOLD: "0.5",
+				RAG_MAX_CONTEXT_CHUNKS: "10",
+				RAG_MAX_OUTPUT_TOKENS: "600",
+			},
+		);
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("portfolio-rag");
+		expect(JSON.parse(data.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			citations: ["project:building-a-resume-native-ai-assistant"],
+		});
+		expect(aiRun).toHaveBeenNthCalledWith(
+			2,
+			"@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+			expect.objectContaining({
+				messages: expect.arrayContaining([
+					expect.objectContaining({
+						role: "developer",
+						content: expect.stringContaining(
+							"RECENT_CHAT_CONTEXT:\nUSER: tell me more",
+						),
+					}),
+				]),
+			}),
+		);
 	});
 });
 
@@ -1626,6 +1709,92 @@ describe("/assistant-routed", () => {
 		);
 		expect((await response.json()).choices[0].message.content).toContain(
 			"Groq answer",
+		);
+	});
+
+	it("rotates Groq API keys across consecutive Groq requests", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		resetGroqApiKeyRotation();
+
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Groq answer one","citations":["summary"]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Groq answer two","citations":["summary"]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Groq answer three","citations":["summary"]}',
+								},
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
+
+		const fullEnv = {
+			...env,
+			GROQ_API_KEY: "groq_test_1",
+			GROQ_API_KEY_V2: "groq_test_2",
+			GROQ_API_KEY_V3: "groq_test_3",
+			GROQ_MODEL: "llama-3.3-70b-versatile",
+			ASSISTANT_PROVIDER_PRIORITY: "groq",
+		};
+
+		for (const prompt of ["one", "two", "three"]) {
+			const response = await worker.fetch(
+				buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+					action: "chat",
+					model: "openai/gpt-4.1-mini",
+					messages: [{ role: "user", content: `Tell me ${prompt}` }],
+				}),
+				fullEnv,
+			);
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get("X-Assistant-Provider")).toBe("groq");
+		}
+
+		expect(fetchSpy).toHaveBeenCalledTimes(3);
+		expect(fetchSpy.mock.calls[0][1].headers.Authorization).toBe(
+			"Bearer groq_test_1",
+		);
+		expect(fetchSpy.mock.calls[1][1].headers.Authorization).toBe(
+			"Bearer groq_test_2",
+		);
+		expect(fetchSpy.mock.calls[2][1].headers.Authorization).toBe(
+			"Bearer groq_test_3",
 		);
 	});
 

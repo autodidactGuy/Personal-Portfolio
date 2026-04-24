@@ -1,4 +1,8 @@
-import { buildGroundedPrompt } from "./prompt";
+import {
+	buildGroundedMessages,
+	RAG_MISSING_MESSAGE,
+	RAG_REJECTED_MESSAGE,
+} from "./prompt";
 import type { RagChunkRecord, RagCitation, RagConfig, RagEnv } from "./types";
 
 function asEmbeddingVector(value: unknown) {
@@ -22,27 +26,81 @@ function parseChunkRecord(rawValue: string | null) {
 	}
 }
 
-function parseLlmAnswer(result: unknown) {
+function inferStructuredStatus(answer: string) {
+	const normalizedAnswer = answer.trim();
+
+	if (normalizedAnswer === RAG_MISSING_MESSAGE) {
+		return "missing" as const;
+	}
+
+	if (normalizedAnswer === RAG_REJECTED_MESSAGE) {
+		return "rejected" as const;
+	}
+
+	return "answered" as const;
+}
+
+function tryParseStructuredAnswer(value: unknown) {
+	if (!value) {
+		return null;
+	}
+
+	if (
+		typeof value === "object" &&
+		value !== null &&
+		"status" in value &&
+		"answer" in value &&
+		"citations" in value &&
+		typeof value.status === "string" &&
+		typeof value.answer === "string" &&
+		Array.isArray(value.citations)
+	) {
+		return {
+			status: value.status,
+			answer: value.answer.trim(),
+			citations: value.citations.filter(
+				(citation): citation is string => typeof citation === "string",
+			),
+		};
+	}
+
+	if (typeof value === "string") {
+		try {
+			return tryParseStructuredAnswer(JSON.parse(value));
+		} catch {
+			const answer = value.trim();
+
+			if (!answer) {
+				return null;
+			}
+
+			return {
+				status: inferStructuredStatus(answer),
+				answer,
+				citations: [] as string[],
+			};
+		}
+	}
+
+	return null;
+}
+
+function parseStructuredLlmAnswer(result: unknown) {
 	if (typeof result === "string") {
-		return result.trim();
+		return tryParseStructuredAnswer(result);
 	}
 
 	const response = result as {
-		response?: string;
-		result?: { response?: string };
-		choices?: Array<{ message?: { content?: string } }>;
+		response?: unknown;
+		result?: { response?: unknown };
+		choices?: Array<{ message?: { content?: unknown } }>;
 	};
 
-	if (typeof response.response === "string") {
-		return response.response.trim();
-	}
-
-	if (typeof response.result?.response === "string") {
-		return response.result.response.trim();
-	}
-
-	const choiceContent = response.choices?.[0]?.message?.content;
-	return typeof choiceContent === "string" ? choiceContent.trim() : "";
+	return (
+		tryParseStructuredAnswer(response.response) ||
+		tryParseStructuredAnswer(response.result?.response) ||
+		tryParseStructuredAnswer(response.choices?.[0]?.message?.content)
+	);
 }
 
 function getChunkObjectKey(metadata: Record<string, unknown> | undefined) {
@@ -149,13 +207,20 @@ export async function generateAnswer(
 	chunks: RagChunkRecord[],
 	env: RagEnv,
 	config: RagConfig,
+	recentContext = "None",
 ) {
-	const prompt = buildGroundedPrompt(question, chunks);
+	const { messages, responseFormat } = buildGroundedMessages(
+		question,
+		chunks,
+		config.maxContextChunks,
+		recentContext,
+	);
 	const result = await env.AI.run(config.chatModel, {
-		prompt,
+		messages,
+		response_format: responseFormat,
 		max_tokens: config.maxOutputTokens,
 		temperature: 0,
 	});
 
-	return parseLlmAnswer(result);
+	return parseStructuredLlmAnswer(result);
 }

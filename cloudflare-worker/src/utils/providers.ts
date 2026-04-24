@@ -18,6 +18,16 @@ type AssistantChatBody = {
 	temperature?: number;
 	max_tokens?: number;
 	response_format?: Record<string, unknown>;
+	context?: string;
+	snippets?: Array<{
+		id: string;
+		title?: string;
+		text: string;
+		url?: string;
+		slug?: string;
+		sourceType?: string;
+		section?: string;
+	}>;
 	messages: AssistantMessage[];
 };
 
@@ -40,6 +50,8 @@ type WorkerProviderEnv = Record<string, unknown> & {
 	GITHUB_MODELS_TOKEN?: string;
 	GITHUB_MODELS_CHAT_MODEL?: string;
 	GROQ_API_KEY?: string;
+	GROQ_API_KEY_V2?: string;
+	GROQ_API_KEY_V3?: string;
 	GROQ_MODEL?: string;
 	GROQ_BACKUP_MODEL?: string;
 	HUGGING_FACE_API_TOKEN?: string;
@@ -74,6 +86,12 @@ const DEFAULT_ROUTED_PROVIDER_PRIORITY: RoutedProviderId[] = [
 	"cloudflare",
 	"portfolio-rag",
 ];
+
+let groqApiKeyRotationIndex = 0;
+
+export function resetGroqApiKeyRotation() {
+	groqApiKeyRotationIndex = 0;
+}
 
 function toChatCompletionsPayload(content: string, model: string) {
 	return {
@@ -553,6 +571,25 @@ function normalizeAssistantMessagesForGroq(messages: AssistantMessage[]) {
 	return normalizedMessages;
 }
 
+function getGroqApiKeys(env: WorkerProviderEnv) {
+	return [env.GROQ_API_KEY, env.GROQ_API_KEY_V2, env.GROQ_API_KEY_V3].filter(
+		(value): value is string =>
+			typeof value === "string" && value.trim().length > 0,
+	);
+}
+
+function getNextGroqApiKey(env: WorkerProviderEnv) {
+	const keys = getGroqApiKeys(env);
+
+	if (!keys.length) {
+		return null;
+	}
+
+	const key = keys[groqApiKeyRotationIndex % keys.length];
+	groqApiKeyRotationIndex = (groqApiKeyRotationIndex + 1) % keys.length;
+	return key;
+}
+
 function ensureGroqJsonInstruction(
 	messages: Array<{ role: string; content: string }>,
 	responseFormat: Record<string, unknown> | undefined,
@@ -881,7 +918,9 @@ async function callGitHubModelsRaw(
 }
 
 async function callGroqRaw(body: AssistantChatBody, env: WorkerProviderEnv) {
-	if (!env.GROQ_API_KEY || !body.model) {
+	const groqApiKey = getNextGroqApiKey(env);
+
+	if (!groqApiKey || !body.model) {
 		return jsonResponse({ error: "Groq is not configured" }, 503);
 	}
 
@@ -893,7 +932,7 @@ async function callGroqRaw(body: AssistantChatBody, env: WorkerProviderEnv) {
 		return await fetch("https://api.groq.com/openai/v1/chat/completions", {
 			method: "POST",
 			headers: {
-				Authorization: `Bearer ${env.GROQ_API_KEY}`,
+				Authorization: `Bearer ${groqApiKey}`,
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
@@ -1048,6 +1087,19 @@ export async function callRawAssistantProvider(
 				const payload = await runRagQuestion(
 					question,
 					env as unknown as RagEnv,
+					{
+						messages: body.messages,
+						context: body.context,
+						snippets: body.snippets?.map((snippet) => ({
+							id: snippet.id,
+							title: snippet.title || snippet.id,
+							text: snippet.text,
+							url: snippet.url,
+							slug: snippet.slug,
+							sourceType: snippet.sourceType,
+							section: snippet.section,
+						})),
+					},
 				);
 
 				return jsonResponse(
@@ -1652,6 +1704,19 @@ export async function callAssistantChatWithRouting(
 				const ragPayload = await runRagQuestion(
 					ragQuestion,
 					env as unknown as RagEnv,
+					{
+						messages: body.messages,
+						context: body.context,
+						snippets: body.snippets?.map((snippet) => ({
+							id: snippet.id,
+							title: snippet.title || snippet.id,
+							text: snippet.text,
+							url: snippet.url,
+							slug: snippet.slug,
+							sourceType: snippet.sourceType,
+							section: snippet.section,
+						})),
+					},
 				);
 
 				return jsonResponse(

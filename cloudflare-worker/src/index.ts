@@ -192,6 +192,21 @@ const assistantChatSchema = z.object({
 	model: z.string().trim().min(1).optional(),
 	temperature: z.number().min(0).max(2).optional(),
 	max_tokens: z.number().int().positive().max(2000).optional(),
+	context: z.string().trim().min(1).max(5000).optional(),
+	snippets: z
+		.array(
+			z.object({
+				id: z.string().trim().min(1),
+				title: z.string().trim().min(1).optional(),
+				text: z.string().trim().min(1),
+				url: z.string().trim().url().optional(),
+				slug: z.string().trim().min(1).optional(),
+				sourceType: z.string().trim().min(1).optional(),
+				section: z.string().trim().min(1).optional(),
+			}),
+		)
+		.max(24)
+		.optional(),
 	response_format: z.object({}).passthrough().optional(),
 	messages: z
 		.array(
