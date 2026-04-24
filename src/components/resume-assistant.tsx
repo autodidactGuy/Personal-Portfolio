@@ -524,9 +524,12 @@ export function ResumeAssistant() {
 		[messages],
 	);
 	const thinkingState = useMemo(() => {
-		const userMessageCount = messages.filter(
-			(message) => message.role === "user",
-		).length;
+		// Subtract 1 because the user message is already appended when isSending
+		// is true, so index 0 ("Thinking...") correctly shows on the first send.
+		const userMessageCount = Math.max(
+			0,
+			messages.filter((message) => message.role === "user").length - 1,
+		);
 
 		return THINKING_STATES[userMessageCount % THINKING_STATES.length];
 	}, [messages]);
