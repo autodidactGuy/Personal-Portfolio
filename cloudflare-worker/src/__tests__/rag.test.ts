@@ -77,7 +77,9 @@ describe("/ask", () => {
 		);
 
 		expect(response.status).toBe(400);
-		expect((await response.json()).error).toBe("Validation failed");
+		expect(((await response.json()) as { error: string }).error).toBe(
+			"Validation failed",
+		);
 	});
 
 	it("returns no_match without calling the generation model", async () => {
@@ -108,7 +110,7 @@ describe("/ask", () => {
 			env as never,
 		);
 
-		const payload = await response.json();
+		const payload = (await response.json()) as { status: string };
 		expect(response.status).toBe(200);
 		expect(payload.status).toBe("no_match");
 		expect(env.AI.run).toHaveBeenCalledTimes(1);
@@ -147,7 +149,9 @@ describe("/ask", () => {
 		expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
 			"https://worker.test",
 		);
-		expect((await response.json()).status).toBe("no_match");
+		expect(((await response.json()) as { status: string }).status).toBe(
+			"no_match",
+		);
 	});
 
 	it("returns an answered payload with citations when retrieval succeeds", async () => {
@@ -204,7 +208,11 @@ describe("/ask", () => {
 			env as never,
 		);
 
-		const payload = await response.json();
+		const payload = (await response.json()) as {
+			status: string;
+			citations: unknown[];
+			answer: string;
+		};
 		expect(response.status).toBe(200);
 		expect(payload.status).toBe("answered");
 		expect(payload.citations).toHaveLength(1);
