@@ -12,7 +12,7 @@ const ingestOptionsSchema = z.object({
 	r2Bucket: z.string().trim().min(1),
 	r2AccessKeyId: z.string().trim().min(1),
 	r2SecretAccessKey: z.string().trim().min(1),
-	embedModel: z.string().trim().min(1).default("@cf/baai/bge-small-en-v1.5"),
+	embedModel: z.string().trim().min(1).default("@cf/baai/bge-base-en-v1.5"),
 	embeddingBatchSize: z.coerce.number().int().positive().max(96).default(32),
 	vectorBatchSize: z.coerce.number().int().positive().max(1000).default(200),
 	r2BatchSize: z.coerce.number().int().positive().max(256).default(64),

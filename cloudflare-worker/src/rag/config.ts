@@ -12,8 +12,8 @@ function parseFloatValue(value: string | undefined, fallback: number) {
 
 export function getRagConfig(env: RagEnv): RagConfig {
 	return {
-		embeddingModel: env.RAG_EMBED_MODEL || "@cf/baai/bge-small-en-v1.5",
-		chatModel: env.RAG_CHAT_MODEL || "@cf/meta/llama-3.1-8b-instruct",
+		embeddingModel: env.RAG_EMBED_MODEL || "@cf/baai/bge-base-en-v1.5",
+		chatModel: env.RAG_CHAT_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 		topK: parseInteger(env.RAG_TOP_K, 6),
 		similarityThreshold: parseFloatValue(env.RAG_SIMILARITY_THRESHOLD, 0.72),
 		maxContextChunks: parseInteger(env.RAG_MAX_CONTEXT_CHUNKS, 4),
