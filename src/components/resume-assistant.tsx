@@ -19,21 +19,18 @@ import {
 	buildResumeSnippets,
 	buildRetrievalQuery,
 	checkQuestionGuardrails,
-	DEFAULT_EMBEDDING_MODEL,
-	EMBEDDINGS_CACHE_TTL_MS,
 	fetchAssistantRawProviderResponse,
 	fetchAssistantResponse,
-	fetchEmbeddings,
+	fetchSemanticRelevantSnippets,
 	findAssistantInlineLinkMatches,
 	type GuardrailResult,
 	generateLocalResumeAnswer,
 	generateLocalSmallTalkAnswer,
 	getAssistantWorkerUrl,
-	getEmbeddingsCacheKey,
 	getSnippetHref,
-	hashResumePayload,
 	MISSING_INFORMATION_MESSAGE,
-	RESPONSE_CACHE_PREFIX,
+	mergeRetrievalResults,
+	mergeUniqueSnippets,
 	type ResumePayload,
 	type ResumeSnippet,
 	type RetrievalResult,
@@ -52,18 +49,17 @@ type ChatMessage = {
 	citations?: ResumeSnippet[];
 };
 
-type EmbeddingStatus = "idle" | "loading" | "ready" | "fallback";
-
-type EmbeddingsCachePayload = {
-	createdAt: number;
-	embeddings: number[][];
-};
-
 const CONVERSATION_STORAGE_KEY = "portfolio-assistant-conversation";
 const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV === "development";
 
 type AssistantDebugState = {
 	retrievalResult: RetrievalResult | null;
+	keywordEntries: RetrievalResult["entries"] | null;
+	semanticEntries: RetrievalResult["entries"] | null;
+	semanticMatched: number | null;
+	initialSnippetIds: string[] | null;
+	finalSnippetIds: string[] | null;
+	recentContextIncluded: boolean | null;
 	usedClosestMatchFallback: boolean;
 	fallbackReason: string | null;
 	lastProvider: string | null;
@@ -79,76 +75,6 @@ type AssistantRawDebugResult = {
 	provider: string | null;
 	content: string;
 };
-
-function isEmbeddingsRateLimitError(error: unknown) {
-	return (
-		error instanceof Error &&
-		(/status 429/i.test(error.message) ||
-			/too many requests/i.test(error.message) ||
-			/rate limit/i.test(error.message))
-	);
-}
-
-function readLegacyEmbeddingsCache(args: {
-	hash: string;
-	model: string;
-	snippetCount: number;
-}) {
-	if (typeof window === "undefined") {
-		return null;
-	}
-
-	const { hash, model, snippetCount } = args;
-	const currentKey = getEmbeddingsCacheKey(hash, model);
-	const suffix = `:${model}:${hash}`;
-	const matchingKeys: string[] = [];
-
-	for (let index = 0; index < window.localStorage.length; index += 1) {
-		const key = window.localStorage.key(index);
-
-		if (
-			key &&
-			key !== currentKey &&
-			key.startsWith(`${RESPONSE_CACHE_PREFIX}:`) &&
-			key.endsWith(suffix)
-		) {
-			matchingKeys.push(key);
-		}
-	}
-
-	for (const key of matchingKeys.sort().reverse()) {
-		try {
-			const cachedValue = window.localStorage.getItem(key);
-
-			if (!cachedValue) {
-				continue;
-			}
-
-			const parsed = JSON.parse(cachedValue) as
-				| number[][]
-				| EmbeddingsCachePayload;
-			const parsedEmbeddings = Array.isArray(parsed)
-				? parsed
-				: parsed.embeddings;
-			const cacheAge = Array.isArray(parsed)
-				? Number.POSITIVE_INFINITY
-				: Date.now() - parsed.createdAt;
-			const cacheIsFresh = cacheAge <= EMBEDDINGS_CACHE_TTL_MS;
-
-			if (
-				cacheIsFresh &&
-				Array.isArray(parsedEmbeddings) &&
-				parsedEmbeddings.length === snippetCount
-			) {
-				return parsedEmbeddings;
-			}
-		} catch {
-			// Ignore malformed legacy cache entries.
-		}
-	}
-
-	return null;
-}
 
 function renderMessageContent(
 	content: string,
@@ -310,6 +236,12 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\r\n/g, "\n")
 		.replace(/\\n/g, "\n")
 		.replace(/\/n/g, "\n")
+		.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
+		.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
+		.replace(
+			/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
+			"$1\n",
+		)
 		.replace(/【[^】]+】/g, "")
 		.replace(
 			/\[(summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
@@ -480,7 +412,6 @@ export function ResumeAssistant() {
 
 	const [resume, setResume] = useState<ResumePayload | null>(null);
 	const [snippets, setSnippets] = useState<ResumeSnippet[]>([]);
-	const [resumeHash, setResumeHash] = useState("");
 	const [resumeError, setResumeError] = useState("");
 	const [messages, setMessages] = useState<ChatMessage[]>(() => {
 		if (typeof window === "undefined") {
@@ -505,12 +436,15 @@ export function ResumeAssistant() {
 	});
 	const [draft, setDraft] = useState("");
 	const [isSending, setIsSending] = useState(false);
-	const [_embeddingStatus, setEmbeddingStatus] =
-		useState<EmbeddingStatus>("idle");
-	const [_snippetEmbeddings, setSnippetEmbeddings] = useState<number[][]>([]);
 	const [statusMessage, setStatusMessage] = useState("");
 	const [debugState, setDebugState] = useState<AssistantDebugState>({
 		retrievalResult: null,
+		keywordEntries: null,
+		semanticEntries: null,
+		semanticMatched: null,
+		initialSnippetIds: null,
+		finalSnippetIds: null,
+		recentContextIncluded: null,
 		usedClosestMatchFallback: false,
 		fallbackReason: null,
 		lastProvider: null,
@@ -566,11 +500,9 @@ export function ResumeAssistant() {
 
 				const payload = (await response.json()) as ResumePayload;
 				const nextSnippets = buildResumeSnippets(payload);
-				const nextHash = await hashResumePayload(payload);
 
 				setResume(payload);
 				setSnippets(nextSnippets);
-				setResumeHash(nextHash);
 				setMessages((currentMessages) => {
 					const welcomeName = payload.name || "the person in this resume";
 
@@ -639,109 +571,6 @@ export function ResumeAssistant() {
 		}
 	}, [messages]);
 
-	useEffect(() => {
-		if (!workerUrl || !resumeHash || !snippets.length) {
-			setEmbeddingStatus("idle");
-			return;
-		}
-
-		let isCancelled = false;
-
-		void (async () => {
-			setEmbeddingStatus("loading");
-
-			try {
-				const cachedValue =
-					typeof window !== "undefined"
-						? window.localStorage.getItem(
-								getEmbeddingsCacheKey(resumeHash, DEFAULT_EMBEDDING_MODEL),
-							)
-						: null;
-
-				if (cachedValue) {
-					const parsed = JSON.parse(cachedValue) as
-						| number[][]
-						| EmbeddingsCachePayload;
-					const parsedEmbeddings = Array.isArray(parsed)
-						? parsed
-						: parsed.embeddings;
-					const cacheAge = Array.isArray(parsed)
-						? Number.POSITIVE_INFINITY
-						: Date.now() - parsed.createdAt;
-					const cacheIsFresh = cacheAge <= EMBEDDINGS_CACHE_TTL_MS;
-
-					if (
-						cacheIsFresh &&
-						Array.isArray(parsedEmbeddings) &&
-						parsedEmbeddings.length === snippets.length
-					) {
-						if (!isCancelled) {
-							setSnippetEmbeddings(parsedEmbeddings);
-							setEmbeddingStatus("ready");
-						}
-
-						return;
-					}
-				}
-
-				const embeddings = await fetchEmbeddings(
-					workerUrl,
-					DEFAULT_EMBEDDING_MODEL,
-					snippets.map((snippet) => `${snippet.title}\n${snippet.text}`),
-				);
-
-				if (isCancelled) {
-					return;
-				}
-
-				setSnippetEmbeddings(embeddings);
-				setEmbeddingStatus("ready");
-				setStatusMessage("Embeddings cached and ready.");
-
-				if (typeof window !== "undefined") {
-					window.localStorage.setItem(
-						getEmbeddingsCacheKey(resumeHash, DEFAULT_EMBEDDING_MODEL),
-						JSON.stringify({
-							createdAt: Date.now(),
-							embeddings,
-						} satisfies EmbeddingsCachePayload),
-					);
-				}
-			} catch (error) {
-				const legacyEmbeddings = isEmbeddingsRateLimitError(error)
-					? readLegacyEmbeddingsCache({
-							hash: resumeHash,
-							model: DEFAULT_EMBEDDING_MODEL,
-							snippetCount: snippets.length,
-						})
-					: null;
-
-				if (legacyEmbeddings) {
-					if (!isCancelled) {
-						setSnippetEmbeddings(legacyEmbeddings);
-						setEmbeddingStatus("ready");
-						setStatusMessage(
-							"Using a previous embeddings cache because the embeddings API is rate-limited.",
-						);
-					}
-					return;
-				}
-
-				if (!isCancelled) {
-					setEmbeddingStatus("fallback");
-					setSnippetEmbeddings([]);
-					setStatusMessage(
-						"Embeddings are unavailable, so retrieval is using keyword matching instead.",
-					);
-				}
-			}
-		})();
-
-		return () => {
-			isCancelled = true;
-		};
-	}, [resumeHash, snippets, workerUrl]);
-
 	const addAssistantMessage = (
 		content: string,
 		options?: Partial<Pick<ChatMessage, "status" | "citations">>,
@@ -798,9 +627,13 @@ export function ResumeAssistant() {
 
 		try {
 			const recentMessages = getRecentConversationMessages(messages);
+			const { semanticSnippets } = await getHybridRelevantSnippets(
+				debugQuestion,
+				recentMessages,
+			);
 			const initialSnippets = buildInitialAssistantContextSnippets(
 				debugQuestion,
-				snippets,
+				mergeUniqueSnippets([...snippets, ...semanticSnippets]),
 			);
 			const response = await fetchAssistantRawProviderResponse({
 				workerUrl,
@@ -833,23 +666,73 @@ export function ResumeAssistant() {
 		}
 	};
 
-	const getKeywordRelevantSnippets = (
+	const getHybridRelevantSnippets = async (
 		question: string,
 		recentMessages: Array<{
 			role: "user" | "assistant";
 			content: string;
 		}>,
-	): RetrievalResult => {
+	) => {
 		const retrievalQuery = buildRetrievalQuery({
 			question,
 			recentMessages,
 		});
-
-		return {
+		const keywordResult = {
 			query: retrievalQuery,
-			mode: "keywords",
+			mode: "keywords" as const,
 			entries: rankSnippetEntriesByKeywords(retrievalQuery, snippets),
 		};
+
+		if (!workerUrl) {
+			return {
+				retrievalResult: keywordResult satisfies RetrievalResult,
+				keywordEntries: keywordResult.entries,
+				semanticEntries: [] as RetrievalResult["entries"],
+				semanticMatched: 0,
+				semanticSnippets: [] as ResumeSnippet[],
+			};
+		}
+
+		try {
+			const semanticResult = await fetchSemanticRelevantSnippets({
+				workerUrl,
+				question,
+				query: retrievalQuery,
+			});
+
+			if (!semanticResult.entries.length) {
+				return {
+					retrievalResult: keywordResult satisfies RetrievalResult,
+					keywordEntries: keywordResult.entries,
+					semanticEntries: [] as RetrievalResult["entries"],
+					semanticMatched: semanticResult.matched,
+					semanticSnippets: [] as ResumeSnippet[],
+				};
+			}
+
+			return {
+				retrievalResult: mergeRetrievalResults({
+					query: retrievalQuery,
+					keywordEntries: keywordResult.entries,
+					semanticEntries: semanticResult.entries,
+				}),
+				keywordEntries: keywordResult.entries,
+				semanticEntries: semanticResult.entries,
+				semanticMatched: semanticResult.matched,
+				semanticSnippets: semanticResult.snippets,
+			};
+		} catch {
+			setStatusMessage(
+				"Semantic retrieval is unavailable right now, so retrieval is using keyword matching.",
+			);
+			return {
+				retrievalResult: keywordResult satisfies RetrievalResult,
+				keywordEntries: keywordResult.entries,
+				semanticEntries: [] as RetrievalResult["entries"],
+				semanticMatched: 0,
+				semanticSnippets: [] as ResumeSnippet[],
+			};
+		}
 	};
 
 	const canSubmitDraft = Boolean(draft.trim()) && !isSending && Boolean(resume);
@@ -939,6 +822,12 @@ export function ResumeAssistant() {
 		setStatusMessage("");
 		updateDebugState({
 			retrievalResult: null,
+			keywordEntries: null,
+			semanticEntries: null,
+			semanticMatched: null,
+			initialSnippetIds: null,
+			finalSnippetIds: null,
+			recentContextIncluded: null,
 			usedClosestMatchFallback: false,
 			fallbackReason: null,
 			lastProvider: null,
@@ -950,12 +839,31 @@ export function ResumeAssistant() {
 		)
 			? getRecentConversationMessages([...messages, userMessage])
 			: [];
+		const recentContextIncluded = recentMessages.length > 0;
 
 		try {
+			const {
+				retrievalResult: hybridRetrievalResult,
+				keywordEntries,
+				semanticEntries,
+				semanticMatched,
+				semanticSnippets,
+			} = await getHybridRelevantSnippets(trimmedQuestion, recentMessages);
+			const snippetPool = mergeUniqueSnippets([
+				...snippets,
+				...semanticSnippets,
+			]);
 			const initialSnippets = buildInitialAssistantContextSnippets(
 				trimmedQuestion,
-				snippets,
+				snippetPool,
 			);
+			updateDebugState({
+				keywordEntries,
+				semanticEntries,
+				semanticMatched,
+				initialSnippetIds: initialSnippets.map((snippet) => snippet.id),
+				recentContextIncluded,
+			});
 
 			if (initialSnippets.length) {
 				const initialAssistantResponse = await fetchAssistantResponse({
@@ -978,20 +886,22 @@ export function ResumeAssistant() {
 				}
 			}
 
-			let retrievalResult: RetrievalResult | null = null;
-			retrievalResult = getKeywordRelevantSnippets(
-				trimmedQuestion,
-				recentMessages,
-			);
+			const retrievalResult: RetrievalResult = hybridRetrievalResult;
 			updateDebugState({
 				retrievalResult,
+				keywordEntries,
+				semanticEntries,
+				semanticMatched,
 				lastProvider: null,
 				providerContext: null,
 			});
 			const relevantSnippets = buildAssistantContextSnippets({
 				question: trimmedQuestion,
 				result: retrievalResult,
-				allSnippets: snippets,
+				allSnippets: snippetPool,
+			});
+			updateDebugState({
+				finalSnippetIds: relevantSnippets.map((snippet) => snippet.id),
 			});
 
 			if (relevantSnippets.length) {
@@ -1029,38 +939,36 @@ export function ResumeAssistant() {
 				updateDebugState({
 					usedClosestMatchFallback: false,
 					fallbackReason: retrievalResult
-						? "llm_and_embeddings_fell_back_to_local_match"
+						? "llm_and_retrieval_fell_back_to_local_match"
 						: "llm_fell_back_to_local_match",
 				});
 				return;
 			}
 
-			if (retrievalResult) {
-				const closestMatchFallback = shouldUseClosestMatchFallback({
-					query: retrievalResult.query,
-					result: retrievalResult,
-				})
-					? buildClosestMatchFallbackAnswer({
-							result: retrievalResult,
-						})
-					: null;
+			const closestMatchFallback = shouldUseClosestMatchFallback({
+				query: retrievalResult.query,
+				result: retrievalResult,
+			})
+				? buildClosestMatchFallbackAnswer({
+						result: retrievalResult,
+					})
+				: null;
 
-				if (closestMatchFallback) {
-					updateDebugState({
-						usedClosestMatchFallback: true,
-						fallbackReason: "embeddings_fell_back_to_closest_match",
-						lastProvider: null,
-						providerContext: null,
-					});
-					addAssistantMessage(closestMatchFallback.answer, {
-						status: closestMatchFallback.status,
-						citations: resolveResumeSnippetCitations(
-							closestMatchFallback.citations,
-							snippets,
-						),
-					});
-					return;
-				}
+			if (closestMatchFallback) {
+				updateDebugState({
+					usedClosestMatchFallback: true,
+					fallbackReason: "retrieval_fell_back_to_closest_match",
+					lastProvider: null,
+					providerContext: null,
+				});
+				addAssistantMessage(closestMatchFallback.answer, {
+					status: closestMatchFallback.status,
+					citations: resolveResumeSnippetCitations(
+						closestMatchFallback.citations,
+						snippetPool,
+					),
+				});
+				return;
 			}
 
 			addAssistantMessage(MISSING_INFORMATION_MESSAGE, {
@@ -1068,7 +976,7 @@ export function ResumeAssistant() {
 			});
 			updateDebugState({
 				usedClosestMatchFallback: false,
-				fallbackReason: "no_answer_after_llm_embeddings_and_local_match",
+				fallbackReason: "no_answer_after_llm_retrieval_and_local_match",
 				lastProvider: null,
 				providerContext: null,
 			});
@@ -1266,6 +1174,22 @@ export function ResumeAssistant() {
 											</span>
 										</p>
 										<p>
+											Recent context included:{" "}
+											<span className="font-mono">
+												{debugState.recentContextIncluded === null
+													? "n/a"
+													: debugState.recentContextIncluded
+														? "yes"
+														: "no"}
+											</span>
+										</p>
+										<p>
+											Semantic matched:{" "}
+											<span className="font-mono">
+												{debugState.semanticMatched ?? "n/a"}
+											</span>
+										</p>
+										<p>
 											Closest-match fallback:{" "}
 											<span className="font-mono">
 												{debugState.usedClosestMatchFallback ? "yes" : "no"}
@@ -1308,6 +1232,62 @@ export function ResumeAssistant() {
 													<p className="font-mono" key={entry.snippet.id}>
 														{entry.snippet.category} | {entry.score.toFixed(3)}{" "}
 														| {entry.snippet.title}
+													</p>
+												))}
+											</div>
+										) : null}
+										{debugState.keywordEntries?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Keyword Matches
+												</p>
+												{debugState.keywordEntries.map((entry) => (
+													<p
+														className="font-mono"
+														key={`kw-${entry.snippet.id}`}
+													>
+														{entry.snippet.category} | {entry.score.toFixed(3)}{" "}
+														| {entry.snippet.title}
+													</p>
+												))}
+											</div>
+										) : null}
+										{debugState.semanticEntries?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Semantic Matches
+												</p>
+												{debugState.semanticEntries.map((entry) => (
+													<p
+														className="font-mono"
+														key={`sem-${entry.snippet.id}`}
+													>
+														{entry.snippet.category} | {entry.score.toFixed(3)}{" "}
+														| {entry.snippet.title}
+													</p>
+												))}
+											</div>
+										) : null}
+										{debugState.initialSnippetIds?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Initial Snippet IDs
+												</p>
+												{debugState.initialSnippetIds.map((id) => (
+													<p className="font-mono" key={`initial-${id}`}>
+														{id}
+													</p>
+												))}
+											</div>
+										) : null}
+										{debugState.finalSnippetIds?.length ? (
+											<div className="space-y-1">
+												<p className="font-medium text-foreground">
+													Final Snippet IDs
+												</p>
+												{debugState.finalSnippetIds.map((id) => (
+													<p className="font-mono" key={`final-${id}`}>
+														{id}
 													</p>
 												))}
 											</div>

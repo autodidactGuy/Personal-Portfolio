@@ -239,8 +239,27 @@ export type RetrievalEntry = {
 
 export type RetrievalResult = {
 	query: string;
-	mode: "embeddings" | "keywords";
+	mode: "embeddings" | "keywords" | "semantic" | "hybrid";
 	entries: RetrievalEntry[];
+};
+
+type SemanticRetrieveChunk = {
+	id: string;
+	sourceType: string;
+	title: string;
+	text: string;
+	url?: string;
+	slug?: string;
+	section: string;
+	score: number;
+};
+
+type SemanticRetrievePayload = {
+	ok: boolean;
+	status: "ready" | "no_match" | "insufficient_context" | "error";
+	matched: number;
+	chunks: SemanticRetrieveChunk[];
+	error?: string;
 };
 
 const assistantResponseSchema = z.object({
@@ -357,6 +376,46 @@ function tokenize(value: string) {
 	return normalizeText(value)
 		.split(/\s+/)
 		.filter((token) => token.length > 1);
+}
+
+function normalizeSemanticSourceType(
+	sourceType: string,
+): ResumeSnippet["category"] {
+	switch (sourceType) {
+		case "summary":
+		case "about":
+		case "skills":
+		case "links":
+		case "contact":
+		case "hero":
+		case "focus":
+		case "stats":
+		case "experience":
+		case "education":
+		case "project":
+		case "article":
+		case "case-study":
+		case "recommendation":
+			return sourceType;
+		default:
+			return "about";
+	}
+}
+
+function toSemanticResumeSnippet(chunk: SemanticRetrieveChunk): ResumeSnippet {
+	return {
+		id: `rag:${chunk.id}`,
+		title: chunk.title,
+		category: normalizeSemanticSourceType(chunk.sourceType),
+		text: chunk.text,
+		keywords: unique([
+			...tokenize(chunk.title),
+			...tokenize(chunk.text),
+			...tokenize(chunk.section),
+			...tokenize(chunk.slug || ""),
+		]),
+		url: chunk.url,
+	};
 }
 
 function unique<T>(items: T[]) {
@@ -490,6 +549,22 @@ function isDirectContentListingQuestion(question: string) {
 		/\bwhich\b.*\b(project|projects|blog|blogs|article|articles|post|posts|case study|case studies)\b/i,
 		/\bportfolio\b.*\b(work|projects|articles|writing)\b/i,
 		/\b(work|things)\b.*\b(built|made|wrote|published)\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
+function isEnumerativeQuestion(question: string) {
+	return [
+		/\blist\b/i,
+		/\bshow\b/i,
+		/\bchronological\b/i,
+		/\btimeline\b/i,
+		/\bin order\b/i,
+		/\bexperience\b.*\border\b/i,
+		/\bproject(s)?\b/i,
+		/\barticle(s)?\b/i,
+		/\bblog(s)?\b/i,
+		/\bpost(s)?\b/i,
+		/\bcase stud(y|ies)\b/i,
 	].some((pattern) => pattern.test(question));
 }
 
@@ -2371,7 +2446,7 @@ export function shouldUseClosestMatchFallback(args: {
 	const hasStrongScoreGap = topEntry.score - secondScore >= 2;
 	const hasStrongKeywordSignal = topOverlapCount >= 2;
 	const hasStrongEmbeddingSignal =
-		result.mode === "embeddings" && topEntry.score >= 0.55;
+		result.mode !== "keywords" && topEntry.score >= 0.55;
 
 	return (
 		hasStrongKeywordSignal || hasStrongScoreGap || hasStrongEmbeddingSignal
@@ -2476,6 +2551,7 @@ export function buildAssistantChatRequestBody(args: {
 		structuredOutput = true,
 	} = args;
 	const broadProfileQuestion = isBroadProfileQuestion(question);
+	const enumerativeQuestion = isEnumerativeQuestion(question);
 	const snippetList = snippets
 		.map((snippet) => `[${snippet.id}] ${snippet.title}\n${snippet.text}`)
 		.join("\n\n");
@@ -2489,7 +2565,8 @@ export function buildAssistantChatRequestBody(args: {
 		action: "chat",
 		...(model ? { model } : {}),
 		temperature,
-		max_tokens: maxTokens ?? (broadProfileQuestion ? 700 : 500),
+		max_tokens:
+			maxTokens ?? (broadProfileQuestion || enumerativeQuestion ? 700 : 500),
 		response_format: structuredOutput
 			? {
 					type: "json_schema" as const,
@@ -2591,6 +2668,110 @@ export async function fetchEmbeddings(
 	}
 
 	return embeddings;
+}
+
+export function mergeUniqueSnippets(snippets: ResumeSnippet[]) {
+	const merged: ResumeSnippet[] = [];
+	const seenIds = new Set<string>();
+
+	for (const snippet of snippets) {
+		if (seenIds.has(snippet.id)) {
+			continue;
+		}
+
+		seenIds.add(snippet.id);
+		merged.push(snippet);
+	}
+
+	return merged;
+}
+
+export function mergeRetrievalResults(args: {
+	query: string;
+	keywordEntries: RetrievalEntry[];
+	semanticEntries: RetrievalEntry[];
+	limit?: number;
+}) {
+	const {
+		query,
+		keywordEntries,
+		semanticEntries,
+		limit = MAX_BROAD_CONTEXT_CHUNKS,
+	} = args;
+	const mergedEntries = new Map<string, RetrievalEntry>();
+
+	for (const entry of [...keywordEntries, ...semanticEntries]) {
+		const existing = mergedEntries.get(entry.snippet.id);
+
+		if (!existing || entry.score > existing.score) {
+			mergedEntries.set(entry.snippet.id, entry);
+		}
+	}
+
+	return {
+		query,
+		mode:
+			keywordEntries.length && semanticEntries.length
+				? ("hybrid" as const)
+				: semanticEntries.length
+					? ("semantic" as const)
+					: ("keywords" as const),
+		entries: Array.from(mergedEntries.values())
+			.sort((a, b) => compareSnippetsForQuestion(query, a, b))
+			.slice(0, limit),
+	} satisfies RetrievalResult;
+}
+
+export async function fetchSemanticRelevantSnippets(args: {
+	workerUrl: string;
+	question: string;
+	query: string;
+}) {
+	const response = await fetch(
+		new URL("/assistant-retrieve", args.workerUrl).toString(),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				question: args.question,
+				query: args.query,
+			}),
+		},
+	);
+
+	if (!response.ok) {
+		throw new Error(
+			`Semantic retrieval request failed with status ${response.status}.`,
+		);
+	}
+
+	const payload = (await parseAssistantJsonPayload(
+		response,
+	)) as SemanticRetrievePayload;
+
+	if (
+		!payload?.ok ||
+		payload.status !== "ready" ||
+		!Array.isArray(payload.chunks)
+	) {
+		return {
+			matched: payload?.matched || 0,
+			entries: [] as RetrievalEntry[],
+			snippets: [] as ResumeSnippet[],
+		};
+	}
+
+	const snippets = payload.chunks.map(toSemanticResumeSnippet);
+	return {
+		matched: payload.matched,
+		snippets,
+		entries: payload.chunks.map((chunk, index) => ({
+			snippet: snippets[index],
+			score: Number(chunk.score || 0),
+		})),
+	};
 }
 
 export async function fetchAssistantResponse(args: {

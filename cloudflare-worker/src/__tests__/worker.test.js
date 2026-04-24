@@ -287,14 +287,9 @@ describe("/assistant", () => {
 	});
 
 	it("proxies embeddings requests for an allowed origin", async () => {
-		vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					data: [{ embedding: [0.1, 0.2, 0.3] }],
-				}),
-				{ status: 200, headers: { "Content-Type": "application/json" } },
-			),
-		);
+		const aiRun = vi.fn().mockResolvedValue({
+			data: [[0.1, 0.2, 0.3]],
+		});
 
 		const response = await worker.fetch(
 			buildPathRequest("/assistant", "POST", ALLOWED_ORIGIN, {
@@ -304,7 +299,9 @@ describe("/assistant", () => {
 			}),
 			{
 				...env,
-				GITHUB_MODELS_TOKEN: "ghm_test",
+				AI: {
+					run: aiRun,
+				},
 			},
 		);
 
@@ -313,17 +310,16 @@ describe("/assistant", () => {
 			ALLOWED_ORIGIN,
 		);
 		expect((await response.json()).data[0].embedding).toEqual([0.1, 0.2, 0.3]);
+		expect(aiRun).toHaveBeenCalledWith("openai/text-embedding-3-small", {
+			text: ["test snippet"],
+			pooling: "cls",
+		});
 	});
 
 	it("allows localhost origins for local development", async () => {
-		vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					data: [{ embedding: [0.1, 0.2, 0.3] }],
-				}),
-				{ status: 200, headers: { "Content-Type": "application/json" } },
-			),
-		);
+		const aiRun = vi.fn().mockResolvedValue({
+			data: [[0.1, 0.2, 0.3]],
+		});
 
 		const response = await worker.fetch(
 			new Request("http://127.0.0.1:8787/assistant", {
@@ -340,7 +336,9 @@ describe("/assistant", () => {
 			}),
 			{
 				...env,
-				GITHUB_MODELS_TOKEN: "ghm_test",
+				AI: {
+					run: aiRun,
+				},
 			},
 		);
 
@@ -351,14 +349,9 @@ describe("/assistant", () => {
 	});
 
 	it("allows 0.0.0.0 local origins for local development", async () => {
-		vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					data: [{ embedding: [0.1, 0.2, 0.3] }],
-				}),
-				{ status: 200, headers: { "Content-Type": "application/json" } },
-			),
-		);
+		const aiRun = vi.fn().mockResolvedValue({
+			data: [[0.1, 0.2, 0.3]],
+		});
 
 		const response = await worker.fetch(
 			new Request("http://127.0.0.1:8787/assistant", {
@@ -375,7 +368,9 @@ describe("/assistant", () => {
 			}),
 			{
 				...env,
-				GITHUB_MODELS_TOKEN: "ghm_test",
+				AI: {
+					run: aiRun,
+				},
 			},
 		);
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getRagConfig } from "./rag/config";
 import { createAskResponse, jsonResponse } from "./rag/response";
 import { generateAnswer, retrieveChunks } from "./rag/retrieve";
-import type { RagEnv } from "./rag/types";
+import type { RagEnv, RagRetrieveResponse } from "./rag/types";
 import { corsHeaders } from "./utils/http";
 import { getRequestOrigin, isAllowedOrigin } from "./utils/origin";
 
@@ -13,6 +13,20 @@ const askRequestSchema = z.object({
 		.trim()
 		.min(1, "question is required")
 		.max(500, "question is too long"),
+});
+
+const retrieveRequestSchema = z.object({
+	question: z
+		.string()
+		.trim()
+		.min(1, "question is required")
+		.max(500, "question is too long"),
+	query: z
+		.string()
+		.trim()
+		.min(1, "query is required")
+		.max(2000, "query is too long")
+		.optional(),
 });
 
 const app = new Hono<{ Bindings: RagEnv }>();
@@ -339,7 +353,7 @@ export function renderRagHomePage() {
         <div class="panel">
           <div class="eyebrow">Assistant Worker Debug</div>
           <h1>Portfolio assistant provider console.</h1>
-          <p class="lede">Use the same worker routes that power the portfolio assistant. This page now defaults to raw provider calls through <code>/assistant-provider-raw</code>, while keeping grounded <code>/ask</code> available as a second path for RAG verification.</p>
+          <p class="lede">Use the same worker routes that power the portfolio assistant. This page now defaults to raw provider calls through <code>/assistant-provider-raw</code>, while keeping semantic chunk inspection and frontend-style routed calls available for retrieval debugging.</p>
           <div class="chips">
             <div class="chip">GitHub Models</div>
             <div class="chip">Groq</div>
@@ -350,7 +364,8 @@ export function renderRagHomePage() {
         </div>
         <div class="panel meta">
           <div class="meta-row"><strong>Primary action</strong><span>Raw provider debug</span></div>
-          <div class="meta-row"><strong>Secondary action</strong><span>Grounded <code>/ask</code> check</span></div>
+          <div class="meta-row"><strong>Secondary action</strong><span>Cloudflare semantic retrieval</span></div>
+          <div class="meta-row"><strong>Routed simulation</strong><span>Frontend-style <code>/assistant-routed</code> payload</span></div>
           <div class="meta-row"><strong>Same worker origin</strong><span>Calls stay on this deployment</span></div>
           <div class="meta-row"><strong>Best use</strong><span>Compare provider behavior quickly</span></div>
         </div>
@@ -370,7 +385,7 @@ export function renderRagHomePage() {
           <div class="panel controls">
             <div>
               <h2 class="section-title">Raw Provider Debug</h2>
-              <p class="section-copy">This mirrors the portfolio assistant debug mode and posts to <code>/assistant-provider-raw</code>. Keep structured output on if you want the same JSON-shaped assistant contract.</p>
+              <p class="section-copy">This mirrors the portfolio assistant debug mode and posts to <code>/assistant-provider-raw</code>. You can also inspect Vectorize-backed snippets through <code>/assistant-retrieve</code> and send those snippets through a frontend-style <code>/assistant-routed</code> request.</p>
             </div>
             <div class="control-grid">
               <label>
@@ -396,20 +411,26 @@ export function renderRagHomePage() {
                 <input id="maxTokens" inputmode="numeric" value="500" />
               </label>
             </div>
-            <label>
-              <span>Question</span>
-              <textarea id="question" placeholder="Ask about experience, systems work, projects, education, recommendations, or technical strengths..."></textarea>
-            </label>
+              <label>
+                <span>Question</span>
+                <textarea id="question" placeholder="Ask about experience, systems work, projects, education, recommendations, or technical strengths..."></textarea>
+              </label>
+              <label>
+                <span>Retrieval query override</span>
+                <textarea id="retrievalQuery" placeholder="Optional. Leave empty to use the same question for semantic retrieval."></textarea>
+              </label>
             <label class="checkbox">
               <input checked id="structuredOutput" type="checkbox" />
               <span>Request structured JSON output like the portfolio assistant debug UI</span>
             </label>
             <div class="actions">
               <button id="askRaw" type="button">Call /assistant-provider-raw</button>
+              <button class="secondary" id="askRetrieve" type="button">Call /assistant-retrieve</button>
+              <button class="secondary" id="askRouted" type="button">Call frontend-style /assistant-routed</button>
               <button class="secondary" id="askRag" type="button">Call grounded /ask</button>
               <span class="status" id="status">Idle</span>
             </div>
-            <p class="footnote">Provider raw calls are useful for direct model behavior. The grounded <code>/ask</code> route is useful when you want to inspect retrieval-first RAG behavior specifically.</p>
+            <p class="footnote">Provider raw calls are useful for direct model behavior. <code>/assistant-retrieve</code> shows Cloudflare semantic chunk matches, and the frontend-style routed action forwards those snippets to <code>/assistant-routed</code> in the same shape the site uses.</p>
           </div>
         </div>
         <div class="panel stack">
@@ -464,6 +485,7 @@ export function renderRagHomePage() {
       const maxTokensEl = document.getElementById("maxTokens");
       const structuredOutputEl = document.getElementById("structuredOutput");
       const questionEl = document.getElementById("question");
+      const retrievalQueryEl = document.getElementById("retrievalQuery");
       const outputEl = document.getElementById("output");
       const statusEl = document.getElementById("status");
       const endpointLabelEl = document.getElementById("endpointLabel");
@@ -508,6 +530,79 @@ export function renderRagHomePage() {
         return {
           provider,
           request
+        };
+      }
+
+      async function fetchSemanticRetrieval(question) {
+        const query = retrievalQueryEl.value.trim();
+        const response = await fetch("/assistant-retrieve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            ...(query ? { query } : {})
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(
+            payload && typeof payload.error === "string"
+              ? payload.error
+              : "Semantic retrieval request failed."
+          );
+        }
+
+        return payload;
+      }
+
+      function createFrontendStyleRoutedRequest(question, retrievalPayload) {
+        const snippets = Array.isArray(retrievalPayload?.chunks)
+          ? retrievalPayload.chunks.map((chunk) => ({
+              id: chunk.id,
+              title: chunk.title,
+              text: chunk.text,
+            }))
+          : [];
+        const snippetList = snippets.length
+          ? snippets
+              .map((snippet) => "[" + snippet.id + "] " + snippet.title + "\n" + snippet.text)
+              .join("\n\n")
+          : "None";
+        const temperatureValue = Number.parseFloat(temperatureEl.value);
+        const maxTokensValue = Number.parseInt(maxTokensEl.value, 10);
+
+        return {
+          action: "chat",
+          ...(modelEl.value.trim() ? { model: modelEl.value.trim() } : {}),
+          temperature: Number.isFinite(temperatureValue) ? temperatureValue : 0,
+          max_tokens: Number.isFinite(maxTokensValue) && maxTokensValue > 0 ? maxTokensValue : 500,
+          response_format: structuredOutputEl.checked ? STRUCTURED_RESPONSE_FORMAT : undefined,
+          messages: [
+            {
+              role: "system",
+              content: 'You are an AI assistant embedded on this portfolio website.\n\nRules:\n\n* ONLY answer using provided resume data\n* If info is missing: "I don\\'t have that information available."\n* Do NOT hallucinate or guess\n* ONLY answer about the person described in the provided resume data\n* Reject unrelated questions\n\nTone:\n\n* Professional\n* Concise\n* Friendly'
+            },
+            {
+              role: "developer",
+              content: [
+                "Use only the SUPPORTING_RESUME_SNIPPETS below.",
+                'If the snippets do not contain the answer, respond with status "missing" and answer exactly: I don't have that information available.',
+                'If the question is unrelated to the person described in the resume or recommendations, respond with status "rejected" and answer exactly: I can only answer questions based on the information available on this site.',
+                "Do not infer, invent, generalize, or use outside knowledge.",
+                "Every factual answer must be grounded in the snippet IDs you cite.",
+                "",
+                "RECENT_CHAT_CONTEXT:\nNone",
+                "",
+                "SUPPORTING_RESUME_SNIPPETS:\n" + snippetList
+              ].join("\n")
+            },
+            {
+              role: "user",
+              content: question
+            }
+          ]
         };
       }
 
@@ -569,6 +664,59 @@ export function renderRagHomePage() {
           return;
         }
         callEndpoint("/ask", { question }, "portfolio-rag");
+      });
+
+      document.getElementById("askRetrieve").addEventListener("click", async () => {
+        const question = questionEl.value.trim();
+        if (!question) {
+          statusEl.textContent = "Enter a question first";
+          return;
+        }
+
+        statusEl.textContent = "Calling /assistant-retrieve...";
+        endpointLabelEl.textContent = "/assistant-retrieve";
+        providerLabelEl.textContent = "cloudflare-vectorize";
+        statusCodeEl.textContent = "pending";
+        outputEl.textContent = "Loading...";
+
+        try {
+          const payload = await fetchSemanticRetrieval(question);
+          outputEl.textContent = JSON.stringify({
+            endpoint: "/assistant-retrieve",
+            query: retrievalQueryEl.value.trim() || question,
+            payload
+          }, null, 2);
+          statusCodeEl.textContent = "200";
+          statusEl.textContent = "Done";
+        } catch (error) {
+          outputEl.textContent = JSON.stringify({ error: String(error) }, null, 2);
+          statusCodeEl.textContent = "failed";
+          statusEl.textContent = "Request failed";
+        }
+      });
+
+      document.getElementById("askRouted").addEventListener("click", async () => {
+        const question = questionEl.value.trim();
+        if (!question) {
+          statusEl.textContent = "Enter a question first";
+          return;
+        }
+
+        statusEl.textContent = "Building frontend-style routed request...";
+        endpointLabelEl.textContent = "/assistant-routed";
+        providerLabelEl.textContent = "routed";
+        statusCodeEl.textContent = "pending";
+        outputEl.textContent = "Loading...";
+
+        try {
+          const retrievalPayload = await fetchSemanticRetrieval(question);
+          const body = createFrontendStyleRoutedRequest(question, retrievalPayload);
+          await callEndpoint("/assistant-routed", body, "routed");
+        } catch (error) {
+          outputEl.textContent = JSON.stringify({ error: String(error) }, null, 2);
+          statusCodeEl.textContent = "failed";
+          statusEl.textContent = "Request failed";
+        }
       });
 
       for (const button of document.querySelectorAll(".example")) {
@@ -707,9 +855,125 @@ export async function handleAskRequest(request: Request, env: RagEnv) {
 	}
 }
 
+export async function handleRetrieveRequest(request: Request, env: RagEnv) {
+	const config = getRagConfig(env);
+	const url = new URL(request.url);
+	const origin = getRequestOrigin(request, url);
+
+	if (!origin || !isAllowedOrigin(origin, env, url.origin)) {
+		return jsonResponse({ error: "Invalid origin" }, 403, origin);
+	}
+
+	if (request.method === "OPTIONS") {
+		return new Response(null, {
+			status: 204,
+			headers: corsHeaders(origin),
+		});
+	}
+
+	if (request.method !== "POST") {
+		return jsonResponse({ error: "Method not allowed" }, 405, origin);
+	}
+
+	if (
+		!request.headers
+			.get("content-type")
+			?.toLowerCase()
+			.includes("application/json")
+	) {
+		return jsonResponse({ error: "Expected application/json" }, 415, origin);
+	}
+
+	let body: unknown;
+
+	try {
+		body = await request.json();
+	} catch {
+		return jsonResponse({ error: "Invalid JSON body" }, 400, origin);
+	}
+
+	const parsed = retrieveRequestSchema.safeParse(body);
+	if (!parsed.success) {
+		return jsonResponse(
+			{
+				error: "Validation failed",
+				fields: parsed.error.issues.map((issue) => issue.message),
+			},
+			400,
+			origin,
+		);
+	}
+
+	try {
+		const retrievalQuery = parsed.data.query || parsed.data.question;
+		const retrieval = await retrieveChunks(retrievalQuery, env, config);
+
+		if (retrieval.status === "no_match") {
+			return jsonResponse(
+				{
+					ok: true,
+					status: "no_match",
+					matched: 0,
+					chunks: [],
+				} satisfies RagRetrieveResponse,
+				200,
+				origin,
+			);
+		}
+
+		if (retrieval.status === "insufficient_context") {
+			return jsonResponse(
+				{
+					ok: true,
+					status: "insufficient_context",
+					matched: retrieval.matched,
+					chunks: [],
+				} satisfies RagRetrieveResponse,
+				200,
+				origin,
+			);
+		}
+
+		return jsonResponse(
+			{
+				ok: true,
+				status: "ready",
+				matched: retrieval.matched,
+				chunks: retrieval.citations.map((citation, index) => ({
+					id: citation.id,
+					sourceType: citation.sourceType,
+					title: citation.title,
+					text: retrieval.chunks[index]?.text || "",
+					url: citation.url,
+					slug: citation.slug,
+					section: citation.section,
+					score: citation.score,
+				})),
+			} satisfies RagRetrieveResponse,
+			200,
+			origin,
+		);
+	} catch (error) {
+		return jsonResponse(
+			{
+				ok: false,
+				status: "error",
+				matched: 0,
+				chunks: [],
+				error: error instanceof Error ? error.message : "Unknown error",
+			} satisfies RagRetrieveResponse,
+			502,
+			origin,
+		);
+	}
+}
+
 app.get("/", () => handleRagHomeRequest());
 
 app.all("/ask", async (c) => handleAskRequest(c.req.raw, c.env));
+app.all("/assistant-retrieve", async (c) =>
+	handleRetrieveRequest(c.req.raw, c.env),
+);
 
 app.notFound((c) => {
 	const origin = getRequestOrigin(c.req.raw, new URL(c.req.raw.url));

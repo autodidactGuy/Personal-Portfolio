@@ -1,4 +1,9 @@
-import type { RagAskResponse, RagCitation, RagConfig } from "./types";
+import type {
+	RagAskResponse,
+	RagCitation,
+	RagConfig,
+	RagRetrieveResponse,
+} from "./types";
 
 function buildCorsHeaders(origin: string | null) {
 	return {
@@ -10,7 +15,10 @@ function buildCorsHeaders(origin: string | null) {
 }
 
 export function jsonResponse(
-	body: RagAskResponse | { error: string; fields?: string[] },
+	body:
+		| RagAskResponse
+		| RagRetrieveResponse
+		| { error: string; fields?: string[] },
 	status: number,
 	origin: string | null,
 ) {

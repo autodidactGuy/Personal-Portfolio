@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import type { RagEnv } from "./rag/types";
-import { handleAskRequest, handleRagHomeRequest } from "./rag-app";
+import {
+	handleAskRequest,
+	handleRagHomeRequest,
+	handleRetrieveRequest,
+} from "./rag-app";
 import {
 	corsHeaders,
 	createRedirectResponse,
@@ -41,6 +45,7 @@ type WorkerEnv = Record<string, unknown> & {
 	FROM_EMAIL?: string;
 	TURNSTILE_SECRET_KEY?: string;
 	GITHUB_MODELS_CHAT_MODEL?: string;
+	RAG_EMBED_MODEL?: string;
 	ASSISTANT_PROVIDER_PRIORITY?: string;
 };
 
@@ -353,25 +358,81 @@ async function handleAssistantRequest(
 		);
 	}
 
-	const proxyResponse =
-		data.action === "embeddings"
-			? await callGitHubModels("/inference/embeddings", env, {
-					model: data.model,
-					input: data.input,
-					encoding_format: "float",
+	const proxyResponse = await (data.action === "embeddings"
+		? (() => {
+				const embeddingModel =
+					data.model || env.RAG_EMBED_MODEL || "@cf/baai/bge-small-en-v1.5";
+
+				if (!env.AI) {
+					return Promise.resolve(
+						jsonResponse(
+							{ error: "Workers AI is not configured for embeddings." },
+							503,
+							corsHeaders(origin),
+						),
+					);
+				}
+
+				const inputTexts = Array.isArray(data.input)
+					? data.input
+					: [data.input];
+
+				return env.AI.run(embeddingModel, {
+					text: inputTexts,
+					pooling: "cls",
 				})
-			: routeChatWithFallbacks
-				? await callAssistantChatWithRouting(env, {
-						...data,
-						model: data.model || defaultChatModel,
+					.then((result) => {
+						const vectors = (result as { data?: number[][] })?.data;
+
+						if (
+							!Array.isArray(vectors) ||
+							!vectors.length ||
+							!Array.isArray(vectors[0])
+						) {
+							return jsonResponse(
+								{ error: "Embedding model did not return vectors." },
+								502,
+								corsHeaders(origin),
+							);
+						}
+
+						return jsonResponse(
+							{
+								data: vectors.map((embedding, index) => ({
+									object: "embedding",
+									index,
+									embedding,
+								})),
+							},
+							200,
+							corsHeaders(origin),
+						);
 					})
-				: await callGitHubModels("/inference/chat/completions", env, {
-						model: data.model || defaultChatModel,
-						temperature: data.temperature ?? 0,
-						max_tokens: data.max_tokens ?? 220,
-						response_format: data.response_format,
-						messages: data.messages,
-					});
+					.catch((error) =>
+						jsonResponse(
+							{
+								error:
+									error instanceof Error
+										? error.message
+										: "Embedding request failed.",
+							},
+							502,
+							corsHeaders(origin),
+						),
+					);
+			})()
+		: routeChatWithFallbacks
+			? await callAssistantChatWithRouting(env, {
+					...data,
+					model: data.model || defaultChatModel,
+				})
+			: await callGitHubModels("/inference/chat/completions", env, {
+					model: data.model || defaultChatModel,
+					temperature: data.temperature ?? 0,
+					max_tokens: data.max_tokens ?? 220,
+					response_format: data.response_format,
+					messages: data.messages,
+				}));
 
 	const headers = new Headers(proxyResponse.headers);
 
@@ -590,11 +651,16 @@ app.use("/contact", requireAllowedOrigin);
 app.use("/assistant", requireAllowedOrigin);
 app.use("/assistant-routed", requireAllowedOrigin);
 app.use("/assistant-provider-raw", requireAllowedOrigin);
+app.use("/assistant-retrieve", requireAllowedOrigin);
 
 app.get("/", () => handleRagHomeRequest());
 
 app.all("/ask", async (c) =>
 	handleAskRequest(c.req.raw, c.env as unknown as RagEnv),
+);
+
+app.all("/assistant-retrieve", async (c) =>
+	handleRetrieveRequest(c.req.raw, c.env as unknown as RagEnv),
 );
 
 app.all("/auth", async (c) => {
