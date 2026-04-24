@@ -369,11 +369,12 @@ function isAssistantSeparatorLine(line: string) {
 }
 
 function isAssistantTableLine(line: string) {
-	return /^\|.+\|$/.test(line);
+	return /^\|/.test(line);
 }
 
 function parseAssistantTableLine(line: string) {
-	const cells = line
+	const normalizedLine = line.endsWith("|") ? line : `${line}|`;
+	const cells = normalizedLine
 		.split("|")
 		.slice(1, -1)
 		.map((cell) => cell.trim());
