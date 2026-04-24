@@ -1,15 +1,10 @@
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	Chip,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader, Chip } from "@heroui/react";
 import type { GetStaticPaths, GetStaticProps } from "next";
 
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { ContentCover } from "@/components/content-cover";
-import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";

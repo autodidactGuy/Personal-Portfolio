@@ -1,4 +1,4 @@
-import { BreadcrumbsItem, Breadcrumbs } from "@heroui/react";
+import { Breadcrumbs, BreadcrumbsItem } from "@heroui/react";
 
 type BreadcrumbEntry = {
 	label: string;
