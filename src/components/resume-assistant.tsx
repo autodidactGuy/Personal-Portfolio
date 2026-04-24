@@ -259,7 +259,7 @@ function normalizeAssistantDisplayContent(content: string) {
 		)
 		.replace(/【[^】]+】/g, "")
 		.replace(
-			/\[(summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
 			"",
 		)
 		.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
@@ -316,7 +316,7 @@ function stripResidualAssistantMarkers(text: string) {
 	return text
 		.replace(/【[^】]+】/g, "")
 		.replace(
-			/\[(summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
 			"",
 		)
 		.replace(/\*\*/g, "")

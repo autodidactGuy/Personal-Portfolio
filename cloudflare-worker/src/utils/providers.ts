@@ -430,13 +430,40 @@ export function isRateLimitLikeFailure(status: number, payload: unknown) {
 	);
 }
 
-function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
-	if (status === 503 || isRateLimitLikeFailure(status, payload)) {
-		return true;
-	}
+function isGroqCapacityLikeFailure(status: number, payload: unknown) {
+	const normalizedError = normalizeAssistantErrorPayload(payload, "")
+		.toLowerCase()
+		.trim();
 
-	if (status !== 400) {
-		return false;
+	return (
+		status >= 400 ||
+		isRateLimitLikeFailure(status, payload) ||
+		normalizedError.includes("rate limit reached") ||
+		normalizedError.includes("request too large") ||
+		normalizedError.includes("tokens per minute") ||
+		normalizedError.includes("tokens per day") ||
+		normalizedError.includes("service tier")
+	);
+}
+
+function isGroqSharedQuotaFailure(status: number, payload: unknown) {
+	const normalizedError = normalizeAssistantErrorPayload(payload, "")
+		.toLowerCase()
+		.trim();
+
+	return (
+		status >= 400 ||
+		normalizedError.includes("rate limit reached") ||
+		normalizedError.includes("request too large") ||
+		normalizedError.includes("tokens per minute") ||
+		normalizedError.includes("tokens per day") ||
+		normalizedError.includes("service tier")
+	);
+}
+
+function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
+	if (status > 400 || isGroqCapacityLikeFailure(status, payload)) {
+		return true;
 	}
 
 	const normalizedError = normalizeAssistantErrorPayload(payload, "")
@@ -1071,6 +1098,7 @@ export async function callAssistantChatWithRouting(
 	body: AssistantChatBody,
 ) {
 	const providerAttempts: ProviderAttempt[] = [];
+	let skipGroqBackup = false;
 	let lastMissingResponse: {
 		payload: unknown;
 		status: number;
@@ -1227,6 +1255,13 @@ export async function callAssistantChatWithRouting(
 
 			if (
 				!groqResponse.ok &&
+				isGroqSharedQuotaFailure(groqResponse.status, groqResponse.payload)
+			) {
+				skipGroqBackup = true;
+			}
+
+			if (
+				!groqResponse.ok &&
 				!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload)
 			) {
 				return jsonResponse(
@@ -1240,6 +1275,10 @@ export async function callAssistantChatWithRouting(
 		}
 
 		if (provider === "groq_backup") {
+			if (skipGroqBackup) {
+				continue;
+			}
+
 			const groqBackupResponse = await callGroqBackup(body, env);
 			const normalizedPayload = groqBackupResponse.ok
 				? normalizeAssistantChatPayload(

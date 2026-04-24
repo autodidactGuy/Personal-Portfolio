@@ -721,6 +721,8 @@ describe("/assistant-routed", () => {
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
 				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				ASSISTANT_PROVIDER_PRIORITY:
+					"github-models,groq,huggingface,cloudflare,groq_backup",
 				AI: {
 					run: aiRun,
 				},
@@ -736,9 +738,6 @@ describe("/assistant-routed", () => {
 			"https://api.groq.com/openai/v1/chat/completions",
 		);
 		expect(fetchSpy.mock.calls[2][0]).toBe(
-			"https://api.groq.com/openai/v1/chat/completions",
-		);
-		expect(fetchSpy.mock.calls[3][0]).toBe(
 			"https://router.huggingface.co/v1/chat/completions",
 		);
 		expect(aiRun).toHaveBeenCalledWith(
@@ -818,6 +817,8 @@ describe("/assistant-routed", () => {
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
 				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				ASSISTANT_PROVIDER_PRIORITY:
+					"github-models,groq,huggingface,cloudflare,groq_backup",
 				AI: {
 					run: aiRun,
 				},
@@ -833,9 +834,6 @@ describe("/assistant-routed", () => {
 			"https://api.groq.com/openai/v1/chat/completions",
 		);
 		expect(fetchSpy.mock.calls[2][0]).toBe(
-			"https://api.groq.com/openai/v1/chat/completions",
-		);
-		expect(fetchSpy.mock.calls[3][0]).toBe(
 			"https://router.huggingface.co/v1/chat/completions",
 		);
 		expect(aiRun).toHaveBeenCalled();
@@ -1078,6 +1076,8 @@ describe("/assistant-routed", () => {
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
 				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				ASSISTANT_PROVIDER_PRIORITY:
+					"github-models,groq,huggingface,cloudflare,groq_backup",
 				AI: {
 					run: aiRun,
 				},
@@ -1086,10 +1086,10 @@ describe("/assistant-routed", () => {
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
-		expect(fetchSpy.mock.calls[3][0]).toBe(
+		expect(fetchSpy.mock.calls[2][0]).toBe(
 			"https://router.huggingface.co/v1/chat/completions",
 		);
-		const huggingFaceRequestInit = fetchSpy.mock.calls[3][1];
+		const huggingFaceRequestInit = fetchSpy.mock.calls[2][1];
 		const huggingFaceBody = JSON.parse(huggingFaceRequestInit.body);
 		expect(huggingFaceBody.response_format).toBeUndefined();
 		expect(aiRun).toHaveBeenCalled();
@@ -1209,12 +1209,6 @@ describe("/assistant-routed", () => {
 				}),
 			)
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ error: "rate limited" }), {
-					status: 429,
-					headers: { "Content-Type": "application/json" },
-				}),
-			)
-			.mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
 						id: "hf-response",
@@ -1264,6 +1258,8 @@ describe("/assistant-routed", () => {
 				GROQ_BACKUP_MODEL: "llama-3.1-8b-instant",
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct",
+				ASSISTANT_PROVIDER_PRIORITY:
+					"github-models,groq,huggingface,groq_backup",
 			},
 		);
 
@@ -1347,12 +1343,6 @@ describe("/assistant-routed", () => {
 				}),
 			)
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ error: "rate limited" }), {
-					status: 429,
-					headers: { "Content-Type": "application/json" },
-				}),
-			)
-			.mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
 						choices: [
@@ -1382,6 +1372,8 @@ describe("/assistant-routed", () => {
 				GROQ_BACKUP_MODEL: "llama-3.1-8b-instant",
 				HUGGING_FACE_API_TOKEN: "hf_test",
 				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
+				ASSISTANT_PROVIDER_PRIORITY:
+					"github-models,groq,huggingface,groq_backup",
 			},
 		);
 
@@ -1391,9 +1383,6 @@ describe("/assistant-routed", () => {
 			"https://api.groq.com/openai/v1/chat/completions",
 		);
 		expect(fetchSpy.mock.calls[2][0]).toBe(
-			"https://api.groq.com/openai/v1/chat/completions",
-		);
-		expect(fetchSpy.mock.calls[3][0]).toBe(
 			"https://router.huggingface.co/v1/chat/completions",
 		);
 		expect((await response.json()).choices[0].message.content).toContain(
@@ -1782,6 +1771,56 @@ describe("/assistant-routed", () => {
 			citations: ["summary"],
 		});
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("skips groq_backup and continues to Cloudflare when Groq hits capacity limits", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		const aiRun = vi.fn().mockResolvedValue({
+			response:
+				'{"status":"answered","answer":"Cloudflare answer","citations":["summary"]}',
+		});
+
+		fetchSpy.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					error:
+						"Rate limit reached for model `openai/gpt-oss-120b` on tokens per day",
+				}),
+				{ status: 429, headers: { "Content-Type": "application/json" } },
+			),
+		);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [
+					{ role: "user", content: "How much experience does Hassan have?" },
+				],
+			}),
+			{
+				...env,
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "openai/gpt-oss-120b",
+				GROQ_BACKUP_MODEL: "llama-3.1-8b-instant",
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				AI: {
+					run: aiRun,
+				},
+				ASSISTANT_PROVIDER_PRIORITY: "groq,groq_backup,cloudflare",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(aiRun).toHaveBeenCalledTimes(1);
+		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
+			status: "answered",
+			answer: "Cloudflare answer",
+			citations: ["summary"],
+		});
 	});
 });
 
