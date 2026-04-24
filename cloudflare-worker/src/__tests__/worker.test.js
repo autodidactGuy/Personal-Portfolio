@@ -1280,7 +1280,7 @@ describe("/assistant-routed", () => {
 		expect(response.status).toBe(200);
 		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
 		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
-			status: "rejected",
+			status: "missing",
 			answer: "I don't have that information available.",
 			citations: [],
 		});
