@@ -78,16 +78,36 @@ type AssistantRawDebugResult = {
 
 const THINKING_STATES = [
 	{
-		label: "Grounding the answer",
+		label: "Thinking...",
 		detail: "Checking the strongest snippets and recent context.",
 	},
 	{
-		label: "Reviewing the best match",
+		label: "Grounding the answer...",
 		detail: "Pulling together the most relevant published details.",
 	},
 	{
-		label: "Connecting the signals",
+		label: "Connecting the signals...",
 		detail: "Comparing retrieval results before responding.",
+	},
+	{
+		label: "Reviewing the best match...",
+		detail: "Scanning the closest matching details.",
+	},
+	{
+		label: "Searching the context...",
+		detail: "Locating the most relevant resume snippets.",
+	},
+	{
+		label: "Assembling the response...",
+		detail: "Putting together a clear and accurate answer.",
+	},
+	{
+		label: "Cross-referencing details...",
+		detail: "Verifying consistency across multiple sources.",
+	},
+	{
+		label: "Reasoning through this...",
+		detail: "Applying context to form a thoughtful reply.",
 	},
 ];
 
@@ -1149,34 +1169,19 @@ export function ResumeAssistant() {
 
 						{isSending ? (
 							<div className="flex justify-start">
-								<div className="max-w-[88%] rounded-[24px] border border-primary/10 bg-[linear-gradient(180deg,rgba(19,52,102,0.1),rgba(29,78,216,0.06))] px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/10 backdrop-blur-sm dark:border-primary/15 dark:bg-[linear-gradient(180deg,rgba(15,35,64,0.92),rgba(13,27,47,0.82))]">
-									<div className="flex items-center gap-3">
-										<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-primary/10 text-primary shadow-inner shadow-primary/10">
-											<HiMiniSparkles className="animate-pulse" size={16} />
-										</span>
-										<div className="min-w-0">
-											<div className="flex items-center gap-2">
-												<span className="font-medium text-foreground">
-													{thinkingState.label}
-												</span>
-												<span className="flex items-center gap-1">
-													{[0, 1, 2].map((index) => (
-														<span
-															className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse"
-															key={`thinking-dot-${index}`}
-															style={{
-																animationDelay: `${index * 180}ms`,
-																animationDuration: "1.2s",
-															}}
-														/>
-													))}
-												</span>
-											</div>
-											<p className="mt-0.5 text-xs leading-5 text-default-500">
-												{thinkingState.detail}
-											</p>
-										</div>
-									</div>
+								<div className="flex items-center gap-2.5 rounded-[24px] border border-default-200/70 bg-content1/80 px-4 py-3 text-sm text-default-600 shadow-sm shadow-primary/5 dark:bg-[#11233b]/75">
+									<span className="flex items-end gap-0.5 text-primary">
+										<HiMiniSparkles className="animate-spark" size={14} />
+										<HiMiniSparkles
+											className="animate-spark-delay-1"
+											size={11}
+										/>
+										<HiMiniSparkles
+											className="animate-spark-delay-2"
+											size={14}
+										/>
+									</span>
+									<span>{thinkingState.label}</span>
 								</div>
 							</div>
 						) : null}
