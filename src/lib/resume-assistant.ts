@@ -25,6 +25,20 @@ export const MISSING_INFORMATION_MESSAGE =
 export const UNRELATED_QUESTION_MESSAGE =
 	"I can only answer questions based on the information available on this site.";
 
+function inferAssistantStatusFromAnswer(answer: string) {
+	const normalizedAnswer = String(answer || "").trim();
+
+	if (normalizedAnswer === MISSING_INFORMATION_MESSAGE) {
+		return "missing" as const;
+	}
+
+	if (normalizedAnswer === UNRELATED_QUESTION_MESSAGE) {
+		return "rejected" as const;
+	}
+
+	return "answered" as const;
+}
+
 export const SYSTEM_PROMPT = `You are a AI assistant answering questions about one person's portfolio dataset.
 
 Rules:
@@ -2852,6 +2866,7 @@ export async function fetchSemanticRelevantSnippets(args: {
 	question: string;
 	query: string;
 }) {
+	const retrievalQuestion = (args.query || args.question).trim();
 	const response = await fetch(
 		new URL("/assistant-retrieve", args.workerUrl).toString(),
 		{
@@ -2860,7 +2875,7 @@ export async function fetchSemanticRelevantSnippets(args: {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				question: args.question,
+				question: retrievalQuestion,
 				query: args.query,
 			}),
 		},
@@ -2985,12 +3000,13 @@ export async function fetchAssistantResponse(args: {
 	}
 
 	const parsed = assistantResponseSchema.parse(JSON.parse(rawContent));
+	const normalizedStatus = inferAssistantStatusFromAnswer(parsed.answer);
 	const validCitationIds = new Set(snippets.map((snippet) => snippet.id));
 	const filteredCitations = parsed.citations
 		.filter((citation) => validCitationIds.has(citation))
 		.slice(0, MAX_CONTEXT_CHUNKS);
 
-	if (parsed.status === "answered" && filteredCitations.length === 0) {
+	if (normalizedStatus === "answered" && filteredCitations.length === 0) {
 		return {
 			status: "answered",
 			answer: parsed.answer,
@@ -3000,7 +3016,7 @@ export async function fetchAssistantResponse(args: {
 		} satisfies AssistantResponse;
 	}
 
-	if (parsed.status === "missing") {
+	if (normalizedStatus === "missing" || parsed.status === "missing") {
 		return {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
@@ -3010,7 +3026,7 @@ export async function fetchAssistantResponse(args: {
 		} satisfies AssistantResponse;
 	}
 
-	if (parsed.status === "rejected") {
+	if (normalizedStatus === "rejected" || parsed.status === "rejected") {
 		return {
 			status: "rejected",
 			answer: UNRELATED_QUESTION_MESSAGE,

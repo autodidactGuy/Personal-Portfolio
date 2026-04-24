@@ -178,9 +178,10 @@ function coerceAssistantStructuredObject(value: unknown) {
 		Array.isArray(value.citations)
 	) {
 		const extractedCitations = extractSnippetIdsFromText(value.answer);
+		const normalizedStatus = inferAssistantStatusFromAnswer(value.answer);
 
 		return {
-			status: value.status,
+			status: normalizedStatus === "answered" ? value.status : normalizedStatus,
 			answer: value.answer,
 			citations: Array.from(
 				new Set([

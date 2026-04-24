@@ -12,7 +12,7 @@ const askRequestSchema = z.object({
 		.string()
 		.trim()
 		.min(1, "question is required")
-		.max(500, "question is too long"),
+		.max(2000, "question is too long"),
 });
 
 const retrieveRequestSchema = z.object({
@@ -20,7 +20,7 @@ const retrieveRequestSchema = z.object({
 		.string()
 		.trim()
 		.min(1, "question is required")
-		.max(500, "question is too long"),
+		.max(2000, "question is too long"),
 	query: z
 		.string()
 		.trim()
