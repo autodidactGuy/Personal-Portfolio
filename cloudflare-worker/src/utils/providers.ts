@@ -1119,7 +1119,7 @@ export async function callAssistantChatWithRouting(
 			});
 
 			if (
-				githubResponse.ok ||
+				!githubResponse.ok &&
 				!isGenericRoutedFallbackWorthyFailure(githubResponse.status, payload)
 			) {
 				return jsonResponse(
@@ -1197,12 +1197,8 @@ export async function callAssistantChatWithRouting(
 			});
 
 			if (
-				(groqResponse.ok && (!isExpectedPayload || !isIncompletePayload)) ||
-				(!groqResponse.ok &&
-					!isGroqFallbackWorthyFailure(
-						groqResponse.status,
-						groqResponse.payload,
-					))
+				!groqResponse.ok &&
+				!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload)
 			) {
 				return jsonResponse(
 					{ error: groqError, providers: providerAttempts },
@@ -1274,12 +1270,11 @@ export async function callAssistantChatWithRouting(
 			});
 
 			if (
-				(huggingFaceResponse.ok && !isExpectedPayload) ||
-				(!huggingFaceResponse.ok &&
-					!isGenericRoutedFallbackWorthyFailure(
-						huggingFaceResponse.status,
-						huggingFaceResponse.payload,
-					))
+				!huggingFaceResponse.ok &&
+				!isGenericRoutedFallbackWorthyFailure(
+					huggingFaceResponse.status,
+					huggingFaceResponse.payload,
+				)
 			) {
 				return jsonResponse(
 					{ error: errorMessage, providers: providerAttempts },
@@ -1351,12 +1346,11 @@ export async function callAssistantChatWithRouting(
 			});
 
 			if (
-				(cloudflareResponse.ok && !isExpectedPayload) ||
-				(!cloudflareResponse.ok &&
-					!isGenericRoutedFallbackWorthyFailure(
-						cloudflareResponse.status,
-						cloudflareResponse.payload,
-					))
+				!cloudflareResponse.ok &&
+				!isGenericRoutedFallbackWorthyFailure(
+					cloudflareResponse.status,
+					cloudflareResponse.payload,
+				)
 			) {
 				return jsonResponse(
 					{ error: errorMessage, providers: providerAttempts },

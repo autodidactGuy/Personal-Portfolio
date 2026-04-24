@@ -604,45 +604,17 @@ export function ResumeAssistant() {
 		}
 	};
 
-	const getRelevantSnippets = async (
+	const getKeywordRelevantSnippets = (
 		question: string,
 		recentMessages: Array<{
 			role: "user" | "assistant";
 			content: string;
 		}>,
-	): Promise<RetrievalResult> => {
+	): RetrievalResult => {
 		const retrievalQuery = buildRetrievalQuery({
 			question,
 			recentMessages,
 		});
-
-		if (
-			embeddingStatus === "ready" &&
-			snippetEmbeddings.length === snippets.length
-		) {
-			try {
-				const [questionEmbedding] = await fetchEmbeddings(
-					workerUrl,
-					DEFAULT_EMBEDDING_MODEL,
-					retrievalQuery,
-				);
-
-				return {
-					query: retrievalQuery,
-					mode: "embeddings",
-					entries: rankSnippetEntriesByEmbeddings(
-						retrievalQuery,
-						questionEmbedding,
-						snippets,
-						snippetEmbeddings,
-					),
-				};
-			} catch {
-				setStatusMessage(
-					"Question embeddings are unavailable right now, so retrieval is using keyword matching instead.",
-				);
-			}
-		}
 
 		return {
 			query: retrievalQuery,
@@ -777,7 +749,7 @@ export function ResumeAssistant() {
 			}
 
 			let retrievalResult: RetrievalResult | null = null;
-			retrievalResult = await getRelevantSnippets(
+			retrievalResult = getKeywordRelevantSnippets(
 				trimmedQuestion,
 				recentMessages,
 			);
