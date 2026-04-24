@@ -26,7 +26,7 @@
   "vars": {
     "GITHUB_OAUTH_SCOPE": "public_repo",
     "ALLOWED_GITHUB_USERS": "autodidactGuy",
-    "ALLOWED_ORIGINS": "https://hassanraza.us",
+    "ALLOWED_ORIGINS": "https://hassanraza.us,https://stage.hassanraza.us,https://preview.hassanraza.us",
     "ORIGIN": "https://hassanraza.us",
     "REPO_BASE_PATH": "",
     "CONTACT_EMAIL": "hassanraza632@gmail.com",

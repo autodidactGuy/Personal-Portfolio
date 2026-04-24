@@ -38,6 +38,25 @@ export type RagAskResponse = {
 	error?: string;
 };
 
+export type RagRetrieveChunk = {
+	id: string;
+	sourceType: string;
+	title: string;
+	text: string;
+	url?: string;
+	slug?: string;
+	section: string;
+	score: number;
+};
+
+export type RagRetrieveResponse = {
+	ok: boolean;
+	status: "ready" | "no_match" | "insufficient_context" | "error";
+	matched: number;
+	chunks: RagRetrieveChunk[];
+	error?: string;
+};
+
 export type RagEnv = {
 	AI: {
 		run(model: string, input: Record<string, unknown>): Promise<unknown>;
