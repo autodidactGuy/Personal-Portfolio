@@ -1187,9 +1187,293 @@ describe("/assistant-routed", () => {
 		expect(aiRun).toHaveBeenCalledWith(
 			"@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 			expect.objectContaining({
-				response_format: undefined,
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						type: "object",
+						properties: {
+							status: { type: "string" },
+							answer: { type: "string" },
+							citations: { type: "array", items: { type: "string" } },
+						},
+						required: ["status", "answer", "citations"],
+					},
+				},
 			}),
 		);
+	});
+
+	it("preserves structured output for Cloudflare when returning a valid answered payload", async () => {
+		const aiRun = vi.fn().mockResolvedValue({
+			response: {
+				status: "answered",
+				answer:
+					"Hassan built AI-driven portfolio and resume assistant workflows.",
+				citations: ["summary"],
+			},
+		});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						name: "resume_assistant_response",
+						schema: {
+							type: "object",
+							properties: {
+								status: { type: "string" },
+								answer: { type: "string" },
+								citations: { type: "array", items: { type: "string" } },
+							},
+							required: ["status", "answer", "citations"],
+						},
+					},
+				},
+				messages: [{ role: "user", content: "Tell me about Hassan" }],
+			}),
+			{
+				...env,
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+				AI: {
+					run: aiRun,
+				},
+				ASSISTANT_PROVIDER_PRIORITY: "cloudflare,portfolio-rag",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
+		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
+			status: "answered",
+			answer:
+				"Hassan built AI-driven portfolio and resume assistant workflows.",
+			citations: ["summary"],
+		});
+		expect(aiRun).toHaveBeenCalledWith(
+			"@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+			expect.objectContaining({
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						type: "object",
+						properties: {
+							status: { type: "string" },
+							answer: { type: "string" },
+							citations: { type: "array", items: { type: "string" } },
+						},
+						required: ["status", "answer", "citations"],
+					},
+				},
+			}),
+		);
+	});
+
+	it("falls through when Cloudflare returns a title-only answer", async () => {
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				response: {
+					status: "answered",
+					answer: "Designing Observability for Distributed Systems",
+					citations: [
+						"article:designing-observability-for-distributed-systems",
+					],
+				},
+			})
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response:
+					'{"status":"answered","answer":"The article explains how observability should provide real-time insight into system behavior, failures, and changes over time.","citations":["article:designing-observability-for-distributed-systems:summary:0"]}',
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						name: "resume_assistant_response",
+						schema: {
+							type: "object",
+							properties: {
+								status: { type: "string" },
+								answer: { type: "string" },
+								citations: { type: "array", items: { type: "string" } },
+							},
+							required: ["status", "answer", "citations"],
+						},
+					},
+				},
+				messages: [
+					{
+						role: "developer",
+						content:
+							"SUPPORTING_RESUME_SNIPPETS:\n[article:designing-observability-for-distributed-systems] Designing Observability for Distributed Systems\nDate: 2026-02-23\nThis article explains observability in distributed systems.",
+					},
+					{
+						role: "user",
+						content:
+							"Tell me about Designing Observability for Distributed Systems",
+					},
+				],
+			}),
+			{
+				...env,
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({
+						matches: [{ id: "vec-1", score: 0.91 }],
+					}),
+				},
+				RAG_KV: {
+					get: vi.fn().mockResolvedValue(
+						new Map([
+							[
+								"vec-1",
+								JSON.stringify({
+									vectorId: "vec-1",
+									id: "article:designing-observability-for-distributed-systems:summary:0",
+									text: "The article explains how observability should provide real-time insight into system behavior, failures, and changes over time.",
+									sourceType: "article",
+									title: "Designing Observability for Distributed Systems",
+									slug: "designing-observability-for-distributed-systems",
+									url: "https://example.com/articles/designing-observability-for-distributed-systems",
+									section: "summary",
+								}),
+							],
+						]),
+					),
+				},
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
+				RAG_TOP_K: "6",
+				RAG_SIMILARITY_THRESHOLD: "0.72",
+				RAG_MAX_CONTEXT_CHUNKS: "4",
+				RAG_MAX_OUTPUT_TOKENS: "300",
+				ASSISTANT_PROVIDER_PRIORITY: "cloudflare,portfolio-rag",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("portfolio-rag");
+		expect(JSON.parse(payload.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			answer:
+				"The article explains how observability should provide real-time insight into system behavior, failures, and changes over time.",
+		});
+	});
+
+	it("falls through when Cloudflare returns a question fragment", async () => {
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				response: {
+					status: "answered",
+					answer: "What is happening right now?",
+					citations: [
+						"article:designing-observability-for-distributed-systems",
+					],
+				},
+			})
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response:
+					'{"status":"answered","answer":"The article argues that observability should answer what the system is doing now, where failures happen, how behavior changes over time, and what changed before incidents.","citations":["article:designing-observability-for-distributed-systems:summary:0"]}',
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				response_format: {
+					type: "json_schema",
+					json_schema: {
+						name: "resume_assistant_response",
+						schema: {
+							type: "object",
+							properties: {
+								status: { type: "string" },
+								answer: { type: "string" },
+								citations: { type: "array", items: { type: "string" } },
+							},
+							required: ["status", "answer", "citations"],
+						},
+					},
+				},
+				messages: [
+					{
+						role: "developer",
+						content:
+							"SUPPORTING_RESUME_SNIPPETS:\n[article:designing-observability-for-distributed-systems] Designing Observability for Distributed Systems\nDate: 2026-02-23\nWhat observability should provide includes understanding what is happening right now and where failures occur.",
+					},
+					{
+						role: "user",
+						content:
+							"Tell me about Designing Observability for Distributed Systems",
+					},
+				],
+			}),
+			{
+				...env,
+				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({
+						matches: [{ id: "vec-1", score: 0.91 }],
+					}),
+				},
+				RAG_KV: {
+					get: vi.fn().mockResolvedValue(
+						new Map([
+							[
+								"vec-1",
+								JSON.stringify({
+									vectorId: "vec-1",
+									id: "article:designing-observability-for-distributed-systems:summary:0",
+									text: "The article argues that observability should answer what the system is doing now, where failures happen, how behavior changes over time, and what changed before incidents.",
+									sourceType: "article",
+									title: "Designing Observability for Distributed Systems",
+									slug: "designing-observability-for-distributed-systems",
+									url: "https://example.com/articles/designing-observability-for-distributed-systems",
+									section: "summary",
+								}),
+							],
+						]),
+					),
+				},
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
+				RAG_TOP_K: "6",
+				RAG_SIMILARITY_THRESHOLD: "0.72",
+				RAG_MAX_CONTEXT_CHUNKS: "4",
+				RAG_MAX_OUTPUT_TOKENS: "300",
+				ASSISTANT_PROVIDER_PRIORITY: "cloudflare,portfolio-rag",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("portfolio-rag");
+		expect(JSON.parse(payload.choices[0].message.content)).toMatchObject({
+			status: "answered",
+			answer:
+				"The article argues that observability should answer what the system is doing now, where failures happen, how behavior changes over time, and what changed before incidents.",
+		});
 	});
 
 	it("normalizes Hugging Face array-string JSON into a canonical missing response", async () => {
@@ -1505,8 +1789,16 @@ describe("/assistant-routed", () => {
 			);
 
 		const aiRun = vi.fn().mockResolvedValue({
-			response:
-				"Based on the provided snippets, Hassan Raza's recent projects include Building a Resume-Native AI Assistant for My Portfolio [project:building-a-resume-native-ai-assistant], Designing a Content System That Scales Beyond a Portfolio [case-study:designing-a-content-system-that-scales-beyond-a-portoflio], and Building Financial Infrastructure for Modern Nonprofits [project:building-financial-infrastructure-for-modern-nonprofits].",
+			response: {
+				status: "answered",
+				answer:
+					"Based on the provided snippets, Hassan Raza's recent projects include Building a Resume-Native AI Assistant for My Portfolio, Designing a Content System That Scales Beyond a Portfolio, and Building Financial Infrastructure for Modern Nonprofits.",
+				citations: [
+					"project:building-a-resume-native-ai-assistant",
+					"project:building-financial-infrastructure-for-modern-nonprofits",
+					"case-study:designing-a-content-system-that-scales-beyond-a-portoflio",
+				],
+			},
 		});
 
 		const response = await worker.fetch(

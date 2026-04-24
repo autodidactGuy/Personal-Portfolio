@@ -599,6 +599,91 @@ function ensureGroqJsonInstruction(
 	];
 }
 
+function isValidAssistantStatus(
+	status: unknown,
+): status is "answered" | "missing" | "rejected" {
+	return status === "answered" || status === "missing" || status === "rejected";
+}
+
+function coerceCanonicalAssistantStructuredObject(value: unknown): {
+	status: "answered" | "missing" | "rejected";
+	answer: string;
+	citations: string[];
+} | null {
+	if (typeof value === "string") {
+		const trimmedValue = value.trim();
+
+		if (!trimmedValue) {
+			return null;
+		}
+
+		try {
+			return coerceCanonicalAssistantStructuredObject(JSON.parse(trimmedValue));
+		} catch {
+			return null;
+		}
+	}
+
+	if (!value || typeof value !== "object") {
+		return null;
+	}
+
+	if ("status" in value && "answer" in value && "citations" in value) {
+		const candidate = value as {
+			status?: unknown;
+			answer?: unknown;
+			citations?: unknown;
+		};
+
+		if (
+			isValidAssistantStatus(candidate.status) &&
+			typeof candidate.answer === "string" &&
+			candidate.answer.trim() &&
+			Array.isArray(candidate.citations)
+		) {
+			return {
+				status: candidate.status,
+				answer: candidate.answer.trim(),
+				citations: candidate.citations.filter(
+					(citation): citation is string => typeof citation === "string",
+				),
+			};
+		}
+	}
+
+	if (
+		"schema" in value &&
+		value.schema &&
+		typeof value.schema === "object" &&
+		"properties" in value.schema &&
+		value.schema.properties &&
+		typeof value.schema.properties === "object"
+	) {
+		const properties = value.schema.properties as {
+			status?: unknown;
+			answer?: unknown;
+			citations?: unknown;
+		};
+
+		if (
+			isValidAssistantStatus(properties.status) &&
+			typeof properties.answer === "string" &&
+			properties.answer.trim() &&
+			Array.isArray(properties.citations)
+		) {
+			return {
+				status: properties.status,
+				answer: properties.answer.trim(),
+				citations: properties.citations.filter(
+					(citation): citation is string => typeof citation === "string",
+				),
+			};
+		}
+	}
+
+	return null;
+}
+
 function normalizeResponseFormatForOpenAiCompat(
 	responseFormat: Record<string, unknown> | undefined,
 ) {
@@ -653,51 +738,86 @@ function extractCloudflareAssistantContent(result: unknown) {
 				: null;
 
 	if (typeof candidate === "string" && candidate.trim()) {
-		return candidate;
+		const structuredCandidate =
+			coerceCanonicalAssistantStructuredObject(candidate);
+
+		return structuredCandidate ? JSON.stringify(structuredCandidate) : null;
 	}
 
-	if (!candidate || typeof candidate !== "object") {
+	const structuredCandidate =
+		coerceCanonicalAssistantStructuredObject(candidate);
+
+	return structuredCandidate ? JSON.stringify(structuredCandidate) : null;
+}
+
+function extractSupportingSnippetTitles(messages: AssistantMessage[]) {
+	const titles = new Set<string>();
+
+	for (const message of messages) {
+		if (message.role !== "developer" || typeof message.content !== "string") {
+			continue;
+		}
+
+		const supportingSnippetBlock =
+			message.content.match(/SUPPORTING_RESUME_SNIPPETS:\n([\s\S]*)$/)?.[1] ||
+			"";
+
+		for (const line of supportingSnippetBlock.split("\n")) {
+			const match = line.match(/^\[[^\]]+\]\s+(.+)$/);
+
+			if (match?.[1]?.trim()) {
+				titles.add(match[1].trim().toLowerCase());
+			}
+		}
+	}
+
+	return titles;
+}
+
+function getAssistantStructuredContent(payload: unknown) {
+	if (
+		!payload ||
+		typeof payload !== "object" ||
+		!("choices" in payload) ||
+		!Array.isArray(payload.choices)
+	) {
 		return null;
 	}
 
-	const candidateRecord = candidate as {
-		status?: unknown;
-		answer?: unknown;
-		citations?: unknown;
-		schema?: {
-			properties?: {
-				status?: unknown;
-				answer?: unknown;
-				citations?: unknown;
-			};
-		};
-	};
+	const rawContent = payload.choices[0]?.message?.content;
 
-	if (
-		typeof candidateRecord.status === "string" &&
-		typeof candidateRecord.answer === "string" &&
-		Array.isArray(candidateRecord.citations)
-	) {
-		return JSON.stringify(candidate);
+	if (typeof rawContent !== "string" || !rawContent.trim()) {
+		return null;
 	}
 
-	const echoedProperties = candidateRecord.schema?.properties;
+	try {
+		return coerceAssistantStructuredObject(JSON.parse(rawContent));
+	} catch {
+		return null;
+	}
+}
 
-	if (
-		echoedProperties &&
-		typeof echoedProperties === "object" &&
-		typeof echoedProperties.status === "string" &&
-		typeof echoedProperties.answer === "string" &&
-		Array.isArray(echoedProperties.citations)
-	) {
-		return JSON.stringify({
-			status: echoedProperties.status,
-			answer: echoedProperties.answer,
-			citations: echoedProperties.citations,
-		});
+function isLowQualityCloudflareAnswer(
+	payload: unknown,
+	messages: AssistantMessage[],
+) {
+	const structuredContent = getAssistantStructuredContent(payload);
+
+	if (!structuredContent || structuredContent.status !== "answered") {
+		return false;
 	}
 
-	return JSON.stringify(candidate);
+	const normalizedAnswer = structuredContent.answer.trim().toLowerCase();
+
+	if (!normalizedAnswer) {
+		return true;
+	}
+
+	if (normalizedAnswer.endsWith("?")) {
+		return true;
+	}
+
+	return extractSupportingSnippetTitles(messages).has(normalizedAnswer);
 }
 
 function createAssistantFetchResponse(
@@ -976,7 +1096,6 @@ async function callCloudflareAi(
 		{
 			...body,
 			model: env.CLOUDFLARE_AI_MODEL,
-			response_format: undefined,
 		},
 		env,
 	);
@@ -1448,11 +1567,15 @@ export async function callAssistantChatWithRouting(
 				: cloudflareResponse.payload;
 			const isExpectedPayload =
 				isExpectedAssistantChatPayload(normalizedPayload);
+			const isLowQualityPayload =
+				isExpectedPayload &&
+				isLowQualityCloudflareAnswer(normalizedPayload, body.messages);
 
 			if (
 				cloudflareResponse.ok &&
 				isExpectedPayload &&
-				!isMissingAssistantResponse(normalizedPayload)
+				!isMissingAssistantResponse(normalizedPayload) &&
+				!isLowQualityPayload
 			) {
 				return jsonResponse(
 					normalizedPayload,
@@ -1480,13 +1603,17 @@ export async function callAssistantChatWithRouting(
 				cloudflareResponse.ok
 					? {
 							error: isExpectedPayload
-								? "Assistant returned missing"
+								? isLowQualityPayload
+									? "Assistant returned a low-quality response"
+									: "Assistant returned missing"
 								: "Assistant returned an unexpected response",
 						}
 					: cloudflareResponse.payload,
 				cloudflareResponse.ok
 					? isExpectedPayload
-						? "Assistant returned missing"
+						? isLowQualityPayload
+							? "Assistant returned a low-quality response"
+							: "Assistant returned missing"
 						: "Assistant returned an unexpected response"
 					: "Cloudflare AI request failed",
 			);
