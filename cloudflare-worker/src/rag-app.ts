@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getRagConfig } from "./rag/config";
 import { createAskResponse, jsonResponse } from "./rag/response";
 import { generateAnswer, retrieveChunks } from "./rag/retrieve";
-import type { RagEnv, RagRetrieveResponse } from "./rag/types";
+import type { RagEnv, RagRetrieveResponse, RagRetrieveResponse } from "./rag/types";
 import { corsHeaders } from "./utils/http";
 import { getRequestOrigin, isAllowedOrigin } from "./utils/origin";
 
@@ -26,6 +26,20 @@ const retrieveRequestSchema = z.object({
 		.trim()
 		.min(1, "query is required")
 		.max(5000, "query is too long")
+		.optional(),
+});
+
+const retrieveRequestSchema = z.object({
+	question: z
+		.string()
+		.trim()
+		.min(1, "question is required")
+		.max(500, "question is too long"),
+	query: z
+		.string()
+		.trim()
+		.min(1, "query is required")
+		.max(2000, "query is too long")
 		.optional(),
 });
 
