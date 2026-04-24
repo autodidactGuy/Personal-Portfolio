@@ -37,7 +37,6 @@ import {
 	type ResumePayload,
 	type ResumeSnippet,
 	type RetrievalResult,
-	rankSnippetEntriesByEmbeddings,
 	rankSnippetEntriesByKeywords,
 	resolveResumeSnippetCitations,
 	shouldUseClosestMatchFallback,
@@ -155,6 +154,170 @@ function renderMessageContent(
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
 ) {
+	const normalizedContent = normalizeAssistantDisplayContent(content);
+	const lines = normalizedContent.split("\n");
+	const blocks: Array<
+		| { type: "paragraph"; lines: string[] }
+		| { type: "list"; items: string[]; ordered: boolean }
+	> = [];
+	let paragraphBuffer: string[] = [];
+	let listBuffer: string[] = [];
+	let listOrdered = false;
+
+	const flushParagraphBuffer = () => {
+		if (!paragraphBuffer.length) {
+			return;
+		}
+
+		blocks.push({
+			type: "paragraph",
+			lines: paragraphBuffer,
+		});
+		paragraphBuffer = [];
+	};
+
+	const flushListBuffer = () => {
+		if (!listBuffer.length) {
+			return;
+		}
+
+		blocks.push({
+			type: "list",
+			items: listBuffer,
+			ordered: listOrdered,
+		});
+		listBuffer = [];
+		listOrdered = false;
+	};
+
+	for (const rawLine of lines) {
+		const line = rawLine.trim();
+
+		if (!line || isAssistantSeparatorLine(line)) {
+			flushParagraphBuffer();
+			flushListBuffer();
+			continue;
+		}
+
+		if (/^-\s+/.test(line)) {
+			flushParagraphBuffer();
+			if (listBuffer.length && listOrdered) {
+				flushListBuffer();
+			}
+			listOrdered = false;
+			listBuffer.push(line.replace(/^-\s+/, "").trim());
+			continue;
+		}
+
+		if (/^\d+\.\s+/.test(line)) {
+			flushParagraphBuffer();
+			if (listBuffer.length && !listOrdered) {
+				flushListBuffer();
+			}
+			listOrdered = true;
+			listBuffer.push(line.replace(/^\d+\.\s+/, "").trim());
+			continue;
+		}
+
+		flushListBuffer();
+		paragraphBuffer.push(line);
+	}
+
+	flushParagraphBuffer();
+	flushListBuffer();
+
+	if (!blocks.length) {
+		return <p className="break-words">{normalizedContent}</p>;
+	}
+
+	return (
+		<div className="space-y-3">
+			{blocks.map((block) => {
+				const blockContent =
+					block.type === "list"
+						? `${block.ordered ? "ordered" : "unordered"}:${block.items.join("|")}`
+						: block.lines.join("|");
+				const blockKey = `${block.type}:${blockContent}`;
+
+				return block.type === "list" ? (
+					block.ordered ? (
+						<ol className="list-decimal space-y-2 pl-5" key={blockKey}>
+							{block.items.map((item) => (
+								<li className="break-words" key={`${blockKey}:${item}`}>
+									{renderInlineMessageContent(item, citations, resume)}
+								</li>
+							))}
+						</ol>
+					) : (
+						<ul className="list-disc space-y-2 pl-5" key={blockKey}>
+							{block.items.map((item) => (
+								<li className="break-words" key={`${blockKey}:${item}`}>
+									{renderInlineMessageContent(item, citations, resume)}
+								</li>
+							))}
+						</ul>
+					)
+				) : (
+					<p className="break-words whitespace-pre-wrap" key={blockKey}>
+						{renderInlineMessageContent(
+							block.lines.join("\n"),
+							citations,
+							resume,
+						)}
+					</p>
+				);
+			})}
+		</div>
+	);
+}
+
+function normalizeAssistantDisplayContent(content: string) {
+	return content
+		.replace(/\r\n/g, "\n")
+		.replace(/\\n/g, "\n")
+		.replace(/\/n/g, "\n")
+		.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
+		.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
+		.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
+		.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
+		.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+}
+
+function isAssistantSeparatorLine(line: string) {
+	return /^([-_*])\1{2,}$/.test(line.trim());
+}
+
+function renderBoldMarkdown(text: string) {
+	const parts: ReactNode[] = [];
+	const pattern = /\*\*([^*]+)\*\*/g;
+	let lastIndex = 0;
+	let match = pattern.exec(text);
+
+	while (match) {
+		if (match.index > lastIndex) {
+			parts.push(text.slice(lastIndex, match.index));
+		}
+
+		parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
+
+		lastIndex = match.index + match[0].length;
+		match = pattern.exec(text);
+	}
+
+	if (lastIndex < text.length) {
+		parts.push(text.slice(lastIndex));
+	}
+
+	return parts;
+}
+
+function renderInlineMessageContent(
+	content: string,
+	citations: ResumeSnippet[] | undefined,
+	resume: ResumePayload | null,
+) {
 	const matches = findAssistantInlineLinkMatches({
 		content,
 		citations,
@@ -162,7 +325,7 @@ function renderMessageContent(
 	});
 
 	if (!matches.length) {
-		return <p className="break-words">{content}</p>;
+		return renderBoldMarkdown(content);
 	}
 
 	const parts: ReactNode[] = [];
@@ -170,7 +333,7 @@ function renderMessageContent(
 
 	for (const match of matches) {
 		if (cursor < match.start) {
-			parts.push(content.slice(cursor, match.start));
+			parts.push(...renderBoldMarkdown(content.slice(cursor, match.start)));
 		}
 
 		parts.push(
@@ -190,10 +353,10 @@ function renderMessageContent(
 	}
 
 	if (cursor < content.length) {
-		parts.push(content.slice(cursor));
+		parts.push(...renderBoldMarkdown(content.slice(cursor)));
 	}
 
-	return <p className="break-words">{parts}</p>;
+	return parts;
 }
 
 function buildQuestionSuggestions(resume: ResumePayload | null) {
@@ -276,9 +439,9 @@ export function ResumeAssistant() {
 	});
 	const [draft, setDraft] = useState("");
 	const [isSending, setIsSending] = useState(false);
-	const [embeddingStatus, setEmbeddingStatus] =
+	const [_embeddingStatus, setEmbeddingStatus] =
 		useState<EmbeddingStatus>("idle");
-	const [snippetEmbeddings, setSnippetEmbeddings] = useState<number[][]>([]);
+	const [_snippetEmbeddings, setSnippetEmbeddings] = useState<number[][]>([]);
 	const [statusMessage, setStatusMessage] = useState("");
 	const [debugState, setDebugState] = useState<AssistantDebugState>({
 		retrievalResult: null,
