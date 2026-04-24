@@ -491,6 +491,31 @@ export function renderRagHomePage() {
       const endpointLabelEl = document.getElementById("endpointLabel");
       const providerLabelEl = document.getElementById("providerLabel");
       const statusCodeEl = document.getElementById("statusCode");
+      const askRawButton = document.getElementById("askRaw");
+      const askRetrieveButton = document.getElementById("askRetrieve");
+      const askRoutedButton = document.getElementById("askRouted");
+      const askRagButton = document.getElementById("askRag");
+
+      if (
+        !providerEl ||
+        !modelEl ||
+        !temperatureEl ||
+        !maxTokensEl ||
+        !structuredOutputEl ||
+        !questionEl ||
+        !retrievalQueryEl ||
+        !outputEl ||
+        !statusEl ||
+        !endpointLabelEl ||
+        !providerLabelEl ||
+        !statusCodeEl ||
+        !askRawButton ||
+        !askRetrieveButton ||
+        !askRoutedButton ||
+        !askRagButton
+      ) {
+        throw new Error("Worker debugger UI failed to initialize because one or more controls are missing.");
+      }
 
       function createRawRequestBody(question) {
         const temperatureValue = Number.parseFloat(temperatureEl.value);
@@ -648,7 +673,9 @@ export function renderRagHomePage() {
         }
       }
 
-      document.getElementById("askRaw").addEventListener("click", () => {
+      statusEl.textContent = "Debugger ready";
+
+      askRawButton.addEventListener("click", () => {
         const question = questionEl.value.trim();
         if (!question) {
           statusEl.textContent = "Enter a question first";
@@ -657,7 +684,7 @@ export function renderRagHomePage() {
         callEndpoint("/assistant-provider-raw", createRawRequestBody(question), providerEl.value);
       });
 
-      document.getElementById("askRag").addEventListener("click", () => {
+      askRagButton.addEventListener("click", () => {
         const question = questionEl.value.trim();
         if (!question) {
           statusEl.textContent = "Enter a question first";
@@ -666,7 +693,7 @@ export function renderRagHomePage() {
         callEndpoint("/ask", { question }, "portfolio-rag");
       });
 
-      document.getElementById("askRetrieve").addEventListener("click", async () => {
+      askRetrieveButton.addEventListener("click", async () => {
         const question = questionEl.value.trim();
         if (!question) {
           statusEl.textContent = "Enter a question first";
@@ -695,7 +722,7 @@ export function renderRagHomePage() {
         }
       });
 
-      document.getElementById("askRouted").addEventListener("click", async () => {
+      askRoutedButton.addEventListener("click", async () => {
         const question = questionEl.value.trim();
         if (!question) {
           statusEl.textContent = "Enter a question first";

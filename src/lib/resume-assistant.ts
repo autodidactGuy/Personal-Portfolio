@@ -323,7 +323,16 @@ const smallTalkPatterns = [
 const builtInAllowedKeywords = [
 	"resume",
 	"portfolio",
+	"link",
+	"links",
+	"social",
+	"public",
 	"experience",
+	"yoe",
+	"year",
+	"years",
+	"yr",
+	"yrs",
 	"worked",
 	"work",
 	"job",
@@ -579,6 +588,11 @@ function prefersLatestContent(question: string) {
 function normalizeQuestionForRetrieval(question: string) {
 	return tokenize(
 		question
+			.replace(/\byoe\b/gi, "years experience")
+			.replace(/\byrs\b/gi, "years")
+			.replace(/\byr\b/gi, "year")
+			.replace(/\bsocial links?\b/gi, "github linkedin links")
+			.replace(/\bpublic links?\b/gi, "github linkedin resume site links")
 			.replace(/\bstarted\b/gi, "start")
 			.replace(/\bstarting\b/gi, "start")
 			.replace(/\bworked\b/gi, "work")
@@ -2017,6 +2031,9 @@ export function generateLocalResumeAnswer(
 
 	if (
 		hasQuestionMatch(normalizedQuestion, [
+			/\blinks?\b/i,
+			/\bsocial links?\b/i,
+			/\bpublic links?\b/i,
 			/\bgithub\b/i,
 			/\blinkedin\b/i,
 			/\bresume\b/i,
@@ -2027,6 +2044,28 @@ export function generateLocalResumeAnswer(
 		resume.links
 	) {
 		const parts: string[] = [];
+
+		if (/social|public|links?/i.test(normalizedQuestion) && resume.links) {
+			if (resume.links.github) {
+				parts.push(`GitHub: ${resume.links.github}.`);
+			}
+
+			if (resume.links.linkedin) {
+				parts.push(`LinkedIn: ${resume.links.linkedin}.`);
+			}
+
+			if (resume.links.resume) {
+				parts.push(`Resume: ${resume.links.resume}.`);
+			}
+
+			if (resume.links.site) {
+				parts.push(`Website: ${resume.links.site}.`);
+			}
+
+			if (resume.links.calendly) {
+				parts.push(`Calendly: ${resume.links.calendly}.`);
+			}
+		}
 
 		if (/github/i.test(normalizedQuestion) && resume.links.github) {
 			parts.push(`GitHub: ${resume.links.github}.`);
@@ -2057,6 +2096,25 @@ export function generateLocalResumeAnswer(
 				),
 			};
 		}
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\byoe\b/i,
+			/\byears?\s+of\s+experience\b/i,
+			/\bhow much experience\b/i,
+			/\bexperience level\b/i,
+		])
+	) {
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName} has 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms.`,
+			]),
+			citations: ["summary"].filter((id) =>
+				Boolean(findSnippetById(snippets, id)),
+			),
+		};
 	}
 
 	return null;
