@@ -32,7 +32,7 @@
     "CONTACT_EMAIL": "hassanraza632@gmail.com",
     "FROM_EMAIL": "noreply@contact.hassanraza.us",
     "GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
-    "ASSISTANT_PROVIDER_PRIORITY": "groq,groq_backup,huggingface,cloudflare,portfolio-rag,github-models",
+    "ASSISTANT_PROVIDER_PRIORITY": "groq,groq_backup,cloudflare,portfolio-rag,github-models,huggingface",
     "GROQ_MODEL": "openai/gpt-oss-120b",
     "GROQ_BACKUP_MODEL": "llama-3.1-8b-instant",
     "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
