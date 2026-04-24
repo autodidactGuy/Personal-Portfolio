@@ -31,7 +31,7 @@ Rules:
 
 * ONLY answer using provided resume data
 * All the information revolves around a single person named Hassan Raza.
-* If info is missing: "I don't have that information available."
+* If info is missing: ${MISSING_INFORMATION_MESSAGE}
 * Do NOT hallucinate or guess
 * ONLY answer about the person described in the provided resume data
 * Allow small talks and try to understand slangs
@@ -268,7 +268,7 @@ type SemanticRetrievePayload = {
 const assistantResponseSchema = z.object({
 	status: z.enum(["answered", "missing", "rejected"]),
 	answer: z.string().trim().min(1),
-	citations: z.array(z.string().trim()).max(MAX_CONTEXT_CHUNKS),
+	citations: z.array(z.string().trim()),
 });
 
 const blockedTopicPatterns = [
@@ -534,6 +534,8 @@ function isRecommendationQuestion(question: string) {
 		/\bendorsement(s)?\b/i,
 		/\breferences?\b/i,
 		/\bwhat do .* say about\b/i,
+		/\bsay\b/i,
+		/\bwho is .*\b/i,
 	].some((pattern) => pattern.test(question));
 }
 
@@ -836,6 +838,13 @@ function applySnippetIntentBoost(question: string, snippet: ResumeSnippet) {
 		}
 	}
 
+	if (
+		snippet.category === "recommendation" &&
+		!isRecommendationQuestion(question)
+	) {
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -895,6 +904,15 @@ function compareSnippetsForQuestion(
 					return bDate.getTime() - aDate.getTime();
 				}
 			}
+		}
+	}
+
+	if (!isRecommendationQuestion(question)) {
+		const aIsRecommendation = a.snippet.category === "recommendation";
+		const bIsRecommendation = b.snippet.category === "recommendation";
+
+		if (aIsRecommendation !== bIsRecommendation) {
+			return aIsRecommendation ? 1 : -1;
 		}
 	}
 
@@ -2968,9 +2986,9 @@ export async function fetchAssistantResponse(args: {
 
 	const parsed = assistantResponseSchema.parse(JSON.parse(rawContent));
 	const validCitationIds = new Set(snippets.map((snippet) => snippet.id));
-	const filteredCitations = parsed.citations.filter((citation) =>
-		validCitationIds.has(citation),
-	);
+	const filteredCitations = parsed.citations
+		.filter((citation) => validCitationIds.has(citation))
+		.slice(0, MAX_CONTEXT_CHUNKS);
 
 	if (parsed.status === "answered" && filteredCitations.length === 0) {
 		return {
