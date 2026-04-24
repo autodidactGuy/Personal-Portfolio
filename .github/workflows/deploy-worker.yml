@@ -1,17 +1,17 @@
 name: Deploy Cloudflare Worker
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "cloudflare-worker/**"
-      - "content/**"
-      - "public/api/resume.json"
-      - "scripts/generate-resume-json.mjs"
-      - "package.json"
-      - "yarn.lock"
-      - ".github/workflows/deploy-worker.yml"
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "cloudflare-worker/**"
+  #     - "content/**"
+  #     - "public/api/resume.json"
+  #     - "scripts/generate-resume-json.mjs"
+  #     - "package.json"
+  #     - "yarn.lock"
+  #     - ".github/workflows/deploy-worker.yml"
   workflow_dispatch:
 
 permissions:
