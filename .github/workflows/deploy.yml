@@ -1,7 +1,7 @@
 name: Deploy Next.js portfolio
 
 on:
-  push:
+  # push:
     # branches:
     #   - main
     # paths:
