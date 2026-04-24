@@ -1,10 +1,14 @@
-import { Card, CardContent, CardHeader, Chip } from "@heroui/react";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	Chip,
+} from "@heroui/react";
 import type { GetStaticPaths, GetStaticProps } from "next";
 
-import Link from "next/link";
 import type { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { HiArrowSmLeft } from "react-icons/hi";
 import { ContentCover } from "@/components/content-cover";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { MDXRenderer } from "@/components/mdx/mdx-renderer";
 import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
@@ -63,13 +67,13 @@ export default function ProjectDetailPage({
 			}}
 		>
 			<article className="mx-auto max-w-4xl py-10">
-				<Link
-					className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
-					href="/projects"
-				>
-					<HiArrowSmLeft size={18} />
-					Back to Projects
-				</Link>
+				<PageBreadcrumbs
+					items={[
+						{ label: "Home", href: "/" },
+						{ label: "Projects", href: "/projects" },
+						{ label: project.frontmatter.title },
+					]}
+				/>
 				<Card className="overflow-hidden border border-default-200/80 bg-content1/85 p-0 shadow-sm shadow-primary/5 dark:bg-content1/72">
 					<div className="relative overflow-hidden border-b border-default-200/70 bg-content1/65 dark:bg-content1/55">
 						<ContentCover
