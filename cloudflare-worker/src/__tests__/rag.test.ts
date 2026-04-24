@@ -7,15 +7,15 @@ const baseEnv = {
 	ORIGIN: "https://hassanraza.us",
 	RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 	RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
-	RAG_TOP_K: "6",
-	RAG_SIMILARITY_THRESHOLD: "0.72",
-	RAG_MAX_CONTEXT_CHUNKS: "4",
-	RAG_MAX_OUTPUT_TOKENS: "300",
+	RAG_TOP_K: "10",
+	RAG_SIMILARITY_THRESHOLD: "0.50",
+	RAG_MAX_CONTEXT_CHUNKS: "10",
+	RAG_MAX_OUTPUT_TOKENS: "600",
 };
 
-function createMockR2Bucket(records = {}) {
+function createMockR2Bucket(records: Record<string, string> = {}) {
 	return {
-		get: vi.fn().mockImplementation(async (key) => {
+		get: vi.fn().mockImplementation(async (key: string) => {
 			const value = records[key];
 
 			if (!value) {

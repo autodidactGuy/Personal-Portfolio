@@ -13,7 +13,7 @@
   "vectorize": [
     {
       "binding": "VECTOR_INDEX",
-      "index_name": "portfolio-rag-index"
+      "index_name": "portfolio-rag-index-v2"
     }
   ],
   "r2_buckets": [
@@ -42,8 +42,8 @@
     "RAG_CHAT_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "RAG_TOP_K": "10",
     "RAG_SIMILARITY_THRESHOLD": "0.50",
-    "RAG_MAX_CONTEXT_CHUNKS": "4",
-    "RAG_MAX_OUTPUT_TOKENS": "300",
+    "RAG_MAX_CONTEXT_CHUNKS": "10",
+    "RAG_MAX_OUTPUT_TOKENS": "600",
     "RAG_CHUNK_TARGET_CHARS": "900",
     "RAG_CHUNK_MAX_CHARS": "1200",
     "RAG_CHUNK_OVERLAP_CHARS": "120"

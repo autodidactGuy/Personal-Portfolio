@@ -24,6 +24,7 @@
     "@heroui/react": "3.0.3",
     "@heroui/styles": "^3.0.2",
     "@hookform/resolvers": "^5.2.2",
+    "@react-spectrum/provider": "^3.0.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25",
     "@types/react": "19",

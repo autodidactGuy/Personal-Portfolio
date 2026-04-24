@@ -751,6 +751,14 @@
     "@swc/helpers" "^0.5.0"
     react-stately "3.46.0"
 
+"@react-spectrum/provider@^3.0.0":
+  version "3.11.0"
+  resolved "https://registry.yarnpkg.com/@react-spectrum/provider/-/provider-3.11.0.tgz#c3d1ac23756a97c83b08f3750da3cc38054cc9c2"
+  integrity sha512-W2Gxbj8AcG5OR2K5Ua3K8qQqxdsiytEiz+2rhr6oQyBM8VafEgDcNPYSOTtfjrQM3snl2Uhp8LzwN0jwQe/6nQ==
+  dependencies:
+    "@adobe/react-spectrum" "3.47.0"
+    "@swc/helpers" "^0.5.0"
+
 "@react-stately/color@^3.10.0":
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/@react-stately/color/-/color-3.10.0.tgz#3fcbb65c4303fb720c003dd39069dc1f7ca8f67e"
