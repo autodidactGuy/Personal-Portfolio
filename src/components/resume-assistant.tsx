@@ -121,9 +121,11 @@ function renderMessageContent(
 	const blocks: Array<
 		| { type: "paragraph"; lines: string[] }
 		| { type: "list"; items: string[]; ordered: boolean }
+		| { type: "table"; rows: string[][] }
 	> = [];
 	let paragraphBuffer: string[] = [];
 	let listBuffer: string[] = [];
+	let tableBuffer: string[][] = [];
 	let listOrdered = false;
 	let pendingListBreak = false;
 
@@ -154,6 +156,18 @@ function renderMessageContent(
 		pendingListBreak = false;
 	};
 
+	const flushTableBuffer = () => {
+		if (!tableBuffer.length) {
+			return;
+		}
+
+		blocks.push({
+			type: "table",
+			rows: tableBuffer,
+		});
+		tableBuffer = [];
+	};
+
 	const appendToCurrentListItem = (line: string) => {
 		if (!listBuffer.length) {
 			return false;
@@ -168,6 +182,7 @@ function renderMessageContent(
 		const line = rawLine.trim();
 
 		if (!line || isAssistantSeparatorLine(line)) {
+			flushTableBuffer();
 			if (listBuffer.length) {
 				pendingListBreak = true;
 			} else {
@@ -176,6 +191,20 @@ function renderMessageContent(
 			}
 			continue;
 		}
+
+		if (isAssistantTableLine(line)) {
+			flushParagraphBuffer();
+			flushListBuffer();
+			pendingListBreak = false;
+			const cells = parseAssistantTableLine(line);
+
+			if (cells.length) {
+				tableBuffer.push(cells);
+			}
+			continue;
+		}
+
+		flushTableBuffer();
 
 		if (/^-\s+/.test(line)) {
 			flushParagraphBuffer();
@@ -214,6 +243,7 @@ function renderMessageContent(
 
 	flushParagraphBuffer();
 	flushListBuffer();
+	flushTableBuffer();
 
 	if (!blocks.length) {
 		return <p className="break-words">{normalizedContent}</p>;
@@ -225,7 +255,9 @@ function renderMessageContent(
 				const blockContent =
 					block.type === "list"
 						? `${block.ordered ? "ordered" : "unordered"}:${block.items.join("|")}`
-						: block.lines.join("|");
+						: block.type === "table"
+							? block.rows.map((row) => row.join("|")).join("||")
+							: block.lines.join("|");
 				const blockKey = `${block.type}:${blockContent}`;
 
 				return block.type === "list" ? (
@@ -252,6 +284,40 @@ function renderMessageContent(
 							))}
 						</ul>
 					)
+				) : block.type === "table" ? (
+					<div className="overflow-x-auto" key={blockKey}>
+						<table className="min-w-full border-collapse text-left text-sm">
+							<thead>
+								<tr className="border-b border-default-200/70">
+									{block.rows[0]?.map((cell) => (
+										<th
+											className="px-3 py-2 font-semibold text-foreground"
+											key={`${blockKey}:head:${cell}`}
+										>
+											{renderInlineMessageContent(cell, citations, resume)}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{block.rows.slice(1).map((row) => (
+									<tr
+										className="border-b border-default-100/60 align-top last:border-b-0"
+										key={`${blockKey}:row:${row.join("|")}`}
+									>
+										{row.map((cell) => (
+											<td
+												className="px-3 py-2 break-words whitespace-break-spaces text-foreground/90"
+												key={`${blockKey}:cell:${row.join("|")}:${cell}`}
+											>
+												{renderInlineMessageContent(cell, citations, resume)}
+											</td>
+										))}
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				) : (
 					<p className="break-words whitespace-break-spaces" key={blockKey}>
 						{renderInlineMessageContent(
@@ -300,6 +366,27 @@ function normalizeAssistantDisplayContent(content: string) {
 
 function isAssistantSeparatorLine(line: string) {
 	return /^([-_*])\1{2,}$/.test(line.trim());
+}
+
+function isAssistantTableLine(line: string) {
+	return /^\|.+\|$/.test(line);
+}
+
+function parseAssistantTableLine(line: string) {
+	const cells = line
+		.split("|")
+		.slice(1, -1)
+		.map((cell) => cell.trim());
+
+	if (
+		!cells.length ||
+		cells.every((cell) => !cell) ||
+		cells.every((cell) => /^:?-{3,}:?$/.test(cell))
+	) {
+		return [];
+	}
+
+	return cells;
 }
 
 function renderBoldMarkdown(text: string) {
