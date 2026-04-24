@@ -14,7 +14,7 @@ const ingestOptionsSchema = z.object({
 	embeddingBatchSize: z.coerce.number().int().positive().max(96).default(32),
 	kvBatchSize: z.coerce.number().int().positive().max(10000).default(500),
 	vectorBatchSize: z.coerce.number().int().positive().max(1000).default(200),
-	apiMaxRetries: z.coerce.number().int().min(0).max(10).default(5),
+	apiMaxRetries: z.coerce.number().int().min(0).max(10).default(1),
 	apiBaseRetryDelayMs: z.coerce.number().int().positive().max(60000).default(1200),
 	skipKvWriteFailures: z.coerce.boolean().default(true),
 	targetChars: z.coerce.number().int().positive().default(900),
