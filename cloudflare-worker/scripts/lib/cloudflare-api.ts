@@ -87,8 +87,15 @@ export class CloudflareApiClient {
 					continue;
 				}
 
+				let responseText = "";
+				try {
+					responseText = await response.text();
+				} catch {
+					responseText = "";
+				}
+
 				throw new Error(
-					`Cloudflare API request failed: ${response.status} ${response.statusText}`,
+					`Cloudflare API request failed: ${response.status} ${response.statusText}${responseText ? ` - ${responseText}` : ""}`,
 				);
 			}
 
