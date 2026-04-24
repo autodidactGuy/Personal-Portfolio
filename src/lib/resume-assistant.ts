@@ -482,6 +482,17 @@ function isContentTimelineQuestion(question: string) {
 	].some((pattern) => pattern.test(question));
 }
 
+function isDirectContentListingQuestion(question: string) {
+	return [
+		/\blist\b.*\b(project|projects|blog|blogs|article|articles|post|posts|case study|case studies)\b/i,
+		/\bshow\b.*\b(project|projects|blog|blogs|article|articles|post|posts|case study|case studies)\b/i,
+		/\bwhat\b.*\b(project|projects|blog|blogs|article|articles|post|posts|case study|case studies)\b/i,
+		/\bwhich\b.*\b(project|projects|blog|blogs|article|articles|post|posts|case study|case studies)\b/i,
+		/\bportfolio\b.*\b(work|projects|articles|writing)\b/i,
+		/\b(work|things)\b.*\b(built|made|wrote|published)\b/i,
+	].some((pattern) => pattern.test(question));
+}
+
 function prefersEarliestContent(question: string) {
 	return /\b(early|earlier|earliest|first)\b/i.test(question);
 }
@@ -503,7 +514,13 @@ function normalizeQuestionForRetrieval(question: string) {
 			.replace(/\brecent\b/gi, "latest")
 			.replace(/\bnewest\b/gi, "latest")
 			.replace(/\bearlier\b/gi, "early")
-			.replace(/\bearliest\b/gi, "early"),
+			.replace(/\bearliest\b/gi, "early")
+			.replace(/\bblogs?\b/gi, "article")
+			.replace(/\bposts?\b/gi, "article")
+			.replace(/\bwriting\b/gi, "article")
+			.replace(/\bbuilt\b/gi, "project")
+			.replace(/\bmade\b/gi, "project")
+			.replace(/\bportfolio\b/gi, "project"),
 	);
 }
 
@@ -1835,6 +1852,11 @@ export function generateLocalResumeAnswer(
 			/\bwhat projects?\b/i,
 			/\bshow\b.*\bprojects?\b/i,
 			/\bportfolio projects?\b/i,
+			/\bportfolio\b.*\bwork\b/i,
+			/\bwhat\b.*\bbuild\b/i,
+			/\bwhat\b.*\bbuilt\b/i,
+			/\bwhat\b.*\bmade\b/i,
+			/\bthings\b.*\b(built|made)\b/i,
 		]) &&
 		resume.projects?.length
 	) {
@@ -1856,6 +1878,65 @@ export function generateLocalResumeAnswer(
 					: "",
 			]),
 			citations: projectSnippets.map((snippet) => snippet.id),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\blist\b.*\b(blog|blogs|article|articles|post|posts|writing)\b/i,
+			/\bshow\b.*\b(blog|blogs|article|articles|post|posts|writing)\b/i,
+			/\bwhat\b.*\b(blog|blogs|article|articles|post|posts|writing)\b/i,
+			/\bwhich\b.*\b(blog|blogs|article|articles|post|posts|writing)\b/i,
+		]) &&
+		resume.articles?.length
+	) {
+		const articleSnippets = (resume.articles || [])
+			.map((article) => findSnippetById(snippets, `article:${article.slug}`))
+			.filter((snippet): snippet is ResumeSnippet => Boolean(snippet));
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName}'s listed articles include ${formatList(
+					resume.articles.map((article) => article.title),
+					resume.articles.length,
+				)}.`,
+				resume.articles[0]?.summary
+					? `${resume.articles[0].title}: ${takeFirstSentence(
+							resume.articles[0].summary,
+						)}`
+					: "",
+			]),
+			citations: articleSnippets.map((snippet) => snippet.id),
+		};
+	}
+
+	if (
+		hasQuestionMatch(normalizedQuestion, [
+			/\blist\b.*\b(case study|case studies)\b/i,
+			/\bshow\b.*\b(case study|case studies)\b/i,
+			/\bwhat\b.*\b(case study|case studies)\b/i,
+		]) &&
+		resume.caseStudies?.length
+	) {
+		const caseStudySnippets = (resume.caseStudies || [])
+			.map((item) => findSnippetById(snippets, `case-study:${item.slug}`))
+			.filter((snippet): snippet is ResumeSnippet => Boolean(snippet));
+
+		return {
+			status: "answered",
+			answer: sentenceCaseJoin([
+				`${personName}'s listed case studies include ${formatList(
+					resume.caseStudies.map((item) => item.title),
+					resume.caseStudies.length,
+				)}.`,
+				resume.caseStudies[0]?.summary
+					? `${resume.caseStudies[0].title}: ${takeFirstSentence(
+							resume.caseStudies[0].summary,
+						)}`
+					: "",
+			]),
+			citations: caseStudySnippets.map((snippet) => snippet.id),
 		};
 	}
 
@@ -1904,6 +1985,13 @@ export function generateLocalResumeAnswer(
 	}
 
 	return null;
+}
+
+export function shouldIncludeRecentConversationContext(question: string) {
+	return (
+		isConversationDependentQuestion(question) &&
+		!isDirectContentListingQuestion(question)
+	);
 }
 
 export function generateLocalSmallTalkAnswer(
@@ -2135,6 +2223,22 @@ function getQuestionAwareSupportSnippets(
 		preferredCategories.push("links", "contact");
 	}
 
+	if (/\b(article|articles|blog|blogs|post|posts|writing)\b/i.test(question)) {
+		preferredCategories.push("article", "summary", "about");
+	}
+
+	if (
+		/\bprojects?\b|\bportfolio\b.*\bwork\b|\bwork\b.*\b(built|made)\b/i.test(
+			question,
+		)
+	) {
+		preferredCategories.push("project", "summary", "about");
+	}
+
+	if (/\b(case study|case studies)\b/i.test(question)) {
+		preferredCategories.push("case-study", "summary", "about");
+	}
+
 	if (!preferredCategories.length) {
 		return [];
 	}
@@ -2144,31 +2248,63 @@ function getQuestionAwareSupportSnippets(
 	);
 }
 
+function getTargetedContextLimit(args: {
+	question: string;
+	alwaysIncludedSnippets: ResumeSnippet[];
+	questionAwareSnippets: ResumeSnippet[];
+	retrievedSnippets?: ResumeSnippet[];
+}) {
+	const {
+		question,
+		alwaysIncludedSnippets,
+		questionAwareSnippets,
+		retrievedSnippets = [],
+	} = args;
+	const isBroadQuestion = isBroadProfileQuestion(question);
+
+	if (isBroadQuestion) {
+		return Math.max(MAX_BROAD_CONTEXT_CHUNKS, alwaysIncludedSnippets.length);
+	}
+
+	const bonusSlots =
+		Math.min(questionAwareSnippets.length, MAX_TARGETED_CONTEXT_CHUNKS) +
+		Math.min(retrievedSnippets.length, MAX_TARGETED_CONTEXT_CHUNKS);
+
+	return Math.max(
+		MAX_TARGETED_CONTEXT_CHUNKS,
+		alwaysIncludedSnippets.length + bonusSlots,
+	);
+}
+
 export function buildInitialAssistantContextSnippets(
 	question: string,
 	allSnippets: ResumeSnippet[],
 ) {
 	const alwaysIncludedSnippets = getAlwaysIncludedRoutedSnippets(allSnippets);
-	const baseContextLimit = isBroadProfileQuestion(question)
-		? MAX_BROAD_CONTEXT_CHUNKS
-		: 14;
-	const contextLimit = Math.max(
-		baseContextLimit,
-		alwaysIncludedSnippets.length,
+	const questionAwareSupportSnippets = getQuestionAwareSupportSnippets(
+		question,
+		allSnippets,
 	);
+	const keywordSnippets = rankSnippetsByKeywords(
+		question,
+		allSnippets,
+		MAX_TARGETED_CONTEXT_CHUNKS,
+	);
+	const contextLimit = getTargetedContextLimit({
+		question,
+		alwaysIncludedSnippets,
+		questionAwareSnippets: questionAwareSupportSnippets,
+		retrievedSnippets: keywordSnippets,
+	});
 	const prioritizedSnippets = isBroadProfileQuestion(question)
 		? [
 				...alwaysIncludedSnippets,
 				...getFoundationalAssistantSnippets(allSnippets),
 			]
 		: [
+				...keywordSnippets,
+				...questionAwareSupportSnippets,
 				...alwaysIncludedSnippets,
-				...rankSnippetsByKeywords(
-					question,
-					allSnippets,
-					Math.min(MAX_TARGETED_CONTEXT_CHUNKS, contextLimit),
-				),
-				...getQuestionAwareSupportSnippets(question, allSnippets),
 				...getFoundationalAssistantSnippets(allSnippets),
 			];
 
@@ -2186,13 +2322,16 @@ export function buildAssistantContextSnippets(args: {
 }) {
 	const { question, result, allSnippets } = args;
 	const alwaysIncludedSnippets = getAlwaysIncludedRoutedSnippets(allSnippets);
-	const baseContextLimit = isBroadProfileQuestion(question)
-		? MAX_BROAD_CONTEXT_CHUNKS
-		: MAX_TARGETED_CONTEXT_CHUNKS;
-	const contextLimit = Math.max(
-		baseContextLimit,
-		alwaysIncludedSnippets.length,
+	const questionAwareSupportSnippets = getQuestionAwareSupportSnippets(
+		question,
+		allSnippets,
 	);
+	const contextLimit = getTargetedContextLimit({
+		question,
+		alwaysIncludedSnippets,
+		questionAwareSnippets: questionAwareSupportSnippets,
+		retrievedSnippets: result.entries.map((entry) => entry.snippet),
+	});
 	const prioritizedSnippets = isBroadProfileQuestion(question)
 		? [
 				...alwaysIncludedSnippets,
@@ -2200,9 +2339,9 @@ export function buildAssistantContextSnippets(args: {
 				...getFoundationalAssistantSnippets(allSnippets),
 			]
 		: [
-				...alwaysIncludedSnippets,
 				...result.entries.map((entry) => entry.snippet),
-				...getQuestionAwareSupportSnippets(question, allSnippets),
+				...questionAwareSupportSnippets,
+				...alwaysIncludedSnippets,
 				...getFoundationalAssistantSnippets(allSnippets),
 			];
 

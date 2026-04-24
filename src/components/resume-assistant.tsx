@@ -39,6 +39,7 @@ import {
 	type RetrievalResult,
 	rankSnippetEntriesByKeywords,
 	resolveResumeSnippetCitations,
+	shouldIncludeRecentConversationContext,
 	shouldUseClosestMatchFallback,
 	UNRELATED_QUESTION_MESSAGE,
 } from "@/lib/resume-assistant";
@@ -270,7 +271,10 @@ function renderMessageContent(
 					block.ordered ? (
 						<ol className="list-decimal space-y-2 pl-5" key={blockKey}>
 							{block.items.map((item) => (
-								<li className="break-words" key={`${blockKey}:${item}`}>
+								<li
+									className="break-words whitespace-break-spaces"
+									key={`${blockKey}:${item}`}
+								>
 									{renderInlineMessageContent(item, citations, resume)}
 								</li>
 							))}
@@ -278,14 +282,17 @@ function renderMessageContent(
 					) : (
 						<ul className="list-disc space-y-2 pl-5" key={blockKey}>
 							{block.items.map((item) => (
-								<li className="break-words" key={`${blockKey}:${item}`}>
+								<li
+									className="break-words whitespace-break-spaces"
+									key={`${blockKey}:${item}`}
+								>
 									{renderInlineMessageContent(item, citations, resume)}
 								</li>
 							))}
 						</ul>
 					)
 				) : (
-					<p className="break-words whitespace-pre-wrap" key={blockKey}>
+					<p className="break-words whitespace-break-spaces" key={blockKey}>
 						{renderInlineMessageContent(
 							block.lines.join("\n"),
 							citations,
@@ -317,6 +324,7 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\s*\n\s*\*{2}/g, "**")
 		.replace(/\*{1}\s*\n\s*/g, "*")
 		.replace(/\s*\n\s*\*{1}/g, "*")
+		.replace(/[ \t]{2,}/g, " ")
 		.replace(/[ \t]+\n/g, "\n")
 		.replace(/\n[ \t]+/g, "\n")
 		.replace(/\n{3,}/g, "\n\n")
@@ -358,7 +366,14 @@ function renderBoldMarkdown(text: string) {
 }
 
 function stripResidualAssistantMarkers(text: string) {
-	return text.replace(/\*\*/g, "").replace(/\*/g, "");
+	return text
+		.replace(/【[^】]+】/g, "")
+		.replace(
+			/\[(summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			"",
+		)
+		.replace(/\*\*/g, "")
+		.replace(/\*/g, "");
 }
 
 function renderInlineMessageContent(
@@ -386,14 +401,17 @@ function renderInlineMessageContent(
 
 		parts.push(
 			<NextLink
-				className="inline-flex items-center gap-1 break-all text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
+				className="inline break-words text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
 				href={match.href}
 				key={`${match.start}-${match.end}-${match.href}`}
 				rel="noreferrer"
 				target="_blank"
 			>
 				<span>{match.text}</span>
-				<HiOutlineArrowTopRightOnSquare className="shrink-0" size={12} />
+				<HiOutlineArrowTopRightOnSquare
+					className="ml-1 inline-block align-[-1px]"
+					size={12}
+				/>
 			</NextLink>,
 		);
 
@@ -927,10 +945,11 @@ export function ResumeAssistant() {
 			providerContext: null,
 		});
 
-		const recentMessages = getRecentConversationMessages([
-			...messages,
-			userMessage,
-		]);
+		const recentMessages = shouldIncludeRecentConversationContext(
+			trimmedQuestion,
+		)
+			? getRecentConversationMessages([...messages, userMessage])
+			: [];
 
 		try {
 			const initialSnippets = buildInitialAssistantContextSnippets(
