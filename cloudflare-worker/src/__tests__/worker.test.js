@@ -41,6 +41,22 @@ function buildPathRequest(
 	return new Request(`https://worker.test${pathname}`, init);
 }
 
+function createMockR2Bucket(records = {}) {
+	return {
+		get: vi.fn().mockImplementation(async (key) => {
+			const value = records[key];
+
+			if (!value) {
+				return null;
+			}
+
+			return {
+				text: vi.fn().mockResolvedValue(value),
+			};
+		}),
+	};
+}
+
 const validPayload = {
 	name: "Jane Doe",
 	email: "jane@example.com",
@@ -611,28 +627,29 @@ describe("/assistant-provider-raw", () => {
 				},
 				VECTOR_INDEX: {
 					query: vi.fn().mockResolvedValue({
-						matches: [{ id: "vec-1", score: 0.92 }],
+						matches: [
+							{
+								id: "vec-1",
+								score: 0.92,
+								metadata: {
+									objectKey: "chunks/vec-1.json",
+								},
+							},
+						],
 					}),
 				},
-				RAG_KV: {
-					get: vi.fn().mockResolvedValue(
-						new Map([
-							[
-								"vec-1",
-								JSON.stringify({
-									vectorId: "vec-1",
-									id: "experience:overflow:overview:0",
-									text: "Built fintech systems for payments and analytics.",
-									sourceType: "experience",
-									title: "Senior Software Engineer at Overflow App Inc",
-									slug: "overflow",
-									url: "https://example.com/about",
-									section: "overview",
-								}),
-							],
-						]),
-					),
-				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket({
+					"chunks/vec-1.json": JSON.stringify({
+						vectorId: "vec-1",
+						id: "experience:overflow:overview:0",
+						text: "Built fintech systems for payments and analytics.",
+						sourceType: "experience",
+						title: "Senior Software Engineer at Overflow App Inc",
+						slug: "overflow",
+						url: "https://example.com/about",
+						section: "overview",
+					}),
+				}),
 				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
 				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 				RAG_TOP_K: "6",
@@ -1332,28 +1349,29 @@ describe("/assistant-routed", () => {
 				},
 				VECTOR_INDEX: {
 					query: vi.fn().mockResolvedValue({
-						matches: [{ id: "vec-1", score: 0.91 }],
+						matches: [
+							{
+								id: "vec-1",
+								score: 0.91,
+								metadata: {
+									objectKey: "chunks/vec-1.json",
+								},
+							},
+						],
 					}),
 				},
-				RAG_KV: {
-					get: vi.fn().mockResolvedValue(
-						new Map([
-							[
-								"vec-1",
-								JSON.stringify({
-									vectorId: "vec-1",
-									id: "article:designing-observability-for-distributed-systems:summary:0",
-									text: "The article explains how observability should provide real-time insight into system behavior, failures, and changes over time.",
-									sourceType: "article",
-									title: "Designing Observability for Distributed Systems",
-									slug: "designing-observability-for-distributed-systems",
-									url: "https://example.com/articles/designing-observability-for-distributed-systems",
-									section: "summary",
-								}),
-							],
-						]),
-					),
-				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket({
+					"chunks/vec-1.json": JSON.stringify({
+						vectorId: "vec-1",
+						id: "article:designing-observability-for-distributed-systems:summary:0",
+						text: "The article explains how observability should provide real-time insight into system behavior, failures, and changes over time.",
+						sourceType: "article",
+						title: "Designing Observability for Distributed Systems",
+						slug: "designing-observability-for-distributed-systems",
+						url: "https://example.com/articles/designing-observability-for-distributed-systems",
+						section: "summary",
+					}),
+				}),
 				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
 				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 				RAG_TOP_K: "6",
@@ -1434,28 +1452,29 @@ describe("/assistant-routed", () => {
 				},
 				VECTOR_INDEX: {
 					query: vi.fn().mockResolvedValue({
-						matches: [{ id: "vec-1", score: 0.91 }],
+						matches: [
+							{
+								id: "vec-1",
+								score: 0.91,
+								metadata: {
+									objectKey: "chunks/vec-1.json",
+								},
+							},
+						],
 					}),
 				},
-				RAG_KV: {
-					get: vi.fn().mockResolvedValue(
-						new Map([
-							[
-								"vec-1",
-								JSON.stringify({
-									vectorId: "vec-1",
-									id: "article:designing-observability-for-distributed-systems:summary:0",
-									text: "The article argues that observability should answer what the system is doing now, where failures happen, how behavior changes over time, and what changed before incidents.",
-									sourceType: "article",
-									title: "Designing Observability for Distributed Systems",
-									slug: "designing-observability-for-distributed-systems",
-									url: "https://example.com/articles/designing-observability-for-distributed-systems",
-									section: "summary",
-								}),
-							],
-						]),
-					),
-				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket({
+					"chunks/vec-1.json": JSON.stringify({
+						vectorId: "vec-1",
+						id: "article:designing-observability-for-distributed-systems:summary:0",
+						text: "The article argues that observability should answer what the system is doing now, where failures happen, how behavior changes over time, and what changed before incidents.",
+						sourceType: "article",
+						title: "Designing Observability for Distributed Systems",
+						slug: "designing-observability-for-distributed-systems",
+						url: "https://example.com/articles/designing-observability-for-distributed-systems",
+						section: "summary",
+					}),
+				}),
 				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
 				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 				RAG_TOP_K: "6",
@@ -1959,28 +1978,29 @@ describe("/assistant-routed", () => {
 				},
 				VECTOR_INDEX: {
 					query: vi.fn().mockResolvedValue({
-						matches: [{ id: "vec-1", score: 0.91 }],
+						matches: [
+							{
+								id: "vec-1",
+								score: 0.91,
+								metadata: {
+									objectKey: "chunks/vec-1.json",
+								},
+							},
+						],
 					}),
 				},
-				RAG_KV: {
-					get: vi.fn().mockResolvedValue(
-						new Map([
-							[
-								"vec-1",
-								JSON.stringify({
-									vectorId: "vec-1",
-									id: "experience:overflow:overview:0",
-									text: "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds.",
-									sourceType: "experience",
-									title: "Senior Software Engineer at Overflow App Inc",
-									slug: "overflow",
-									url: "https://example.com/about",
-									section: "overview",
-								}),
-							],
-						]),
-					),
-				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket({
+					"chunks/vec-1.json": JSON.stringify({
+						vectorId: "vec-1",
+						id: "experience:overflow:overview:0",
+						text: "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds.",
+						sourceType: "experience",
+						title: "Senior Software Engineer at Overflow App Inc",
+						slug: "overflow",
+						url: "https://example.com/about",
+						section: "overview",
+					}),
+				}),
 				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
 				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
 				RAG_TOP_K: "6",

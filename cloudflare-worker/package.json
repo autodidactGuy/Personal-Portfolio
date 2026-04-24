@@ -12,7 +12,7 @@
     "rag:dev:remote": "wrangler dev --remote",
     "rag:build": "yarn rag:dataset && yarn rag:ingest .generated/portfolio-rag.json",
     "rag:deploy": "yarn rag:build && wrangler deploy",
-    "rag:index:create": "wrangler vectorize create portfolio-rag-index --dimensions=384 --metric=cosine",
+    "rag:index:create": "wrangler vectorize create portfolio-rag-index --dimensions=768 --metric=cosine",
     "rag:ingest": "tsx scripts/ingest.ts",
     "rag:types": "wrangler types",
     "start": "wrangler dev",
@@ -28,6 +28,7 @@
     "wrangler": "^4.9.1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1036.0",
     "gray-matter": "^4.0.3",
     "hono": "^4.12.14",
     "zod": "^4.3.6"

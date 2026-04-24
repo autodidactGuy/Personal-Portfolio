@@ -78,11 +78,10 @@ export type RagEnv = {
 			}>;
 		}>;
 	};
-	RAG_KV: {
-		get(
-			keys: string | string[],
-			type?: "text",
-		): Promise<string | null | Map<string, string | null>>;
+	RAG_CHUNKS_BUCKET: {
+		get(key: string): Promise<{
+			text(): Promise<string>;
+		} | null>;
 	};
 	RAG_EMBED_MODEL?: string;
 	RAG_CHAT_MODEL?: string;

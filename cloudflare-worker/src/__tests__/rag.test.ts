@@ -13,6 +13,22 @@ const baseEnv = {
 	RAG_MAX_OUTPUT_TOKENS: "300",
 };
 
+function createMockR2Bucket(records = {}) {
+	return {
+		get: vi.fn().mockImplementation(async (key) => {
+			const value = records[key];
+
+			if (!value) {
+				return null;
+			}
+
+			return {
+				text: vi.fn().mockResolvedValue(value),
+			};
+		}),
+	};
+}
+
 describe("buildChunks", () => {
 	it("creates deterministic summary and section chunks", () => {
 		const chunks = buildChunks(
@@ -93,9 +109,7 @@ describe("/ask", () => {
 			VECTOR_INDEX: {
 				query: vi.fn().mockResolvedValue({ matches: [] }),
 			},
-			RAG_KV: {
-				get: vi.fn(),
-			},
+			RAG_CHUNKS_BUCKET: createMockR2Bucket(),
 		};
 
 		const response = await app.fetch(
@@ -128,9 +142,7 @@ describe("/ask", () => {
 			VECTOR_INDEX: {
 				query: vi.fn().mockResolvedValue({ matches: [] }),
 			},
-			RAG_KV: {
-				get: vi.fn(),
-			},
+			RAG_CHUNKS_BUCKET: createMockR2Bucket(),
 		};
 
 		const response = await app.fetch(
@@ -170,28 +182,29 @@ describe("/ask", () => {
 			},
 			VECTOR_INDEX: {
 				query: vi.fn().mockResolvedValue({
-					matches: [{ id: "vec-1", score: 0.9 }],
+					matches: [
+						{
+							id: "vec-1",
+							score: 0.9,
+							metadata: {
+								objectKey: "chunks/vec-1.json",
+							},
+						},
+					],
 				}),
 			},
-			RAG_KV: {
-				get: vi.fn().mockResolvedValue(
-					new Map([
-						[
-							"vec-1",
-							JSON.stringify({
-								vectorId: "vec-1",
-								id: "experience:overflow:overview:0",
-								text: "Built fintech systems for payments and analytics.",
-								sourceType: "experience",
-								title: "Senior Software Engineer at Overflow App Inc",
-								slug: "overflow",
-								url: "https://example.com/about",
-								section: "overview",
-							}),
-						],
-					]),
-				),
-			},
+			RAG_CHUNKS_BUCKET: createMockR2Bucket({
+				"chunks/vec-1.json": JSON.stringify({
+					vectorId: "vec-1",
+					id: "experience:overflow:overview:0",
+					text: "Built fintech systems for payments and analytics.",
+					sourceType: "experience",
+					title: "Senior Software Engineer at Overflow App Inc",
+					slug: "overflow",
+					url: "https://example.com/about",
+					section: "overview",
+				}),
+			}),
 		};
 
 		const response = await app.fetch(

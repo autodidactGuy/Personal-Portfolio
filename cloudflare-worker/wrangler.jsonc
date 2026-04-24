@@ -16,11 +16,11 @@
       "index_name": "portfolio-rag-index"
     }
   ],
-  "kv_namespaces": [
+  "r2_buckets": [
     {
-      "binding": "RAG_KV",
-      "id": "YOUR_KV_NAMESPACE_ID",
-      "preview_id": "YOUR_KV_PREVIEW_NAMESPACE_ID"
+      "binding": "RAG_CHUNKS_BUCKET",
+      "bucket_name": "portfolio-rag-chunks",
+      "preview_bucket_name": "portfolio-rag-chunks-preview"
     }
   ],
   "vars": {
@@ -34,11 +34,12 @@
     "GITHUB_MODELS_CHAT_MODEL": "openai/gpt-4o-mini",
     "ASSISTANT_PROVIDER_PRIORITY": "groq,groq_backup,cloudflare,portfolio-rag,github-models,huggingface",
     "GROQ_MODEL": "openai/gpt-oss-120b",
-    "GROQ_BACKUP_MODEL": "llama-3.1-8b-instant",
+    // "GROQ_BACKUP_MODEL": "llama-3.1-8b-instant",
+    "GROQ_BACKUP_MODEL": "llama-3.3-70b-versatile",
     "CLOUDFLARE_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "HUGGING_FACE_MODEL": "openai/gpt-oss-120b",
-    "RAG_EMBED_MODEL": "@cf/baai/bge-small-en-v1.5",
-    "RAG_CHAT_MODEL": "@cf/meta/llama-3.1-8b-instruct",
+    "RAG_EMBED_MODEL": "@cf/baai/bge-base-en-v1.5",
+    "RAG_CHAT_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "RAG_TOP_K": "10",
     "RAG_SIMILARITY_THRESHOLD": "0.50",
     "RAG_MAX_CONTEXT_CHUNKS": "4",
@@ -68,6 +69,6 @@
   //   RAG_TOP_K              – Vectorize top-k retrieval count
   //   RAG_SIMILARITY_THRESHOLD – Similarity threshold for retrieval acceptance
   //
-  // Replace the placeholder KV namespace IDs above before local deploy/dev,
+  // Replace the placeholder R2 bucket names above before local deploy/dev,
   // or generate a temporary config in CI with the real secret values.
 }

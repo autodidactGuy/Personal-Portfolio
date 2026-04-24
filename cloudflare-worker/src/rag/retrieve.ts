@@ -10,14 +10,6 @@ function asEmbeddingVector(value: unknown) {
 	return data[0];
 }
 
-function asMap(value: string | null | Map<string, string | null>) {
-	if (value instanceof Map) {
-		return value;
-	}
-
-	return new Map<string, string | null>();
-}
-
 function parseChunkRecord(rawValue: string | null) {
 	if (!rawValue) {
 		return null;
@@ -53,6 +45,23 @@ function parseLlmAnswer(result: unknown) {
 	return typeof choiceContent === "string" ? choiceContent.trim() : "";
 }
 
+function getChunkObjectKey(metadata: Record<string, unknown> | undefined) {
+	const objectKey = metadata?.objectKey;
+	return typeof objectKey === "string" && objectKey.trim()
+		? objectKey.trim()
+		: null;
+}
+
+async function loadChunkRecordFromR2(objectKey: string, env: RagEnv) {
+	const object = await env.RAG_CHUNKS_BUCKET.get(objectKey);
+
+	if (!object) {
+		return null;
+	}
+
+	return parseChunkRecord(await object.text());
+}
+
 export async function retrieveChunks(
 	question: string,
 	env: RagEnv,
@@ -66,7 +75,7 @@ export async function retrieveChunks(
 	const vector = asEmbeddingVector(embedding);
 	const queryResult = await env.VECTOR_INDEX.query(vector, {
 		topK: config.topK,
-		returnMetadata: "indexed",
+		returnMetadata: "all",
 	});
 
 	const matches = (queryResult.matches || []).filter(
@@ -82,15 +91,16 @@ export async function retrieveChunks(
 		};
 	}
 
-	const kvMap = asMap(
-		await env.RAG_KV.get(
-			matches.map((match) => match.id),
-			"text",
-		),
-	);
-	const records = matches
-		.map((match) => {
-			const chunk = parseChunkRecord(kvMap.get(match.id) || null);
+	const loadedMatches = await Promise.all(
+		matches.map(async (match) => {
+			const objectKey = getChunkObjectKey(match.metadata);
+
+			if (!objectKey) {
+				return null;
+			}
+
+			const chunk = await loadChunkRecordFromR2(objectKey, env);
+
 			if (!chunk) {
 				return null;
 			}
@@ -99,8 +109,12 @@ export async function retrieveChunks(
 				chunk,
 				score: Number(match.score || 0),
 			};
-		})
-		.filter(Boolean) as Array<{ chunk: RagChunkRecord; score: number }>;
+		}),
+	);
+	const records = loadedMatches.filter(Boolean) as Array<{
+		chunk: RagChunkRecord;
+		score: number;
+	}>;
 
 	if (records.length === 0) {
 		return {

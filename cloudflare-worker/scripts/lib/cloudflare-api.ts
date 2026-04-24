@@ -1,8 +1,17 @@
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
 type ApiClientOptions = {
 	accountId: string;
 	apiToken: string;
 	maxRetries?: number;
 	baseRetryDelayMs?: number;
+};
+
+type R2ClientOptions = {
+	accountId: string;
+	accessKeyId: string;
+	secretAccessKey: string;
+	bucket: string;
 };
 
 type EmbeddingRequest = {
@@ -16,9 +25,10 @@ type VectorizeVector = {
 	metadata: Record<string, unknown>;
 };
 
-type KvPair = {
+type R2Object = {
 	key: string;
 	value: string;
+	contentType?: string;
 };
 
 export class CloudflareApiClient {
@@ -141,17 +151,30 @@ export class CloudflareApiClient {
 			body,
 		});
 	}
+}
 
-	async bulkWriteKv(namespaceId: string, pairs: KvPair[]) {
-		return this.request(`/storage/kv/namespaces/${namespaceId}/bulk`, {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(
-				pairs.map((pair) => ({
-					key: pair.key,
-					value: pair.value,
-				})),
-			),
+export class CloudflareR2Client {
+	private readonly client: S3Client;
+
+	constructor(private readonly options: R2ClientOptions) {
+		this.client = new S3Client({
+			region: "auto",
+			endpoint: `https://${options.accountId}.r2.cloudflarestorage.com`,
+			credentials: {
+				accessKeyId: options.accessKeyId,
+				secretAccessKey: options.secretAccessKey,
+			},
 		});
+	}
+
+	async putObject(object: R2Object) {
+		await this.client.send(
+			new PutObjectCommand({
+				Bucket: this.options.bucket,
+				Key: object.key,
+				Body: object.value,
+				ContentType: object.contentType || "application/json; charset=utf-8",
+			}),
+		);
 	}
 }

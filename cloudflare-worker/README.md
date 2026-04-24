@@ -16,7 +16,7 @@ This worker is the shared runtime for:
 - `.dev.vars.example`: local development secret template
 - `src/rag/*`: isolated RAG runtime helpers
 - `src/utils/providers.ts`: raw provider + routed fallback logic
-- `scripts/ingest.ts`: dataset ingestion script for Vectorize + KV
+- `scripts/ingest.ts`: dataset ingestion script for Vectorize + R2
 - `scripts/build-rag-dataset.ts`: builds a single RAG dataset from the existing portfolio content
 
 ## Assistant architecture
@@ -30,7 +30,7 @@ flowchart TD
 
     D --> F["Workers AI embeddings"]
     F --> G["Vectorize index"]
-    G --> H["KV chunk payloads"]
+    G --> H["R2 chunk payloads"]
 
     C --> I["Provider routing"]
     I --> I1["Groq"]
@@ -53,7 +53,7 @@ flowchart TD
 - `/assistant-routed`
   Structured routed chat endpoint with fallback between configured providers.
 - `/assistant-retrieve`
-  Semantic retrieval endpoint that returns Vectorize/KV-backed snippet chunks.
+  Semantic retrieval endpoint that returns Vectorize/R2-backed snippet chunks.
 - `/ask`
   Grounded portfolio RAG answer route.
 - `/`
@@ -159,22 +159,22 @@ The RAG functionality now ships inside the same worker, but it stays isolated be
 
 ### Setup steps
 
-1. Create a Vectorize index with 384 dimensions and cosine distance:
+1. Create a Vectorize index with the dimensions that match your configured embedding model and cosine distance:
 
 ```bash
 cd cloudflare-worker
 yarn rag:index:create
 ```
 
-2. Create a KV namespace for chunk payloads:
+2. Create an R2 bucket for chunk payloads:
 
 ```bash
 cd cloudflare-worker
-npx wrangler kv namespace create RAG_KV
-npx wrangler kv namespace create RAG_KV --preview
+npx wrangler r2 bucket create YOUR_R2_BUCKET_NAME
+npx wrangler r2 bucket create YOUR_R2_PREVIEW_BUCKET_NAME
 ```
 
-3. Copy the returned namespace IDs into `wrangler.jsonc`.
+3. Copy the bucket names into `wrangler.jsonc`.
 4. Generate worker env types once bindings are finalized:
 
 ```bash
@@ -189,7 +189,9 @@ cd cloudflare-worker
 export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_API_TOKEN=...
 export CLOUDFLARE_VECTORIZE_INDEX=portfolio-rag-index
-export CLOUDFLARE_KV_NAMESPACE_ID=...
+export CLOUDFLARE_R2_BUCKET=YOUR_R2_BUCKET_NAME
+export CLOUDFLARE_R2_ACCESS_KEY_ID=...
+export CLOUDFLARE_R2_SECRET_ACCESS_KEY=...
 yarn rag:ingest ./data/portfolio-rag.json
 ```
 
@@ -202,14 +204,16 @@ yarn rag:dev:remote
 
 ### Automated build and deploy flow
 
-The RAG flow can now build its own dataset from the existing portfolio content, ingest it into Vectorize + KV, and then deploy the worker.
+The RAG flow can now build its own dataset from the existing portfolio content, ingest it into Vectorize + R2, and then deploy the worker.
 
 ```bash
 cd cloudflare-worker
 export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_API_TOKEN=...
 export CLOUDFLARE_VECTORIZE_INDEX=portfolio-rag-index
-export CLOUDFLARE_KV_NAMESPACE_ID=...
+export CLOUDFLARE_R2_BUCKET=YOUR_R2_BUCKET_NAME
+export CLOUDFLARE_R2_ACCESS_KEY_ID=...
+export CLOUDFLARE_R2_SECRET_ACCESS_KEY=...
 yarn rag:build
 ```
 
@@ -217,7 +221,7 @@ That command does three things:
 
 1. runs the root `resume:generate` step so the latest portfolio data is available
 2. builds `.generated/portfolio-rag.json` from the current portfolio content
-3. embeds and upserts the chunks into Vectorize and stores chunk payloads in KV
+3. embeds and upserts the chunks into Vectorize and stores chunk payloads in R2
 
 To ingest and deploy in one command:
 
@@ -226,7 +230,9 @@ cd cloudflare-worker
 export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_API_TOKEN=...
 export CLOUDFLARE_VECTORIZE_INDEX=portfolio-rag-index
-export CLOUDFLARE_KV_NAMESPACE_ID=...
+export CLOUDFLARE_R2_BUCKET=YOUR_R2_BUCKET_NAME
+export CLOUDFLARE_R2_ACCESS_KEY_ID=...
+export CLOUDFLARE_R2_SECRET_ACCESS_KEY=...
 yarn rag:deploy
 ```
 
@@ -243,15 +249,15 @@ Add these repository secrets in GitHub:
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_VECTORIZE_INDEX`
-- `CLOUDFLARE_KV_NAMESPACE_ID`
-- `CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID`
+- `CLOUDFLARE_R2_BUCKET`
+- `CLOUDFLARE_R2_ACCESS_KEY_ID`
+- `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
 
 Notes:
 
 - `CLOUDFLARE_VECTORIZE_INDEX` should usually be `portfolio-rag-index`.
-- `CLOUDFLARE_KV_PREVIEW_NAMESPACE_ID` can be the same as `CLOUDFLARE_KV_NAMESPACE_ID` if you do not want a separate preview KV namespace in CI.
 - The deploy workflow is [deploy-worker.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/workflows/deploy-worker.yml).
-- That workflow installs the root app and worker dependencies, rebuilds the resume dataset, ingests vectors and KV content, and then deploys the unified worker when triggered manually.
+- That workflow installs the root app and worker dependencies, rebuilds the resume dataset, ingests vectors and chunk objects, and then deploys the unified worker when triggered manually.
 
 ### Provider configuration
 
@@ -277,9 +283,9 @@ The ingestion pipeline is:
 1. `scripts/build-rag-dataset.ts`
    Reads the current portfolio content from this repo and emits one normalized JSON dataset at `cloudflare-worker/.generated/portfolio-rag.json`.
 2. `scripts/ingest.ts`
-   Loads that dataset, creates summary and body chunks, generates deterministic IDs, batches embeddings through Workers AI, upserts vectors into Vectorize, and stores full chunk payloads in KV by vector ID.
+   Loads that dataset, creates summary and body chunks, generates deterministic IDs, batches embeddings through Workers AI, upserts vectors into Vectorize, and stores full chunk payloads in R2 by object key.
 3. `src/rag-app.ts`
-   At runtime, `/ask` embeds the question, queries Vectorize, bulk-fetches matching chunk payloads from KV, and only calls the LLM when retrieval is strong enough.
+   At runtime, `/ask` embeds the question, queries Vectorize, loads matching chunk payloads from R2 via vector metadata, and only calls the LLM when retrieval is strong enough.
 4. `src/utils/providers.ts`
    `/assistant-routed` can also use the same Cloudflare semantic retrieval indirectly because the site first asks `/assistant-retrieve`, merges those chunks with keyword matches, and then sends the reduced snippet set through the routed endpoint.
 
