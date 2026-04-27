@@ -1666,6 +1666,27 @@ export function buildRetrievalQuery(args: {
 	return `Conversation context:\n${conversationSummary}\n\nCurrent question: ${trimmedQuestion}`;
 }
 
+function compactRetrievalQuestion(question: string, maxLength = 2000) {
+	const trimmedQuestion = question.trim();
+
+	if (trimmedQuestion.length <= maxLength) {
+		return trimmedQuestion;
+	}
+
+	const normalizedTokens = normalizeQuestionForRetrieval(trimmedQuestion);
+	const condensedQuestion = unique(normalizedTokens).join(" ").trim();
+
+	if (condensedQuestion && condensedQuestion.length <= maxLength) {
+		return condensedQuestion;
+	}
+
+	if (condensedQuestion) {
+		return condensedQuestion.slice(0, maxLength).trim();
+	}
+
+	return trimmedQuestion.slice(0, maxLength).trim();
+}
+
 export function rankSnippetEntriesByKeywords(
 	query: string,
 	snippets: ResumeSnippet[],
@@ -2866,7 +2887,9 @@ export async function fetchSemanticRelevantSnippets(args: {
 	question: string;
 	query: string;
 }) {
-	const retrievalQuestion = (args.query || args.question).trim();
+	const retrievalQuestion = compactRetrievalQuestion(
+		args.query || args.question,
+	);
 	const response = await fetch(
 		new URL("/assistant-retrieve", args.workerUrl).toString(),
 		{
