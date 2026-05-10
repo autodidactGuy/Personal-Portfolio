@@ -339,7 +339,7 @@ function normalizeAssistantDisplayContent(content: string) {
 	return stripAssistantCitationMarkers(content)
 		.replace(/\r\n/g, "\n")
 		.replace(/\\n/g, "\n")
-		.replace(/\/n/g, "\n")
+		.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
 		.replace(
 			/(^|\n)([^|\n]+)\|(?=\s*[^|\n]+\s*\|\s*[^|\n]+(?:\s*\|\s*[^|\n]+)+\|?$)/g,
 			"$1$2\n|",
@@ -543,7 +543,7 @@ function renderInlineMessageSegment(
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
 ) {
-	const markdownLinkPattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/gi;
+	const markdownLinkPattern = /\[([^\]\n]+)\]\s*\((https?:\/\/[^\s)]+)\)/gi;
 	const parts: ReactNode[] = [];
 	let cursor = 0;
 	let match = markdownLinkPattern.exec(content);
