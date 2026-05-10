@@ -336,38 +336,82 @@ function renderMessageContent(
 }
 
 function normalizeAssistantDisplayContent(content: string) {
-	return stripAssistantCitationMarkers(content)
-		.replace(/\r\n/g, "\n")
-		.replace(/\\n/g, "\n")
-		.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
-		.replace(
-			/(^|\n)([^|\n]+)\|(?=\s*[^|\n]+\s*\|\s*[^|\n]+(?:\s*\|\s*[^|\n]+)+\|?$)/g,
-			"$1$2\n|",
-		)
-		.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
-		.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
-		.replace(
-			/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
-			"$1\n",
-		)
-		.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
-		.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
-		.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
-		.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
-		.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
-		.replace(/\*{2}\s*\n\s*/g, "**")
-		.replace(/\s*\n\s*\*{2}/g, "**")
-		.replace(/\*{1}\s*\n\s*/g, "*")
-		.replace(/\s*\n\s*\*{1}/g, "*")
-		.replace(
-			/((?:^|\n)\|?[^|\n]+(?:\s*\|\s*[^|\n]+){2,}\|)\*(?=[^\n]*\*)/g,
-			"$1\n*",
-		)
-		.replace(/[ \t]{2,}/g, " ")
-		.replace(/[ \t]+\n/g, "\n")
-		.replace(/\n[ \t]+/g, "\n")
-		.replace(/\n{3,}/g, "\n\n")
-		.trim();
+	return normalizeAssistantTableFormatting(
+		stripAssistantCitationMarkers(content)
+			.replace(/\r\n/g, "\n")
+			.replace(/\\n/g, "\n")
+			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
+			.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
+			.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
+			.replace(
+				/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
+				"$1\n",
+			)
+			.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
+			.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
+			.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
+			.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
+			.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
+			.replace(/\*{2}\s*\n\s*/g, "**")
+			.replace(/\s*\n\s*\*{2}/g, "**")
+			.replace(/\*{1}\s*\n\s*/g, "*")
+			.replace(/\s*\n\s*\*{1}/g, "*")
+			.replace(/[ \t]{2,}/g, " ")
+			.replace(/[ \t]+\n/g, "\n")
+			.replace(/\n[ \t]+/g, "\n")
+			.replace(/\n{3,}/g, "\n\n")
+			.trim(),
+	);
+}
+
+function parsePipeTableCells(line: string) {
+	return line
+		.replace(/^\|/, "")
+		.replace(/\|$/, "")
+		.split("|")
+		.map((cell) => cell.trim());
+}
+
+function looksLikePipeDelimitedTableLine(line: string) {
+	if (!line.includes("|")) {
+		return false;
+	}
+
+	const cells = parsePipeTableCells(line);
+	return cells.length >= 3 && cells.some((cell) => cell.length > 0);
+}
+
+function normalizeAssistantTableFormatting(content: string) {
+	return content
+		.split("\n")
+		.flatMap((line) => {
+			if (!line.trim()) {
+				return [line];
+			}
+
+			const firstPipeIndex = line.indexOf("|");
+
+			if (
+				firstPipeIndex > 0 &&
+				!line.trimStart().startsWith("|") &&
+				looksLikePipeDelimitedTableLine(line.slice(firstPipeIndex))
+			) {
+				return [line.slice(0, firstPipeIndex), line.slice(firstPipeIndex)];
+			}
+
+			const italicBlockIndex = line.indexOf("|*");
+
+			if (italicBlockIndex >= 0) {
+				const tableCandidate = line.slice(0, italicBlockIndex + 1);
+
+				if (looksLikePipeDelimitedTableLine(tableCandidate)) {
+					return [tableCandidate, line.slice(italicBlockIndex + 1)];
+				}
+			}
+
+			return [line];
+		})
+		.join("\n");
 }
 
 function isAssistantSeparatorLine(line: string) {
@@ -377,7 +421,7 @@ function isAssistantSeparatorLine(line: string) {
 function isAssistantTableLine(line: string) {
 	return (
 		/^\|/.test(line) ||
-		/^[^|\n]+(?:\s*\|\s*[^|\n]+){2,}\|?$/.test(line) ||
+		looksLikePipeDelimitedTableLine(line) ||
 		/^[^\t\n]+(?:\t[^\t\n]+){2,}$/.test(line)
 	);
 }
@@ -385,11 +429,7 @@ function isAssistantTableLine(line: string) {
 function parseAssistantTableLine(line: string) {
 	const cells = /\t/.test(line)
 		? line.split("\t").map((cell) => cell.trim())
-		: line
-				.replace(/^\|/, "")
-				.replace(/\|$/, "")
-				.split("|")
-				.map((cell) => cell.trim());
+		: parsePipeTableCells(line);
 
 	if (
 		!cells.length ||
