@@ -319,23 +319,10 @@ function replaceInlineCitationIdsWithTitles(
 			const recentContext = answer.slice(Math.max(0, start - 240), start);
 			const normalizedRecentContext = normalizeComparableText(recentContext);
 			const normalizedTitle = normalizeComparableText(title);
-			const nextSlice = answer.slice(start + match.length);
-			const nextNonWhitespace = nextSlice.match(/\S/)?.[0] || "";
-			const previousNonWhitespace =
-				recentContext.match(/\S(?=\s*$)/)?.[0] || "";
 
 			if (
 				normalizedTitle &&
 				normalizedRecentContext.includes(normalizedTitle)
-			) {
-				return "";
-			}
-
-			if (
-				/[.?!:;)\]|*]/.test(previousNonWhitespace) &&
-				(!nextNonWhitespace ||
-					nextNonWhitespace === "[" ||
-					/[.?!,;:)}\]|]/.test(nextNonWhitespace))
 			) {
 				return "";
 			}
