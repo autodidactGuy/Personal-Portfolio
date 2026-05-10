@@ -296,12 +296,51 @@ function replaceInlineCitationIdsWithTitles(
 	const snippetTitleById = new Map(
 		snippets.map((snippet) => [snippet.id, snippet.title.trim()]),
 	);
+	const normalizeComparableText = (value: string) =>
+		value
+			.toLowerCase()
+			.replace(/\*\*/g, "")
+			.replace(/\*/g, "")
+			.replace(/[\u2010-\u2015]/g, "-")
+			.replace(/\s+/g, " ")
+			.trim();
 
 	return answer.replace(
 		/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
-		(match) => {
+		(match, _citationId, offset) => {
+			const start = typeof offset === "number" ? offset : 0;
 			const citationId = match.slice(1, -1);
-			return snippetTitleById.get(citationId) || match;
+			const title = snippetTitleById.get(citationId);
+
+			if (!title) {
+				return match;
+			}
+
+			const recentContext = answer.slice(Math.max(0, start - 240), start);
+			const normalizedRecentContext = normalizeComparableText(recentContext);
+			const normalizedTitle = normalizeComparableText(title);
+			const nextSlice = answer.slice(start + match.length);
+			const nextNonWhitespace = nextSlice.match(/\S/)?.[0] || "";
+			const previousNonWhitespace =
+				recentContext.match(/\S(?=\s*$)/)?.[0] || "";
+
+			if (
+				normalizedTitle &&
+				normalizedRecentContext.includes(normalizedTitle)
+			) {
+				return "";
+			}
+
+			if (
+				/[.?!:;)\]|*]/.test(previousNonWhitespace) &&
+				(!nextNonWhitespace ||
+					nextNonWhitespace === "[" ||
+					/[.?!,;:)}\]|]/.test(nextNonWhitespace))
+			) {
+				return "";
+			}
+
+			return title;
 		},
 	);
 }

@@ -465,21 +465,6 @@ function isGroqCapacityLikeFailure(status: number, payload: unknown) {
 	);
 }
 
-function isGroqSharedQuotaFailure(status: number, payload: unknown) {
-	const normalizedError = normalizeAssistantErrorPayload(payload, "")
-		.toLowerCase()
-		.trim();
-
-	return (
-		status >= 400 ||
-		normalizedError.includes("rate limit reached") ||
-		normalizedError.includes("request too large") ||
-		normalizedError.includes("tokens per minute") ||
-		normalizedError.includes("tokens per day") ||
-		normalizedError.includes("service tier")
-	);
-}
-
 function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
 	if (status > 400 || isGroqCapacityLikeFailure(status, payload)) {
 		return true;
@@ -1270,7 +1255,6 @@ export async function callAssistantChatWithRouting(
 	body: AssistantChatBody,
 ) {
 	const providerAttempts: ProviderAttempt[] = [];
-	let skipGroqBackup = false;
 	let lastMissingResponse: {
 		payload: unknown;
 		status: number;
@@ -1427,13 +1411,6 @@ export async function callAssistantChatWithRouting(
 
 			if (
 				!groqResponse.ok &&
-				isGroqSharedQuotaFailure(groqResponse.status, groqResponse.payload)
-			) {
-				skipGroqBackup = true;
-			}
-
-			if (
-				!groqResponse.ok &&
 				!isGroqFallbackWorthyFailure(groqResponse.status, groqResponse.payload)
 			) {
 				return jsonResponse(
@@ -1447,10 +1424,6 @@ export async function callAssistantChatWithRouting(
 		}
 
 		if (provider === "groq_backup") {
-			if (skipGroqBackup) {
-				continue;
-			}
-
 			const groqBackupResponse = await callGroqBackup(body, env);
 			const normalizedPayload = groqBackupResponse.ok
 				? normalizeAssistantChatPayload(
@@ -1720,21 +1693,36 @@ export async function callAssistantChatWithRouting(
 					},
 				);
 
-				return jsonResponse(
-					toChatCompletionsPayload(
-						JSON.stringify(ragPayload),
-						env.RAG_CHAT_MODEL || "portfolio-rag",
-					),
-					200,
-					buildProviderContextHeaders("portfolio-rag", [
-						...providerAttempts,
-						{
-							provider: "portfolio-rag",
-							status: 200,
-							error: null,
-						},
-					]),
+				const normalizedPayload = toChatCompletionsPayload(
+					JSON.stringify(ragPayload),
+					env.RAG_CHAT_MODEL || "portfolio-rag",
 				);
+
+				if (!isMissingAssistantResponse(normalizedPayload)) {
+					return jsonResponse(
+						normalizedPayload,
+						200,
+						buildProviderContextHeaders("portfolio-rag", [
+							...providerAttempts,
+							{
+								provider: "portfolio-rag",
+								status: 200,
+								error: null,
+							},
+						]),
+					);
+				}
+
+				lastMissingResponse = {
+					payload: normalizedPayload,
+					status: 200,
+					provider: "portfolio-rag",
+				};
+				providerAttempts.push({
+					provider: "portfolio-rag",
+					status: 200,
+					error: "Assistant returned missing",
+				});
 			} catch (error) {
 				providerAttempts.push({
 					provider: "portfolio-rag",
