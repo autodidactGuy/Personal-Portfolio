@@ -285,6 +285,27 @@ const assistantResponseSchema = z.object({
 	citations: z.array(z.string().trim()),
 });
 
+function replaceInlineCitationIdsWithTitles(
+	answer: string,
+	snippets: ResumeSnippet[],
+) {
+	if (!answer.trim() || !snippets.length) {
+		return answer;
+	}
+
+	const snippetTitleById = new Map(
+		snippets.map((snippet) => [snippet.id, snippet.title.trim()]),
+	);
+
+	return answer.replace(
+		/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+		(match) => {
+			const citationId = match.slice(1, -1);
+			return snippetTitleById.get(citationId) || match;
+		},
+	);
+}
+
 const blockedTopicPatterns = [
 	/\bignore (all )?(previous|prior) instructions\b/i,
 	/\bsystem prompt\b/i,
@@ -2772,6 +2793,7 @@ export function buildAssistantChatRequestBody(args: {
 					"If an experience, education, recommendation, contact, or profile snippet directly answers the question, answer from that snippet instead of refusing.",
 					"Do not infer, invent, generalize, or use outside knowledge.",
 					"Every factual answer must be grounded in the snippet IDs you cite.",
+					"When structured output is enabled, keep the answer human-readable and do not include snippet IDs like [summary] or [project:example-slug] inside the answer text.",
 					"When responding without structured output, include supporting snippet IDs inline in square brackets, for example [summary] or [project:example-slug].",
 					"If the question is about timing, chronology, first roles, or when work started, use the dates in the provided experience snippets to determine the answer. Otherwise match with the most relevant information from the snippets.",
 					"If the question is about early, first, recent, or latest projects, articles, posts, or case studies, use the Date fields in the provided content snippets to determine ordering. Otherwise match with the most relevant information from the snippets.",
@@ -3023,7 +3045,11 @@ export async function fetchAssistantResponse(args: {
 	}
 
 	const parsed = assistantResponseSchema.parse(JSON.parse(rawContent));
-	const normalizedStatus = inferAssistantStatusFromAnswer(parsed.answer);
+	const normalizedAnswer = replaceInlineCitationIdsWithTitles(
+		parsed.answer,
+		snippets,
+	);
+	const normalizedStatus = inferAssistantStatusFromAnswer(normalizedAnswer);
 	const validCitationIds = new Set(snippets.map((snippet) => snippet.id));
 	const filteredCitations = parsed.citations
 		.filter((citation) => validCitationIds.has(citation))
@@ -3032,7 +3058,7 @@ export async function fetchAssistantResponse(args: {
 	if (normalizedStatus === "answered" && filteredCitations.length === 0) {
 		return {
 			status: "answered",
-			answer: parsed.answer,
+			answer: normalizedAnswer,
 			citations: [],
 			provider,
 			providerContext,
@@ -3061,7 +3087,7 @@ export async function fetchAssistantResponse(args: {
 
 	return {
 		status: "answered",
-		answer: parsed.answer,
+		answer: normalizedAnswer,
 		citations: filteredCitations,
 		provider,
 		providerContext,
