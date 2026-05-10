@@ -465,6 +465,21 @@ function isGroqCapacityLikeFailure(status: number, payload: unknown) {
 	);
 }
 
+function _isGroqSharedQuotaFailure(status: number, payload: unknown) {
+	const normalizedError = normalizeAssistantErrorPayload(payload, "")
+		.toLowerCase()
+		.trim();
+
+	return (
+		status >= 400 ||
+		normalizedError.includes("rate limit reached") ||
+		normalizedError.includes("request too large") ||
+		normalizedError.includes("tokens per minute") ||
+		normalizedError.includes("tokens per day") ||
+		normalizedError.includes("service tier")
+	);
+}
+
 function isGroqFallbackWorthyFailure(status: number, payload: unknown) {
 	if (status > 400 || isGroqCapacityLikeFailure(status, payload)) {
 		return true;
