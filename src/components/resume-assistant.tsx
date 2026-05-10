@@ -434,7 +434,9 @@ function stripAssistantCitationMarkers(text: string) {
 
 		const previousChar = result.at(-1);
 		const nextChar = text[end];
+		const nextSlice = text.slice(end);
 		const nextNonWhitespace = text.slice(end).match(/\S/)?.[0];
+		const currentLine = result.slice(result.lastIndexOf("\n") + 1);
 
 		if (
 			/[,:;]\s*$/.test(result) &&
@@ -445,6 +447,14 @@ function stripAssistantCitationMarkers(text: string) {
 
 		if (isWordLikeCharacter(previousChar) && isWordLikeCharacter(nextChar)) {
 			result += " ";
+		}
+
+		if (
+			/^[ \t]*\|/.test(nextSlice) &&
+			currentLine.trim() &&
+			!currentLine.trimStart().startsWith("|")
+		) {
+			result += "\n";
 		}
 
 		lastIndex = end;
