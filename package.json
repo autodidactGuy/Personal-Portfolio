@@ -54,5 +54,8 @@
     "@biomejs/biome": "^2.4.12",
     "serve": "^14.2.6",
     "sharp": "^0.34.5"
+  },
+  "resolutions": {
+    "**/postcss": "8.5.12"
   }
 }
