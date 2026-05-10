@@ -340,6 +340,10 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\r\n/g, "\n")
 		.replace(/\\n/g, "\n")
 		.replace(/\/n/g, "\n")
+		.replace(
+			/([^\n\s|])\|(?=\s*[^|\n]+\s*\|\s*[^|\n]+(?:\s*\|\s*[^|\n]+)+\|?$)/g,
+			"$1\n|",
+		)
 		.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
 		.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
 		.replace(
@@ -367,15 +371,21 @@ function isAssistantSeparatorLine(line: string) {
 }
 
 function isAssistantTableLine(line: string) {
-	return /^\|/.test(line);
+	return (
+		/^\|/.test(line) ||
+		/^[^|\n]+(?:\s*\|\s*[^|\n]+){2,}\|?$/.test(line) ||
+		/^[^\t\n]+(?:\t[^\t\n]+){2,}$/.test(line)
+	);
 }
 
 function parseAssistantTableLine(line: string) {
-	const normalizedLine = line.endsWith("|") ? line : `${line}|`;
-	const cells = normalizedLine
-		.split("|")
-		.slice(1, -1)
-		.map((cell) => cell.trim());
+	const cells = /\t/.test(line)
+		? line.split("\t").map((cell) => cell.trim())
+		: line
+				.replace(/^\|/, "")
+				.replace(/\|$/, "")
+				.split("|")
+				.map((cell) => cell.trim());
 
 	if (
 		!cells.length ||
