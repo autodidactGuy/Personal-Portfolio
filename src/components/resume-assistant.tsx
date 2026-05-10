@@ -485,7 +485,7 @@ function stripResidualAssistantMarkers(text: string) {
 		.replace(/\*/g, "");
 }
 
-function renderInlineMessageContent(
+function renderInlineMessageSegment(
 	content: string,
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
@@ -529,6 +529,34 @@ function renderInlineMessageContent(
 
 	if (cursor < content.length) {
 		parts.push(...renderBoldMarkdown(content.slice(cursor)));
+	}
+
+	return parts;
+}
+
+function renderInlineMessageContent(
+	content: string,
+	citations: ResumeSnippet[] | undefined,
+	resume: ResumePayload | null,
+) {
+	const segments = content.split(/<br\s*\/?>/gi);
+
+	if (segments.length === 1) {
+		return renderInlineMessageSegment(content, citations, resume);
+	}
+
+	const parts: ReactNode[] = [];
+
+	for (let index = 0; index < segments.length; index += 1) {
+		const segment = segments[index] || "";
+
+		if (index > 0) {
+			parts.push(<br key={`br-${index}`} />);
+		}
+
+		if (segment) {
+			parts.push(...renderInlineMessageSegment(segment, citations, resume));
+		}
 	}
 
 	return parts;
