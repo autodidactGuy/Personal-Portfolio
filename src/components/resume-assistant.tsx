@@ -454,9 +454,9 @@ function stripAssistantCitationMarkers(text: string) {
 	ASSISTANT_CITATION_PATTERN.lastIndex = 0;
 
 	return `${result}${text.slice(lastIndex)}`
-		.replace(/\s+([,.;:!?])/g, "$1")
-		.replace(/([([])\s+/g, "$1")
-		.replace(/\s{2,}/g, " ");
+		.replace(/[ \t]+([,.;:!?])/g, "$1")
+		.replace(/([([])[ \t]+/g, "$1")
+		.replace(/[ \t]{2,}/g, " ");
 }
 
 function stripResidualAssistantMarkers(text: string) {
