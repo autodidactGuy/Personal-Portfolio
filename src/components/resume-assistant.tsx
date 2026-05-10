@@ -360,7 +360,7 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\*{1}\s*\n\s*/g, "*")
 		.replace(/\s*\n\s*\*{1}/g, "*")
 		.replace(
-			/((?:^|\n)[^|\n]+(?:\s*\|\s*[^|\n]+){2,}\|)\*(?=[^\n]*\*)/g,
+			/((?:^|\n)\|?[^|\n]+(?:\s*\|\s*[^|\n]+){2,}\|)\*(?=[^\n]*\*)/g,
 			"$1\n*",
 		)
 		.replace(/[ \t]{2,}/g, " ")
