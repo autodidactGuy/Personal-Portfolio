@@ -111,6 +111,9 @@ const THINKING_STATES = [
 	},
 ];
 
+const ASSISTANT_CITATION_PATTERN =
+	/【[^】]+】|\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi;
+
 function renderMessageContent(
 	content: string,
 	citations: ResumeSnippet[] | undefined,
@@ -333,7 +336,7 @@ function renderMessageContent(
 }
 
 function normalizeAssistantDisplayContent(content: string) {
-	return content
+	return stripAssistantCitationMarkers(content)
 		.replace(/\r\n/g, "\n")
 		.replace(/\\n/g, "\n")
 		.replace(/\/n/g, "\n")
@@ -342,11 +345,6 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(
 			/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
 			"$1\n",
-		)
-		.replace(/【[^】]+】/g, "")
-		.replace(
-			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
-			"",
 		)
 		.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
 		.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
@@ -420,13 +418,49 @@ function renderBoldMarkdown(text: string) {
 	return parts;
 }
 
+function isWordLikeCharacter(value: string | undefined) {
+	return Boolean(value && /[A-Za-z0-9]/.test(value));
+}
+
+function stripAssistantCitationMarkers(text: string) {
+	let result = "";
+	let lastIndex = 0;
+	let match: RegExpExecArray | null = ASSISTANT_CITATION_PATTERN.exec(text);
+
+	while (match) {
+		const start = match.index ?? 0;
+		const end = start + match[0].length;
+		result += text.slice(lastIndex, start);
+
+		const previousChar = result.at(-1);
+		const nextChar = text[end];
+		const nextNonWhitespace = text.slice(end).match(/\S/)?.[0];
+
+		if (
+			/[,:;]\s*$/.test(result) &&
+			(!nextNonWhitespace || /[.?!,;:)}\]]/.test(nextNonWhitespace))
+		) {
+			result = result.replace(/[,:;]\s*$/g, "");
+		}
+
+		if (isWordLikeCharacter(previousChar) && isWordLikeCharacter(nextChar)) {
+			result += " ";
+		}
+
+		lastIndex = end;
+		match = ASSISTANT_CITATION_PATTERN.exec(text);
+	}
+
+	ASSISTANT_CITATION_PATTERN.lastIndex = 0;
+
+	return `${result}${text.slice(lastIndex)}`
+		.replace(/\s+([,.;:!?])/g, "$1")
+		.replace(/([([])\s+/g, "$1")
+		.replace(/\s{2,}/g, " ");
+}
+
 function stripResidualAssistantMarkers(text: string) {
-	return text
-		.replace(/【[^】]+】/g, "")
-		.replace(
-			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
-			"",
-		)
+	return stripAssistantCitationMarkers(text)
 		.replace(/\*\*/g, "")
 		.replace(/\*/g, "");
 }
