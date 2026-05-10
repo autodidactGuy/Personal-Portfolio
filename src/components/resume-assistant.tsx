@@ -341,8 +341,8 @@ function normalizeAssistantDisplayContent(content: string) {
 		.replace(/\\n/g, "\n")
 		.replace(/\/n/g, "\n")
 		.replace(
-			/([^\n\s|])\|(?=\s*[^|\n]+\s*\|\s*[^|\n]+(?:\s*\|\s*[^|\n]+)+\|?$)/g,
-			"$1\n|",
+			/(^|\n)([^|\n]+)\|(?=\s*[^|\n]+\s*\|\s*[^|\n]+(?:\s*\|\s*[^|\n]+)+\|?$)/g,
+			"$1$2\n|",
 		)
 		.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
 		.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
@@ -489,7 +489,7 @@ function stripResidualAssistantMarkers(text: string) {
 		.replace(/\*/g, "");
 }
 
-function renderInlineMessageSegment(
+function renderAutoLinkedInlineText(
 	content: string,
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
@@ -533,6 +533,70 @@ function renderInlineMessageSegment(
 
 	if (cursor < content.length) {
 		parts.push(...renderBoldMarkdown(content.slice(cursor)));
+	}
+
+	return parts;
+}
+
+function renderInlineMessageSegment(
+	content: string,
+	citations: ResumeSnippet[] | undefined,
+	resume: ResumePayload | null,
+) {
+	const markdownLinkPattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/gi;
+	const parts: ReactNode[] = [];
+	let cursor = 0;
+	let match = markdownLinkPattern.exec(content);
+
+	while (match) {
+		const start = match.index ?? -1;
+		const fullMatch = match[0] || "";
+		const label = match[1] || "";
+		const href = match[2] || "";
+
+		if (start < 0 || !fullMatch || !label || !href) {
+			match = markdownLinkPattern.exec(content);
+			continue;
+		}
+
+		if (cursor < start) {
+			parts.push(
+				...renderAutoLinkedInlineText(
+					content.slice(cursor, start),
+					citations,
+					resume,
+				),
+			);
+		}
+
+		parts.push(
+			<NextLink
+				className="inline break-words text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
+				href={href}
+				key={`md-link-${start}-${href}`}
+				rel="noreferrer"
+				target="_blank"
+			>
+				<span>{label}</span>
+				<HiOutlineArrowTopRightOnSquare
+					className="ml-1 inline-block align-[-1px]"
+					size={12}
+				/>
+			</NextLink>,
+		);
+
+		cursor = start + fullMatch.length;
+		match = markdownLinkPattern.exec(content);
+	}
+
+	if (!parts.length) {
+		return renderAutoLinkedInlineText(content, citations, resume);
+	}
+
+	if (cursor < content.length) {
+		parts.push(
+			...renderAutoLinkedInlineText(content.slice(cursor), citations, resume),
+		);
 	}
 
 	return parts;

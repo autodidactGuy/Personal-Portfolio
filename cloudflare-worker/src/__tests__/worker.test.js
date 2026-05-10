@@ -1578,6 +1578,70 @@ describe("/assistant-routed", () => {
 		});
 	});
 
+	it("falls through when a provider returns a header-like incomplete answer", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Relationship","citations":[]}',
+								},
+								finish_reason: "stop",
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Hugging Face answer","citations":["summary"]}',
+								},
+								finish_reason: "stop",
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [{ role: "user", content: "Summarize the recommendations." }],
+			}),
+			{
+				...env,
+				GROQ_API_KEY: "groq_test",
+				GROQ_MODEL: "openai/gpt-oss-20b",
+				HUGGING_FACE_API_TOKEN: "hf_test",
+				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
+				ASSISTANT_PROVIDER_PRIORITY: "groq,huggingface",
+			},
+		);
+		const payload = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("huggingface");
+		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
+			status: "answered",
+			answer: "Hugging Face answer",
+			citations: ["summary"],
+		});
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
 	it("normalizes Hugging Face array-string JSON into a canonical missing response", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
 

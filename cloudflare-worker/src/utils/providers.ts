@@ -126,6 +126,25 @@ function inferAssistantStatusFromAnswer(answer: string) {
 	return "answered";
 }
 
+function isLikelyIncompleteAssistantAnswer(
+	answer: string,
+	citationCount: number,
+) {
+	const normalizedAnswer = String(answer || "").trim();
+
+	if (!normalizedAnswer || citationCount > 0) {
+		return false;
+	}
+
+	const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
+
+	return (
+		wordCount <= 3 &&
+		normalizedAnswer.length <= 40 &&
+		!/[\n.?!:;]/.test(normalizedAnswer)
+	);
+}
+
 function extractKnownAssistantAnswer(rawValue: unknown) {
 	const stringValue = String(rawValue || "");
 
@@ -179,18 +198,26 @@ function coerceAssistantStructuredObject(value: unknown) {
 	) {
 		const extractedCitations = extractSnippetIdsFromText(value.answer);
 		const normalizedStatus = inferAssistantStatusFromAnswer(value.answer);
+		const mergedCitations = Array.from(
+			new Set([
+				...value.citations.filter(
+					(citation): citation is string => typeof citation === "string",
+				),
+				...extractedCitations,
+			]),
+		);
+		const finalStatus =
+			normalizedStatus === "answered" &&
+			isLikelyIncompleteAssistantAnswer(value.answer, mergedCitations.length)
+				? "missing"
+				: normalizedStatus === "answered"
+					? value.status
+					: normalizedStatus;
 
 		return {
-			status: normalizedStatus === "answered" ? value.status : normalizedStatus,
+			status: finalStatus,
 			answer: value.answer,
-			citations: Array.from(
-				new Set([
-					...value.citations.filter(
-						(citation): citation is string => typeof citation === "string",
-					),
-					...extractedCitations,
-				]),
-			),
+			citations: mergedCitations,
 		};
 	}
 
@@ -202,7 +229,12 @@ function coerceAssistantStructuredObject(value: unknown) {
 		}
 
 		return {
-			status: inferAssistantStatusFromAnswer(answer),
+			status: isLikelyIncompleteAssistantAnswer(
+				answer,
+				extractSnippetIdsFromText(answer).length,
+			)
+				? "missing"
+				: inferAssistantStatusFromAnswer(answer),
 			answer,
 			citations: extractSnippetIdsFromText(answer),
 		};
@@ -220,7 +252,12 @@ function coerceAssistantStructuredObject(value: unknown) {
 		}
 
 		return {
-			status: inferAssistantStatusFromAnswer(answer),
+			status: isLikelyIncompleteAssistantAnswer(
+				answer,
+				extractSnippetIdsFromText(answer).length,
+			)
+				? "missing"
+				: inferAssistantStatusFromAnswer(answer),
 			answer,
 			citations: extractSnippetIdsFromText(answer),
 		};

@@ -39,6 +39,25 @@ function inferAssistantStatusFromAnswer(answer: string) {
 	return "answered" as const;
 }
 
+function isLikelyIncompleteAssistantAnswer(
+	answer: string,
+	citationCount: number,
+) {
+	const normalizedAnswer = String(answer || "").trim();
+
+	if (!normalizedAnswer || citationCount > 0) {
+		return false;
+	}
+
+	const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
+
+	return (
+		wordCount <= 3 &&
+		normalizedAnswer.length <= 40 &&
+		!/[\n.?!:;]/.test(normalizedAnswer)
+	);
+}
+
 export const SYSTEM_PROMPT = `You are a AI assistant answering questions about one person's portfolio dataset.
 
 Rules:
@@ -3080,6 +3099,22 @@ export async function fetchAssistantResponse(args: {
 	const filteredCitations = parsed.citations
 		.filter((citation) => validCitationIds.has(citation))
 		.slice(0, MAX_CONTEXT_CHUNKS);
+	const incompleteAnsweredResponse =
+		normalizedStatus === "answered" &&
+		isLikelyIncompleteAssistantAnswer(
+			normalizedAnswer,
+			filteredCitations.length,
+		);
+
+	if (incompleteAnsweredResponse) {
+		return {
+			status: "missing",
+			answer: MISSING_INFORMATION_MESSAGE,
+			citations: [],
+			provider,
+			providerContext,
+		} satisfies AssistantResponse;
+	}
 
 	if (normalizedStatus === "answered" && filteredCitations.length === 0) {
 		return {
