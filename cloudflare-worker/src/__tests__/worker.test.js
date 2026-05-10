@@ -2189,6 +2189,108 @@ describe("/assistant-routed", () => {
 		});
 	});
 
+	it("continues past portfolio-rag when portfolio-rag returns missing", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					choices: [
+						{
+							message: {
+								content:
+									'{"status":"answered","answer":"Hugging Face handled it after RAG missed.","citations":["summary"]}',
+							},
+						},
+					],
+				}),
+				{ status: 200, headers: { "Content-Type": "application/json" } },
+			),
+		);
+
+		const aiRun = vi
+			.fn()
+			.mockResolvedValueOnce({
+				data: [[0.1, 0.2, 0.3]],
+			})
+			.mockResolvedValueOnce({
+				response:
+					'{"status":"missing","answer":"I don\'t have that information available.","citations":[]}',
+			});
+
+		const response = await worker.fetch(
+			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
+				action: "chat",
+				model: "openai/gpt-4.1-mini",
+				messages: [
+					{
+						role: "user",
+						content: "Tell me about Hassan's technical background.",
+					},
+				],
+			}),
+			{
+				...env,
+				HUGGING_FACE_API_TOKEN: "hf_test",
+				HUGGING_FACE_MODEL: "Qwen/Qwen2.5-7B-Instruct-1M",
+				AI: {
+					run: aiRun,
+				},
+				VECTOR_INDEX: {
+					query: vi.fn().mockResolvedValue({
+						matches: [
+							{
+								id: "vec-1",
+								score: 0.91,
+								metadata: {
+									objectKey: "chunks/vec-1.json",
+								},
+							},
+						],
+					}),
+				},
+				RAG_CHUNKS_BUCKET: createMockR2Bucket({
+					"chunks/vec-1.json": JSON.stringify({
+						vectorId: "vec-1",
+						id: "summary",
+						text: "Hassan builds reliable systems and infrastructure.",
+						sourceType: "about",
+						title: "Professional Summary",
+						slug: "summary",
+						url: "https://example.com/about",
+						section: "summary",
+					}),
+				}),
+				RAG_CHAT_MODEL: "@cf/meta/llama-3.1-8b-instruct",
+				RAG_EMBED_MODEL: "@cf/baai/bge-small-en-v1.5",
+				ASSISTANT_PROVIDER_PRIORITY: "portfolio-rag,huggingface",
+			},
+		);
+		const payload = await response.json();
+		const providerAttempts = JSON.parse(
+			response.headers.get("X-Assistant-Providers") || "[]",
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("huggingface");
+		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
+			status: "answered",
+			answer: "Hugging Face handled it after RAG missed.",
+			citations: ["summary"],
+		});
+		expect(providerAttempts).toEqual([
+			{
+				provider: "portfolio-rag",
+				status: 200,
+				error: "Assistant returned missing",
+			},
+			{
+				provider: "huggingface",
+				status: 200,
+				error: null,
+			},
+		]);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
 	it("falls back to groq_backup when the primary groq provider misses", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -2254,22 +2356,35 @@ describe("/assistant-routed", () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
 
-	it("skips groq_backup and continues to Cloudflare when Groq hits capacity limits", async () => {
+	it("tries groq_backup when Groq hits capacity limits", async () => {
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
-		const aiRun = vi.fn().mockResolvedValue({
-			response:
-				'{"status":"answered","answer":"Cloudflare answer","citations":["summary"]}',
-		});
 
-		fetchSpy.mockResolvedValueOnce(
-			new Response(
-				JSON.stringify({
-					error:
-						"Rate limit reached for model `openai/gpt-oss-120b` on tokens per day",
-				}),
-				{ status: 429, headers: { "Content-Type": "application/json" } },
-			),
-		);
+		fetchSpy
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						error:
+							"Rate limit reached for model `openai/gpt-oss-120b` on tokens per day",
+					}),
+					{ status: 429, headers: { "Content-Type": "application/json" } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content:
+										'{"status":"answered","answer":"Groq backup answered after the primary rate limit.","citations":["summary"]}',
+								},
+								finish_reason: "stop",
+							},
+						],
+					}),
+					{ status: 200, headers: { "Content-Type": "application/json" } },
+				),
+			);
 
 		const response = await worker.fetch(
 			buildPathRequest("/assistant-routed", "POST", ALLOWED_ORIGIN, {
@@ -2284,22 +2399,17 @@ describe("/assistant-routed", () => {
 				GROQ_API_KEY: "groq_test",
 				GROQ_MODEL: "openai/gpt-oss-120b",
 				GROQ_BACKUP_MODEL: "llama-3.1-8b-instant",
-				CLOUDFLARE_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct",
-				AI: {
-					run: aiRun,
-				},
 				ASSISTANT_PROVIDER_PRIORITY: "groq,groq_backup,cloudflare",
 			},
 		);
 		const payload = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(response.headers.get("X-Assistant-Provider")).toBe("cloudflare");
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		expect(aiRun).toHaveBeenCalledTimes(1);
+		expect(response.headers.get("X-Assistant-Provider")).toBe("groq_backup");
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
 		expect(JSON.parse(payload.choices[0].message.content)).toEqual({
 			status: "answered",
-			answer: "Cloudflare answer",
+			answer: "Groq backup answered after the primary rate limit.",
 			citations: ["summary"],
 		});
 	});
