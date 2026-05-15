@@ -237,10 +237,10 @@ export default function ResumePage({
 													</div>
 												</div>
 
+												<p className="text-[15px] leading-7 text-default-700">
+													{item.highlight}
+												</p>
 												<ul className="space-y-2 text-sm leading-7 text-default-700">
-													<p className="text-[15px] leading-7 text-default-700">
-														{item.highlight}
-													</p>
 													{item.details.map((detail) => (
 														<li key={detail} className="flex gap-2">
 															<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/65" />
