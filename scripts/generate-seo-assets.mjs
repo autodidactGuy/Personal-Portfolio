@@ -19,10 +19,17 @@ const site = readJson("settings/site.json");
 const siteUrl = trimTrailingSlash(site.siteUrl);
 
 function createAbsoluteUrl(pathname) {
-  const normalizedPath =
-    pathname === "/"
-      ? "/"
-      : `/${pathname.replace(/^\/+/, "").replace(/\/+$/, "")}/`;
+  const trimmedPath = pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+
+  if (pathname === "/") {
+    return `${siteUrl}/`;
+  }
+
+  const lastSegment = trimmedPath.split("/").filter(Boolean).pop() || "";
+  const normalizedPath = lastSegment.includes(".")
+    ? `/${trimmedPath}`
+    : `/${trimmedPath}/`;
+
   return `${siteUrl}${normalizedPath}`;
 }
 

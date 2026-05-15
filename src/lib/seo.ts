@@ -44,6 +44,12 @@ function normalizeCanonicalPath(pathname: string) {
 		return normalizedPath;
 	}
 
+	const lastSegment = normalizedPath.split("/").filter(Boolean).pop() || "";
+
+	if (lastSegment.includes(".")) {
+		return normalizedPath;
+	}
+
 	return normalizedPath.endsWith("/") ? normalizedPath : `${normalizedPath}/`;
 }
 

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /cms-admin/
 Disallow: /admin
 
-Sitemap: https://hassanraza.us/sitemap.xml/
+Sitemap: https://hassanraza.us/sitemap.xml
