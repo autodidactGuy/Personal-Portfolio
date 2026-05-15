@@ -19,7 +19,10 @@ const site = readJson("settings/site.json");
 const siteUrl = trimTrailingSlash(site.siteUrl);
 
 function createAbsoluteUrl(pathname) {
-  const normalizedPath = pathname === "/" ? "/" : `/${pathname.replace(/^\/+/, "")}`;
+  const normalizedPath =
+    pathname === "/"
+      ? "/"
+      : `/${pathname.replace(/^\/+/, "").replace(/\/+$/, "")}/`;
   return `${siteUrl}${normalizedPath}`;
 }
 

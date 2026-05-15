@@ -37,13 +37,22 @@ function ensureLeadingSlash(value: string) {
 	return value.startsWith("/") ? value : `/${value}`;
 }
 
+function normalizeCanonicalPath(pathname: string) {
+	const normalizedPath = pathname === "/" ? "/" : ensureLeadingSlash(pathname);
+
+	if (normalizedPath === "/") {
+		return normalizedPath;
+	}
+
+	return normalizedPath.endsWith("/") ? normalizedPath : `${normalizedPath}/`;
+}
+
 export function getSiteOrigin() {
 	return trimSlash(siteConfig.siteUrl);
 }
 
 export function getSiteUrl(pathname = "/") {
-	const normalizedPath = pathname === "/" ? "/" : ensureLeadingSlash(pathname);
-	return `${getSiteOrigin()}${normalizedPath}`;
+	return `${getSiteOrigin()}${normalizeCanonicalPath(pathname)}`;
 }
 
 export function getAbsoluteImageUrl(image?: string | null) {
