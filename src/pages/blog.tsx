@@ -6,7 +6,13 @@ import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { getBlogPosts } from "@/lib/content";
 import { getPaginatedItems, getTotalPages } from "@/lib/pagination";
-import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
+import {
+	getGeneratedPageOgImage,
+	getPersonId,
+	getSeoImage,
+	getSiteUrl,
+	getWebsiteId,
+} from "@/lib/seo";
 import type { PostFrontmatter } from "@/types/content";
 
 type BlogIndexProps = {
@@ -24,15 +30,16 @@ export default function BlogIndex({
 	totalPages,
 }: BlogIndexProps) {
 	const pageDescription =
-		"Notes on system design, distributed systems, and lessons from building real-world software at scale.";
+		"Writing on software engineering, AI systems, distributed systems, and lessons from building production platforms at scale.";
 
 	return (
 		<DefaultLayout
 			seo={{
-				title: `Blog`,
+				fullTitle: "Blog | Software Engineering, AI & Systems",
 				description: pageDescription,
 				pathname: "/blog",
 				image: getSeoImage(getGeneratedPageOgImage("blog")),
+				imageAlt: `${siteConfig.name} writing page`,
 				structuredData: [
 					{
 						"@context": "https://schema.org",
@@ -40,6 +47,12 @@ export default function BlogIndex({
 						name: `${siteConfig.name} Blog`,
 						url: getSiteUrl("/blog"),
 						description: pageDescription,
+						author: {
+							"@id": getPersonId(),
+						},
+						isPartOf: {
+							"@id": getWebsiteId(),
+						},
 					},
 					{
 						"@context": "https://schema.org",
@@ -47,6 +60,9 @@ export default function BlogIndex({
 						name: `${siteConfig.name} Writing`,
 						url: getSiteUrl("/blog"),
 						description: pageDescription,
+						about: {
+							"@id": getPersonId(),
+						},
 						mainEntity: {
 							"@type": "ItemList",
 							itemListElement: posts.map((post, index) => ({

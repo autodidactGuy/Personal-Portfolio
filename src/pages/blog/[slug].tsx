@@ -14,8 +14,10 @@ import {
 	formatIsoDate,
 	getAbsoluteImageUrl,
 	getGeneratedPostOgImage,
+	getPersonId,
 	getSeoImage,
 	getSiteUrl,
+	getWebsiteId,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
 import { PostContentTypeEnum, type PostFrontmatter } from "@/types/content";
@@ -53,20 +55,17 @@ export default function BlogPostPage({ post, source }: BlogPostPageProps) {
 				structuredData: {
 					"@context": "https://schema.org",
 					"@type": "BlogPosting",
+					"@id": `${getSiteUrl(detailPath)}#article`,
 					headline: post.frontmatter.title,
 					description: pageDescription,
 					datePublished: formatIsoDate(post.frontmatter.date),
 					dateModified: formatIsoDate(post.frontmatter.date),
 					image: getAbsoluteImageUrl(seoImage),
 					author: {
-						"@type": "Person",
-						name: siteConfig.name,
-						url: getSiteUrl("/about"),
+						"@id": getPersonId(),
 					},
 					publisher: {
-						"@type": "Person",
-						name: siteConfig.name,
-						url: getSiteUrl("/"),
+						"@id": getWebsiteId(),
 					},
 					mainEntityOfPage: getSiteUrl(detailPath),
 					keywords: post.frontmatter.tags.join(", "),

@@ -45,6 +45,7 @@ function buildSitemap() {
   const staticPages = [
     { pathname: "/", priority: "1.0" },
     { pathname: "/about", priority: "0.8" },
+    { pathname: "/resume", priority: "0.8" },
     { pathname: "/projects", priority: "0.9" },
     { pathname: "/blog", priority: "0.9" },
     { pathname: "/recommendations", priority: "0.7" },

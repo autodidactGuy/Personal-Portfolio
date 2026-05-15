@@ -28,6 +28,7 @@ type ResumePayload = {
 		description?: string;
 		headline?: string;
 		summary?: string;
+		industries?: string[];
 		body?: string[];
 	};
 	featuredFocus?: {
@@ -46,6 +47,7 @@ type ResumePayload = {
 		}>;
 	};
 	interests?: string[];
+	industries?: string[];
 	skills?: string[];
 	links?: Record<string, string>;
 	contact?: {
@@ -352,7 +354,12 @@ function buildResumeEntries(resume: ResumePayload) {
 		slug: "hero",
 		url: "https://hassanraza.us/",
 		summary: resume.hero?.headline || resume.headline || resume.summary,
-		tags: ["hero", ...(resume.skills || []), ...(resume.interests || [])],
+		tags: [
+			"hero",
+			...(resume.skills || []),
+			...(resume.interests || []),
+			...(resume.industries || []),
+		],
 		priority: 10,
 		sections: entrySectionsFromTextMap([
 			["eyebrow", resume.hero?.eyebrow],
@@ -383,13 +390,14 @@ function buildResumeEntries(resume: ResumePayload) {
 		slug: "about",
 		url: "https://hassanraza.us/about",
 		summary: resume.about?.summary || resume.about?.description || resume.summary,
-		tags: ["about", ...(resume.interests || [])],
+		tags: ["about", ...(resume.interests || []), ...(resume.industries || [])],
 		priority: 10,
 		sections: [
 			...entrySectionsFromTextMap([
 				["label", resume.about?.label],
 				["headline", resume.about?.headline],
 				["description", resume.about?.description],
+				["industries", (resume.about?.industries || []).join(", ")],
 			]),
 			...(resume.about?.body || []).map((paragraph, index) => ({
 				heading: `body-${index + 1}`,
@@ -409,7 +417,7 @@ function buildResumeEntries(resume: ResumePayload) {
 		slug: "featured-focus",
 		url: "https://hassanraza.us/",
 		summary: resume.featuredFocus?.summary,
-		tags: ["focus", ...(resume.interests || [])],
+		tags: ["focus", ...(resume.interests || []), ...(resume.industries || [])],
 		priority: 8,
 		sections: [
 			...entrySectionsFromTextMap([
@@ -472,6 +480,23 @@ function buildResumeEntries(resume: ResumePayload) {
 	});
 	if (interestsEntry) {
 		entries.push(interestsEntry);
+	}
+
+	const industriesEntry = createEntry({
+		sourceType: "about",
+		title: `${resume.name || "Hassan Raza"} industries`,
+		slug: "industries",
+		url: "https://hassanraza.us/resume",
+		summary: (resume.industries || []).join(", "),
+		tags: ["industries", ...(resume.industries || [])],
+		priority: 7,
+		sections: (resume.industries || []).map((industry, index) => ({
+			heading: `industry-${index + 1}`,
+			content: industry,
+		})),
+	});
+	if (industriesEntry) {
+		entries.push(industriesEntry);
 	}
 
 	const skillsEntry = createEntry({
@@ -623,7 +648,11 @@ async function main() {
 			summary: resume.summary,
 			bio: resume.about?.body || [],
 			skills: resume.skills || [],
-			tags: [...(resume.interests || []), ...(resume.skills || [])],
+			tags: [
+				...(resume.interests || []),
+				...(resume.industries || []),
+				...(resume.skills || []),
+			],
 			links: resume.links || {},
 		},
 		experience,

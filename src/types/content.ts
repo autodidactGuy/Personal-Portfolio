@@ -125,6 +125,7 @@ export const aboutProfileSchema = z.object({
 	summaryLabel: z.string().min(1),
 	headline: z.string().min(1),
 	summary: z.string().min(1),
+	industries: z.array(z.string().min(1)).min(1),
 	body: z.array(z.string().min(1)).min(1),
 	photo: z.string().min(1),
 	experienceTitle: z.string().min(1),
@@ -248,6 +249,7 @@ export type ResumeApiResponse = {
 		description: string;
 		headline: string;
 		summary: string;
+		industries: string[];
 		body: string[];
 	};
 	featuredFocus: {
@@ -269,6 +271,7 @@ export type ResumeApiResponse = {
 		}>;
 	};
 	interests: string[];
+	industries: string[];
 	skills: string[];
 	links: {
 		site: string;

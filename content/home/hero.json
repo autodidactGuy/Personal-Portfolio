@@ -11,7 +11,7 @@
   },
   "secondaryCta": {
     "label": "View Resume",
-    "href": "/HassanRaza-Resume.pdf",
-    "external": true
+    "href": "/resume",
+    "external": false
   }
 }

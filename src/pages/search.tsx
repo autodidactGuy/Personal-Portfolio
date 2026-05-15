@@ -145,6 +145,7 @@ export default function SearchPage() {
 					"Search across portfolio work, case studies, articles, experience, education, and recommendations.",
 				pathname: "/search",
 				image: getSeoImage(getGeneratedPageOgImage("about")),
+				noindex: true,
 			}}
 		>
 			<section className="mx-auto max-w-5xl py-10">

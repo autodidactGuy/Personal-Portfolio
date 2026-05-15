@@ -186,6 +186,7 @@ function buildResumePayload() {
       description: profile.pageDescription,
       headline: profile.headline,
       summary: profile.summary,
+      industries: profile.industries || [],
       body: profile.body,
     },
     featuredFocus: {
@@ -204,6 +205,7 @@ function buildResumePayload() {
       items: stats.items,
     },
     interests: getInterests(hero.eyebrow),
+    industries: profile.industries || [],
     skills,
     links: {
       site: siteUrl,

@@ -15,8 +15,8 @@
     },
     "secondaryCta": {
       "label": "View Resume",
-      "href": "https://hassanraza.us/HassanRaza-Resume.pdf",
-      "external": true
+      "href": "https://hassanraza.us/resume",
+      "external": false
     }
   },
   "about": {
@@ -25,6 +25,13 @@
     "description": "I build distributed systems, financial infrastructure, and AI-driven data platforms that operate under real-world constraints and high-volume workloads.",
     "headline": "Designing systems that handle financial transactions, data pipelines, and AI workloads at scale",
     "summary": "Senior software engineer with 8+ years of experience building distributed systems, financial infrastructure, and AI-driven data platforms. My work centers on designing backend systems that process high-volume transactions, power data pipelines, and support real-world financial operations at scale.",
+    "industries": [
+      "FinTech Infrastructure",
+      "Distributed Systems",
+      "AI Systems",
+      "Payment Platforms",
+      "Data Pipelines"
+    ],
     "body": [
       "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
       "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
@@ -70,6 +77,13 @@
     "Financial Infrastructure",
     "Distributed Systems",
     "AI-Driven Systems"
+  ],
+  "industries": [
+    "FinTech Infrastructure",
+    "Distributed Systems",
+    "AI Systems",
+    "Payment Platforms",
+    "Data Pipelines"
   ],
   "skills": [
     "Node.js",
@@ -412,10 +426,11 @@
     {
       "slug": "building-a-resume-native-ai-assistant",
       "title": "Building a Resume-Native AI Assistant for My Portfolio",
-      "summary": "Designing an assistant that answers from structured portfolio data, uses semantic retrieval over resume content, and safely proxies GitHub Models through Cloudflare Workers.",
+      "summary": "Designing an assistant that answers from structured portfolio data, merges keyword and Cloudflare semantic retrieval, and routes grounded responses through a unified Cloudflare Worker.",
       "tags": [
         "ai",
-        "github-models",
+        "workers-ai",
+        "vectorize",
         "cloudflare-workers",
         "retrieval",
         "nextjs",
@@ -426,7 +441,7 @@
       "url": "https://hassanraza.us/project/building-a-resume-native-ai-assistant",
       "date": "2026-04-19",
       "contentType": "project",
-      "excerpt": "Context I wanted the portfolio to do more than display information. I wanted it to answer for itself. Not with a generic chatbot and not with a prompt that tries to improvise from thin air. The goal was narrower and more useful: let a visitor ask questions about my experience, projects, technical strengths, and background, and get answers grounded in the actual content already published on the site. That design constraint shaped the entire implementation. The assistant is not a toy layer on top of a marketing site. It is a retrieval system built around structured resume data, deterministic guardrails, and a thin production-safe proxy to GitHub Models. What I Built The result is an AI assistant embedded directly into the portfolio experience that: loads a generated static resume dataset from the site itself converts that content into searchable snippets answers common questions locally wh..."
+      "excerpt": "Context I wanted the portfolio to do more than display information. I wanted it to answer for itself. Not with a generic chatbot and not with a prompt that tries to improvise from thin air. The goal was narrower and more useful: let a visitor ask questions about my experience, projects, technical strengths, and background, and get answers grounded in the actual content already published on the site. That design constraint shaped the entire implementation. The assistant is not a toy layer on top of a marketing site. It is a retrieval system built around structured resume data, deterministic guardrails, a Cloudflare-backed semantic retrieval layer, and a routed model boundary that can fail over between providers without breaking the user experience. What I Built The result is an AI assistant embedded directly into the portfolio experience that: loads a generated static resume dataset from..."
     },
     {
       "slug": "building-financial-infrastructure-for-modern-nonprofits",
