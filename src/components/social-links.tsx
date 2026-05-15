@@ -17,7 +17,7 @@ export function SocialLinks({
 			className={`flex items-center gap-2 ${className}`.trim()}
 		>
 			<a
-				aria-label="LinkedIn"
+				aria-label={`${siteConfig.name} on LinkedIn`}
 				href={siteConfig.links.linkedin}
 				rel="noreferrer"
 				target="_blank"
@@ -25,7 +25,7 @@ export function SocialLinks({
 				<FaLinkedin size={iconSize} />
 			</a>
 			<a
-				aria-label="GitHub"
+				aria-label={`${siteConfig.name} on GitHub`}
 				href={siteConfig.links.github}
 				rel="noreferrer"
 				target="_blank"
@@ -33,7 +33,7 @@ export function SocialLinks({
 				<GithubIcon size={iconSize} />
 			</a>
 			<a
-				aria-label="X"
+				aria-label={`${siteConfig.name} on X`}
 				href={siteConfig.links.twitter}
 				rel="noreferrer"
 				target="_blank"
@@ -48,7 +48,7 @@ export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 	return (
 		<>
 			<a
-				aria-label="LinkedIn"
+				aria-label={`${siteConfig.name} on LinkedIn`}
 				href={siteConfig.links.linkedin}
 				rel="noreferrer"
 				target="_blank"
@@ -56,7 +56,7 @@ export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 				<FaLinkedin size={iconSize} />
 			</a>
 			<a
-				aria-label="GitHub"
+				aria-label={`${siteConfig.name} on GitHub`}
 				href={siteConfig.links.github}
 				rel="noreferrer"
 				target="_blank"
@@ -64,7 +64,7 @@ export function SocialLinksCompact({ iconSize = 24 }: { iconSize?: number }) {
 				<GithubIcon size={iconSize} />
 			</a>
 			<a
-				aria-label="X"
+				aria-label={`${siteConfig.name} on X`}
 				className="hidden xsm:block"
 				href={siteConfig.links.twitter}
 				rel="noreferrer"

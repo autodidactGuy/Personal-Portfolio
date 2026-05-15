@@ -16,9 +16,11 @@ import { getAboutProfile, getEducation, getExperience } from "@/lib/content";
 import {
 	getAbsoluteImageUrl,
 	getGeneratedPageOgImage,
+	getPersonId,
 	getPersonStructuredData,
 	getSeoImage,
 	getSiteUrl,
+	getWebsiteId,
 } from "@/lib/seo";
 import type {
 	AboutProfile,
@@ -306,15 +308,18 @@ export default function About({
 	experience,
 	education,
 }: AboutPageProps) {
-	const pageDescription = profile.summary || siteConfig.description;
+	const pageDescription =
+		profile.summary ||
+		"About Hassan Raza, a senior software engineer focused on fintech infrastructure, AI systems, distributed systems, and scalable backend platforms.";
 
 	return (
 		<DefaultLayout
 			seo={{
-				title: `${profile.pageLabel}`,
+				fullTitle: `About | ${siteConfig.name}`,
 				description: pageDescription,
 				pathname: "/about",
 				image: getSeoImage(profile.photo, getGeneratedPageOgImage("about")),
+				imageAlt: `${siteConfig.name} profile photo`,
 				type: "profile",
 				structuredData: [
 					getPersonStructuredData(),
@@ -324,11 +329,20 @@ export default function About({
 						name: `About ${siteConfig.name}`,
 						url: getSiteUrl("/about"),
 						description: pageDescription,
+						isPartOf: {
+							"@id": getWebsiteId(),
+						},
 						mainEntity: {
-							"@type": "Person",
-							name: siteConfig.name,
-							image: getAbsoluteImageUrl(profile.photo),
-							description: pageDescription,
+							"@id": getPersonId(),
+						},
+					},
+					{
+						"@context": "https://schema.org",
+						"@type": "ImageObject",
+						contentUrl: getAbsoluteImageUrl(profile.photo),
+						description: `${siteConfig.name} profile photo`,
+						about: {
+							"@id": getPersonId(),
 						},
 					},
 				],

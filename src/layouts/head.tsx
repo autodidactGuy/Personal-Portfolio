@@ -17,6 +17,7 @@ export const Head = ({ seo }: HeadProps) => {
 		.split("/")
 		.filter(Boolean)
 		.pop();
+	const twitterAccount = twitterHandle ? `@${twitterHandle}` : undefined;
 	const robots = resolvedSeo.noindex ? "noindex,nofollow" : "index,follow";
 
 	return (
@@ -39,7 +40,9 @@ export const Head = ({ seo }: HeadProps) => {
 			{resolvedSeo.absoluteImage ? (
 				<meta property="og:image" content={resolvedSeo.absoluteImage} />
 			) : null}
-
+			{resolvedSeo.imageAlt ? (
+				<meta property="og:image:alt" content={resolvedSeo.imageAlt} />
+			) : null}
 			<meta
 				name="twitter:card"
 				content={resolvedSeo.absoluteImage ? "summary_large_image" : "summary"}
@@ -49,8 +52,14 @@ export const Head = ({ seo }: HeadProps) => {
 			{resolvedSeo.absoluteImage ? (
 				<meta name="twitter:image" content={resolvedSeo.absoluteImage} />
 			) : null}
-			{twitterHandle ? (
-				<meta name="twitter:creator" content={`@${twitterHandle}`} />
+			{resolvedSeo.imageAlt ? (
+				<meta name="twitter:image:alt" content={resolvedSeo.imageAlt} />
+			) : null}
+			{twitterAccount ? (
+				<meta name="twitter:creator" content={twitterAccount} />
+			) : null}
+			{twitterAccount ? (
+				<meta name="twitter:site" content={twitterAccount} />
 			) : null}
 
 			{resolvedSeo.publishedTime ? (

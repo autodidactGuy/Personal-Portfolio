@@ -17,9 +17,11 @@ import {
 } from "@/lib/content";
 import {
 	getGeneratedPageOgImage,
+	getPersonId,
 	getPersonStructuredData,
 	getSeoImage,
 	getSiteUrl,
+	getWebsiteId,
 	getWebsiteStructuredData,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
@@ -56,14 +58,17 @@ export default function IndexPage({
 	featuredProjects,
 	featuredPosts,
 }: HomePageProps) {
-	const pageDescription = siteConfig.description;
+	const pageDescription =
+		"Senior software engineer building fintech infrastructure, AI systems, distributed systems, and production data platforms for real-world financial operations.";
 
 	return (
 		<DefaultLayout
 			seo={{
+				fullTitle: `${siteConfig.name} | ${siteConfig.title}`,
 				description: pageDescription,
 				pathname: "/",
 				image: getSeoImage(hero.image, getGeneratedPageOgImage("home")),
+				imageAlt: `${siteConfig.name} home page`,
 				structuredData: [
 					getWebsiteStructuredData(),
 					getPersonStructuredData(),
@@ -73,6 +78,22 @@ export default function IndexPage({
 						name: `${siteConfig.name} Portfolio`,
 						url: getSiteUrl("/"),
 						description: pageDescription,
+						about: {
+							"@id": getPersonId(),
+						},
+					},
+					{
+						"@context": "https://schema.org",
+						"@type": "WebPage",
+						name: `${siteConfig.name} Home`,
+						url: getSiteUrl("/"),
+						description: pageDescription,
+						isPartOf: {
+							"@id": getWebsiteId(),
+						},
+						mainEntity: {
+							"@id": getPersonId(),
+						},
 					},
 				],
 			}}

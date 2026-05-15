@@ -19,7 +19,17 @@ const site = readJson("settings/site.json");
 const siteUrl = trimTrailingSlash(site.siteUrl);
 
 function createAbsoluteUrl(pathname) {
-  const normalizedPath = pathname === "/" ? "/" : `/${pathname.replace(/^\/+/, "")}`;
+  const trimmedPath = pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+
+  if (pathname === "/") {
+    return `${siteUrl}/`;
+  }
+
+  const lastSegment = trimmedPath.split("/").filter(Boolean).pop() || "";
+  const normalizedPath = lastSegment.includes(".")
+    ? `/${trimmedPath}`
+    : `/${trimmedPath}/`;
+
   return `${siteUrl}${normalizedPath}`;
 }
 
@@ -45,6 +55,7 @@ function buildSitemap() {
   const staticPages = [
     { pathname: "/", priority: "1.0" },
     { pathname: "/about", priority: "0.8" },
+    { pathname: "/resume", priority: "0.8" },
     { pathname: "/projects", priority: "0.9" },
     { pathname: "/blog", priority: "0.9" },
     { pathname: "/recommendations", priority: "0.7" },

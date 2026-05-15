@@ -295,6 +295,15 @@ const pageEntries = [
     tagLabel: "Profile",
   },
   {
+    output: "resume.png",
+    eyebrow: "Resume",
+    title: `Resume - ${site.name}`,
+    summary: site.title,
+    image: about.photo || site.avatar,
+    metaLabel: site.name,
+    tagLabel: "Resume",
+  },
+  {
     output: "blog.png",
     eyebrow: "Writing",
     title: `Blog - ${site.name}`,

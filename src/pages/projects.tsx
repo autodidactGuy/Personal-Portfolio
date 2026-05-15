@@ -6,7 +6,12 @@ import { siteConfig } from "@/config/site";
 import DefaultLayout from "@/layouts/default";
 import { getProjects } from "@/lib/content";
 import { getPaginatedItems, getTotalPages } from "@/lib/pagination";
-import { getGeneratedPageOgImage, getSeoImage, getSiteUrl } from "@/lib/seo";
+import {
+	getGeneratedPageOgImage,
+	getPersonId,
+	getSeoImage,
+	getSiteUrl,
+} from "@/lib/seo";
 import { toTitleCase } from "@/lib/string";
 import type { PostFrontmatter } from "@/types/content";
 
@@ -25,21 +30,25 @@ export default function ProjectsPage({
 	totalPages,
 }: ProjectsPageProps) {
 	const pageDescription =
-		"Systems I've built, explained through real-world case studies.";
+		"Projects and case studies across fintech infrastructure, AI systems, distributed systems, and production-scale data platforms.";
 
 	return (
 		<DefaultLayout
 			seo={{
-				title: `Projects`,
+				fullTitle: "Projects | FinTech, AI & Distributed Systems",
 				description: pageDescription,
 				pathname: "/projects",
 				image: getSeoImage(getGeneratedPageOgImage("projects")),
+				imageAlt: `${siteConfig.name} projects page`,
 				structuredData: {
 					"@context": "https://schema.org",
 					"@type": "CollectionPage",
 					name: `${siteConfig.name} Projects`,
 					url: getSiteUrl("/projects"),
 					description: pageDescription,
+					about: {
+						"@id": getPersonId(),
+					},
 					mainEntity: {
 						"@type": "ItemList",
 						itemListElement: projects.map((project, index) => ({

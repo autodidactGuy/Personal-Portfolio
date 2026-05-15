@@ -1,13 +1,16 @@
 import { siteConfig, withBasePath } from "@/config/site";
+import aboutProfileJson from "../../content/about/profile.json";
 import homeHeroJson from "../../content/home/hero.json";
 
 export type SeoEntry = {
 	title?: string;
+	fullTitle?: string;
 	description?: string;
 	pathname?: string;
 	canonicalPathname?: string;
 	image?: string;
 	fallbackImage?: string;
+	imageAlt?: string;
 	type?: "website" | "article" | "profile";
 	publishedTime?: string;
 	tags?: string[];
@@ -16,6 +19,15 @@ export type SeoEntry = {
 };
 
 const DEFAULT_SOCIAL_IMAGE = homeHeroJson.image || siteConfig.avatar;
+const PERSON_IMAGE = aboutProfileJson.photo || siteConfig.avatar;
+const PERSON_KNOWS_ABOUT = [
+	"FinTech Infrastructure",
+	"Distributed Systems",
+	"AI Systems",
+	"Payment Platforms",
+	"Cloud Architecture",
+	"Data Pipelines",
+];
 
 function trimSlash(value: string) {
 	return value.replace(/\/+$/, "");
@@ -25,13 +37,28 @@ function ensureLeadingSlash(value: string) {
 	return value.startsWith("/") ? value : `/${value}`;
 }
 
+function normalizeCanonicalPath(pathname: string) {
+	const normalizedPath = pathname === "/" ? "/" : ensureLeadingSlash(pathname);
+
+	if (normalizedPath === "/") {
+		return normalizedPath;
+	}
+
+	const lastSegment = normalizedPath.split("/").filter(Boolean).pop() || "";
+
+	if (lastSegment.includes(".")) {
+		return normalizedPath;
+	}
+
+	return normalizedPath.endsWith("/") ? normalizedPath : `${normalizedPath}/`;
+}
+
 export function getSiteOrigin() {
 	return trimSlash(siteConfig.siteUrl);
 }
 
 export function getSiteUrl(pathname = "/") {
-	const normalizedPath = pathname === "/" ? "/" : ensureLeadingSlash(pathname);
-	return `${getSiteOrigin()}${normalizedPath}`;
+	return `${getSiteOrigin()}${normalizeCanonicalPath(pathname)}`;
 }
 
 export function getAbsoluteImageUrl(image?: string | null) {
@@ -49,7 +76,14 @@ export function getAbsoluteImageUrl(image?: string | null) {
 }
 
 export function getGeneratedPageOgImage(
-	page: "home" | "about" | "blog" | "projects" | "recommendations" | "contact",
+	page:
+		| "home"
+		| "about"
+		| "resume"
+		| "blog"
+		| "projects"
+		| "recommendations"
+		| "contact",
 ) {
 	return `/og/${page}.png`;
 }
@@ -73,18 +107,31 @@ export function buildTitle(title?: string) {
 	return `${title} | ${siteConfig.name}`;
 }
 
+export function getPersonId() {
+	return `${getSiteOrigin()}/#person`;
+}
+
+export function getWebsiteId() {
+	return `${getSiteOrigin()}/#website`;
+}
+
 export function buildSeo(entry: SeoEntry = {}) {
 	const pathname = entry.pathname || "/";
 	const description = entry.description || siteConfig.description;
 	const image = getSeoImage(entry.image, entry.fallbackImage);
 
 	return {
-		title: buildTitle(entry.title),
+		title: entry.fullTitle || buildTitle(entry.title),
 		description,
 		pathname,
 		canonical: getSiteUrl(entry.canonicalPathname || pathname),
 		image,
 		absoluteImage: getAbsoluteImageUrl(image),
+		imageAlt:
+			entry.imageAlt ||
+			(entry.title
+				? `${entry.title} - ${siteConfig.name}`
+				: `${siteConfig.name} - ${siteConfig.title}`),
 		type: entry.type || "website",
 		publishedTime: entry.publishedTime,
 		tags: entry.tags || [],
@@ -105,16 +152,18 @@ export function getPersonStructuredData() {
 	return {
 		"@context": "https://schema.org",
 		"@type": "Person",
+		"@id": getPersonId(),
 		name: siteConfig.name,
 		url: getSiteUrl("/"),
-		image: getAbsoluteImageUrl(siteConfig.avatar),
+		image: getAbsoluteImageUrl(PERSON_IMAGE),
 		jobTitle: siteConfig.title,
 		description: siteConfig.description,
 		sameAs: [
 			siteConfig.links.github,
 			siteConfig.links.linkedin,
 			siteConfig.links.twitter,
-		],
+		].filter(Boolean),
+		knowsAbout: PERSON_KNOWS_ABOUT,
 	};
 }
 
@@ -122,8 +171,12 @@ export function getWebsiteStructuredData() {
 	return {
 		"@context": "https://schema.org",
 		"@type": "WebSite",
+		"@id": getWebsiteId(),
 		name: siteConfig.name,
 		url: getSiteUrl("/"),
 		description: siteConfig.description,
+		publisher: {
+			"@id": getPersonId(),
+		},
 	};
 }

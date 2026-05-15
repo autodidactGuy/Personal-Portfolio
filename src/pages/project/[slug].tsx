@@ -11,6 +11,7 @@ import { compileMdx, getProjectBySlug, getProjectSlugs } from "@/lib/content";
 import {
 	getAbsoluteImageUrl,
 	getGeneratedPostOgImage,
+	getPersonId,
 	getSeoImage,
 	getSiteUrl,
 } from "@/lib/seo";
@@ -48,14 +49,13 @@ export default function ProjectDetailPage({
 				structuredData: {
 					"@context": "https://schema.org",
 					"@type": "CreativeWork",
+					"@id": `${getSiteUrl(`/project/${project.slug}`)}#work`,
 					name: project.frontmatter.title,
 					description: pageDescription,
 					image: getAbsoluteImageUrl(seoImage),
 					url: getSiteUrl(`/project/${project.slug}`),
 					author: {
-						"@type": "Person",
-						name: siteConfig.name,
-						url: getSiteUrl("/about"),
+						"@id": getPersonId(),
 					},
 					keywords: project.frontmatter.tags.join(", "),
 				},

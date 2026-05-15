@@ -40,7 +40,7 @@
     "resume": "/HassanRaza-Resume.pdf",
     "calendly": "https://calendly.com/autodidactGuy/15min"
   },
-  "description": "Engineer building scalable financial infrastructure and AI-driven data systems for nonprofits. Currently designing systems supporting ~1000 organizations and processing over $1B annually across payments, data pipelines, and analytics.",
+  "description": "Senior software engineer building fintech infrastructure, distributed systems, and AI-driven data platforms. Currently designing systems supporting ~1000 organizations and processing over $1B annually across payments, data pipelines, and analytics.",
   "slogan": "Designing systems that move money, data, and decisions at scale.",
   "comingSoonMode": {
     "enabled": false,

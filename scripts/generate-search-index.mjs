@@ -80,7 +80,14 @@ function buildIndex() {
     summary: profile.summary,
     href: "/about",
     meta: profile.aboutSectionTitle,
-    keywords: ["about", "profile", "overview", "bio", "summary"],
+    keywords: uniqueOrdered([
+      "about",
+      "profile",
+      "overview",
+      "bio",
+      "summary",
+      ...(profile.industries || []),
+    ]),
     searchText: buildSearchText([
       "about profile overview bio summary",
       profile.pageLabel,
@@ -91,6 +98,7 @@ function buildIndex() {
       profile.summaryLabel,
       profile.headline,
       profile.summary,
+      ...(profile.industries || []),
       ...(profile.body || []),
     ]),
   };
