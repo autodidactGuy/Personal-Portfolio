@@ -878,11 +878,11 @@ function isLowQualityCloudflareAnswer(
 ) {
 	const structuredContent = getAssistantStructuredContent(payload);
 
-	if (!structuredContent || structuredContent.status !== "answered") {
+	if (structuredContent?.status !== "answered") {
 		return false;
 	}
 
-	const normalizedAnswer = structuredContent.answer.trim().toLowerCase();
+	const normalizedAnswer = structuredContent?.answer?.trim().toLowerCase();
 
 	if (!normalizedAnswer) {
 		return true;
