@@ -58,3 +58,33 @@ Update the maintenance docs in the same change whenever you modify:
 - SEO behavior or structured data
 - worker endpoints, providers, retrieval, or deployment flow
 - CI, deployment, or required environment variables
+
+## Cursor Cloud specific instructions
+
+### Services
+
+| Service | Command | URL | Notes |
+|---|---|---|---|
+| Next.js dev server (required for site work) | `yarn dev` | `http://localhost:3000` | Regenerates `resume.json` and `search-index.json` before starting |
+| Static export preview (optional) | `yarn build && yarn start` | `http://localhost:3000` | Serves the `out/` directory |
+| Cloudflare Worker (optional) | `cd cloudflare-worker && yarn dev` | `http://127.0.0.1:8787` | Needed for contact form, AI assistant, and CMS OAuth E2E |
+
+No `.env` file is required for basic site development. Public defaults live in `config/public-env.defaults.json`. When the site runs on `localhost`, it auto-targets the local worker via `NEXT_PUBLIC_LOCAL_WORKER_URL` (`http://127.0.0.1:8787`).
+
+### Install and validation
+
+Install both workspaces after pulling changes:
+
+```bash
+yarn install --frozen-lockfile
+cd cloudflare-worker && yarn install --frozen-lockfile
+```
+
+Standard checks (see Validation section above): `yarn lint`, `yarn typecheck`, `yarn build`, `cd cloudflare-worker && yarn test`, `cd cloudflare-worker && yarn typecheck`.
+
+### Gotchas
+
+- `yarn dev` runs content generators (`resume:generate`, `search:generate`) before Next.js starts; expect a short delay on first launch.
+- `yarn build` may print an ESLint-not-installed warning during the Next.js build step; the build still succeeds because linting is handled by Biome via `yarn lint`.
+- Worker E2E features (contact email, AI assistant, Decap CMS OAuth) require `cloudflare-worker/.dev.vars` secrets or `yarn dev:remote` with Cloudflare credentials. These are not needed for static site pages, search, or content editing in the repo.
+- Node 20+ works for the root app; the worker CI uses Node 22. Both install cleanly on Node 22.
