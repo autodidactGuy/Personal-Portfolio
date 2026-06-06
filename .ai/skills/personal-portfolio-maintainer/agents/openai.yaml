@@ -1,0 +1,3 @@
+display_name: Personal Portfolio Maintainer
+short_description: Maintains the portfolio repo using its architecture, SEO, content, and build rules.
+default_prompt: Follow the repo maintenance docs, preserve the static-first architecture, update generated artifacts when inputs change, and keep the architecture graph in sync with structural changes.
