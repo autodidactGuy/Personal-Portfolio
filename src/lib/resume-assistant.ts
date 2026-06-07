@@ -224,6 +224,7 @@ export type AssistantResponse = {
 	status: "answered" | "missing" | "rejected";
 	answer: string;
 	citations: string[];
+	rateLimited?: boolean;
 	provider?: string | null;
 	providerContext?: Array<{
 		provider: string;
@@ -3004,32 +3005,43 @@ export async function fetchSemanticRelevantSnippets(args: {
 	};
 }
 
-export async function fetchAssistantResponse(args: {
-	workerUrl: string;
-	question: string;
-	recentMessages: Array<{
-		role: "user" | "assistant";
-		content: string;
-	}>;
-	snippets: ResumeSnippet[];
-}) {
-	const { question, recentMessages, snippets, workerUrl } = args;
-	const requestBody = buildAssistantChatRequestBody({
-		question,
-		recentMessages,
-		snippets,
-	});
+function parseAssistantProviderContextHeader(header: string | null) {
+	if (!header) {
+		return null;
+	}
 
-	const response = await fetch(
-		new URL("/assistant-routed", workerUrl).toString(),
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(requestBody),
-		},
-	);
+	try {
+		const parsedProviderContext = JSON.parse(header) as Array<{
+			provider?: unknown;
+			status?: unknown;
+			error?: unknown;
+		}>;
+
+		return Array.isArray(parsedProviderContext)
+			? parsedProviderContext
+					.filter(
+						(entry) =>
+							entry &&
+							typeof entry.provider === "string" &&
+							typeof entry.status === "number",
+					)
+					.map((entry) => ({
+						provider: entry.provider as string,
+						status: entry.status as number,
+						error: typeof entry.error === "string" ? entry.error : null,
+					}))
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+export async function parseAssistantFetchResponse(
+	response: Response,
+	snippets: ResumeSnippet[],
+) {
+	const rateLimited =
+		response.headers.get("X-Assistant-Rate-Limited")?.toLowerCase() === "true";
 
 	if (!response.ok) {
 		const errorPayload = await parseAssistantJsonPayload(response).catch(
@@ -3053,36 +3065,9 @@ export async function fetchAssistantResponse(args: {
 		}>;
 	};
 	const provider = response.headers.get("X-Assistant-Provider");
-	const providerContextHeader = response.headers.get("X-Assistant-Providers");
-	let providerContext: AssistantResponse["providerContext"] = null;
-
-	if (providerContextHeader) {
-		try {
-			const parsedProviderContext = JSON.parse(providerContextHeader) as Array<{
-				provider?: unknown;
-				status?: unknown;
-				error?: unknown;
-			}>;
-
-			providerContext = Array.isArray(parsedProviderContext)
-				? parsedProviderContext
-						.filter(
-							(entry) =>
-								entry &&
-								typeof entry.provider === "string" &&
-								typeof entry.status === "number",
-						)
-						.map((entry) => ({
-							provider: entry.provider as string,
-							status: entry.status as number,
-							error: typeof entry.error === "string" ? entry.error : null,
-						}))
-				: null;
-		} catch {
-			providerContext = null;
-		}
-	}
-
+	const providerContext = parseAssistantProviderContextHeader(
+		response.headers.get("X-Assistant-Providers"),
+	);
 	const rawContent = payload.choices?.[0]?.message?.content;
 
 	if (!rawContent) {
@@ -3111,6 +3096,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3121,6 +3107,7 @@ export async function fetchAssistantResponse(args: {
 			status: "answered",
 			answer: normalizedAnswer,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3131,6 +3118,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3141,6 +3129,7 @@ export async function fetchAssistantResponse(args: {
 			status: "rejected",
 			answer: UNRELATED_QUESTION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3150,9 +3139,40 @@ export async function fetchAssistantResponse(args: {
 		status: "answered",
 		answer: normalizedAnswer,
 		citations: filteredCitations,
+		rateLimited,
 		provider,
 		providerContext,
 	} satisfies AssistantResponse;
+}
+
+export async function fetchAssistantResponse(args: {
+	workerUrl: string;
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+	snippets: ResumeSnippet[];
+}) {
+	const { question, recentMessages, snippets, workerUrl } = args;
+	const requestBody = buildAssistantChatRequestBody({
+		question,
+		recentMessages,
+		snippets,
+	});
+
+	const response = await fetch(
+		new URL("/assistant-routed", workerUrl).toString(),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(requestBody),
+		},
+	);
+
+	return parseAssistantFetchResponse(response, snippets);
 }
 
 export async function fetchAssistantRawProviderResponse(args: {

@@ -12,6 +12,15 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
+	type AssistantChatMessage,
+	getAssistantMessageStatusLabel,
+	normalizeAssistantDisplayContent,
+	parseAssistantMessageBlocks,
+	parseStoredAssistantMessages,
+	serializeAssistantMessages,
+	stripAssistantCitationMarkers,
+} from "@/lib/assistant-message-rendering";
+import {
 	type AssistantDebugProvider,
 	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
@@ -41,16 +50,12 @@ import {
 	UNRELATED_QUESTION_MESSAGE,
 } from "@/lib/resume-assistant";
 
-type ChatMessage = {
-	id: string;
-	role: "assistant" | "user";
-	content: string;
-	status?: "answered" | "missing" | "rejected" | "system";
-	citations?: ResumeSnippet[];
-};
+type ChatMessage = AssistantChatMessage;
 
 const CONVERSATION_STORAGE_KEY = "portfolio-assistant-conversation";
 const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV === "development";
+const RATE_LIMITED_ASSISTANT_MESSAGE =
+	"The assistant is temporarily rate limited. Please wait a moment and try again.";
 
 type AssistantDebugState = {
 	retrievalResult: RetrievalResult | null;
@@ -111,145 +116,19 @@ const THINKING_STATES = [
 	},
 ];
 
-const ASSISTANT_CITATION_PATTERN =
-	/【[^】]+】|\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi;
-
 function renderMessageContent(
 	content: string,
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
 ) {
-	const normalizedContent = normalizeAssistantDisplayContent(content);
-	const lines = normalizedContent.split("\n");
-	const blocks: Array<
-		| { type: "paragraph"; lines: string[] }
-		| { type: "list"; items: string[]; ordered: boolean }
-		| { type: "table"; rows: string[][] }
-	> = [];
-	let paragraphBuffer: string[] = [];
-	let listBuffer: string[] = [];
-	let tableBuffer: string[][] = [];
-	let listOrdered = false;
-	let pendingListBreak = false;
-
-	const flushParagraphBuffer = () => {
-		if (!paragraphBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "paragraph",
-			lines: paragraphBuffer,
-		});
-		paragraphBuffer = [];
-	};
-
-	const flushListBuffer = () => {
-		if (!listBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "list",
-			items: listBuffer,
-			ordered: listOrdered,
-		});
-		listBuffer = [];
-		listOrdered = false;
-		pendingListBreak = false;
-	};
-
-	const flushTableBuffer = () => {
-		if (!tableBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "table",
-			rows: tableBuffer,
-		});
-		tableBuffer = [];
-	};
-
-	const appendToCurrentListItem = (line: string) => {
-		if (!listBuffer.length) {
-			return false;
-		}
-
-		const lastIndex = listBuffer.length - 1;
-		listBuffer[lastIndex] = `${listBuffer[lastIndex]}\n${line}`.trim();
-		return true;
-	};
-
-	for (const rawLine of lines) {
-		const line = rawLine.trim();
-
-		if (!line || isAssistantSeparatorLine(line)) {
-			flushTableBuffer();
-			if (listBuffer.length) {
-				pendingListBreak = true;
-			} else {
-				flushParagraphBuffer();
-				flushListBuffer();
-			}
-			continue;
-		}
-
-		if (isAssistantTableLine(line)) {
-			flushParagraphBuffer();
-			flushListBuffer();
-			pendingListBreak = false;
-			const cells = parseAssistantTableLine(line);
-
-			if (cells.length) {
-				tableBuffer.push(cells);
-			}
-			continue;
-		}
-
-		flushTableBuffer();
-
-		if (/^-\s+/.test(line)) {
-			flushParagraphBuffer();
-			if (listBuffer.length && listOrdered) {
-				flushListBuffer();
-			}
-			listOrdered = false;
-			pendingListBreak = false;
-			listBuffer.push(line.replace(/^-\s+/, "").trim());
-			continue;
-		}
-
-		if (/^\d+\.\s+/.test(line)) {
-			flushParagraphBuffer();
-			if (listBuffer.length && !listOrdered) {
-				flushListBuffer();
-			}
-			listOrdered = true;
-			pendingListBreak = false;
-			listBuffer.push(line.replace(/^\d+\.\s+/, "").trim());
-			continue;
-		}
-
-		if (appendToCurrentListItem(line)) {
-			pendingListBreak = false;
-			continue;
-		}
-
-		if (pendingListBreak) {
-			flushListBuffer();
-		}
-
-		flushListBuffer();
-		paragraphBuffer.push(line);
-	}
-
-	flushParagraphBuffer();
-	flushListBuffer();
-	flushTableBuffer();
+	const blocks = parseAssistantMessageBlocks(content);
 
 	if (!blocks.length) {
-		return <p className="break-words">{normalizedContent}</p>;
+		return (
+			<p className="break-words">
+				{normalizeAssistantDisplayContent(content)}
+			</p>
+		);
 	}
 
 	return (
@@ -260,7 +139,11 @@ function renderMessageContent(
 						? `${block.ordered ? "ordered" : "unordered"}:${block.items.join("|")}`
 						: block.type === "table"
 							? block.rows.map((row) => row.join("|")).join("||")
-							: block.lines.join("|");
+							: block.type === "code"
+								? `${block.language}:${block.code}`
+								: block.type === "heading"
+									? `${block.level}:${block.text}`
+									: block.lines.join("|");
 				const blockKey = `${block.type}:${blockContent}`;
 
 				return block.type === "list" ? (
@@ -321,6 +204,34 @@ function renderMessageContent(
 							</tbody>
 						</table>
 					</div>
+				) : block.type === "heading" ? (
+					<p
+						className={clsx(
+							"break-words font-semibold text-foreground",
+							block.level === 2 ? "text-base" : "text-sm",
+						)}
+						key={blockKey}
+					>
+						{renderInlineMessageContent(block.text, citations, resume)}
+					</p>
+				) : block.type === "quote" ? (
+					<blockquote
+						className="border-l-2 border-primary/30 pl-3 text-foreground/85"
+						key={blockKey}
+					>
+						{renderInlineMessageContent(
+							block.lines.join("\n"),
+							citations,
+							resume,
+						)}
+					</blockquote>
+				) : block.type === "code" ? (
+					<pre
+						className="overflow-x-auto rounded-2xl border border-default-200/70 bg-default-100/70 px-3 py-2 text-xs leading-5 text-foreground"
+						key={blockKey}
+					>
+						<code>{block.code}</code>
+					</pre>
 				) : (
 					<p className="break-words whitespace-break-spaces" key={blockKey}>
 						{renderInlineMessageContent(
@@ -333,113 +244,6 @@ function renderMessageContent(
 			})}
 		</div>
 	);
-}
-
-function normalizeAssistantDisplayContent(content: string) {
-	return normalizeAssistantTableFormatting(
-		stripAssistantCitationMarkers(content)
-			.replace(/\r\n/g, "\n")
-			.replace(/\\n/g, "\n")
-			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
-			.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
-			.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
-			.replace(
-				/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
-				"$1\n",
-			)
-			.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
-			.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
-			.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
-			.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
-			.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
-			.replace(/\*{2}\s*\n\s*/g, "**")
-			.replace(/\s*\n\s*\*{2}/g, "**")
-			.replace(/\*{1}\s*\n\s*/g, "*")
-			.replace(/\s*\n\s*\*{1}/g, "*")
-			.replace(/[ \t]{2,}/g, " ")
-			.replace(/[ \t]+\n/g, "\n")
-			.replace(/\n[ \t]+/g, "\n")
-			.replace(/\n{3,}/g, "\n\n")
-			.trim(),
-	);
-}
-
-function parsePipeTableCells(line: string) {
-	return line
-		.replace(/^\|/, "")
-		.replace(/\|$/, "")
-		.split("|")
-		.map((cell) => cell.trim());
-}
-
-function looksLikePipeDelimitedTableLine(line: string) {
-	if (!line.includes("|")) {
-		return false;
-	}
-
-	const cells = parsePipeTableCells(line);
-	return cells.length >= 3 && cells.some((cell) => cell.length > 0);
-}
-
-function normalizeAssistantTableFormatting(content: string) {
-	return content
-		.split("\n")
-		.flatMap((line) => {
-			if (!line.trim()) {
-				return [line];
-			}
-
-			const firstPipeIndex = line.indexOf("|");
-
-			if (
-				firstPipeIndex > 0 &&
-				!line.trimStart().startsWith("|") &&
-				looksLikePipeDelimitedTableLine(line.slice(firstPipeIndex))
-			) {
-				return [line.slice(0, firstPipeIndex), line.slice(firstPipeIndex)];
-			}
-
-			const italicBlockIndex = line.indexOf("|*");
-
-			if (italicBlockIndex >= 0) {
-				const tableCandidate = line.slice(0, italicBlockIndex + 1);
-
-				if (looksLikePipeDelimitedTableLine(tableCandidate)) {
-					return [tableCandidate, line.slice(italicBlockIndex + 1)];
-				}
-			}
-
-			return [line];
-		})
-		.join("\n");
-}
-
-function isAssistantSeparatorLine(line: string) {
-	return /^([-_*])\1{2,}$/.test(line.trim());
-}
-
-function isAssistantTableLine(line: string) {
-	return (
-		/^\|/.test(line) ||
-		looksLikePipeDelimitedTableLine(line) ||
-		/^[^\t\n]+(?:\t[^\t\n]+){2,}$/.test(line)
-	);
-}
-
-function parseAssistantTableLine(line: string) {
-	const cells = /\t/.test(line)
-		? line.split("\t").map((cell) => cell.trim())
-		: parsePipeTableCells(line);
-
-	if (
-		!cells.length ||
-		cells.every((cell) => !cell) ||
-		cells.every((cell) => /^:?-{3,}:?$/.test(cell))
-	) {
-		return [];
-	}
-
-	return cells;
 }
 
 function renderBoldMarkdown(text: string) {
@@ -470,57 +274,6 @@ function renderBoldMarkdown(text: string) {
 	}
 
 	return parts;
-}
-
-function isWordLikeCharacter(value: string | undefined) {
-	return Boolean(value && /[A-Za-z0-9]/.test(value));
-}
-
-function stripAssistantCitationMarkers(text: string) {
-	let result = "";
-	let lastIndex = 0;
-	let match: RegExpExecArray | null = ASSISTANT_CITATION_PATTERN.exec(text);
-
-	while (match) {
-		const start = match.index ?? 0;
-		const end = start + match[0].length;
-		result += text.slice(lastIndex, start);
-
-		const previousChar = result.at(-1);
-		const nextChar = text[end];
-		const nextSlice = text.slice(end);
-		const nextNonWhitespace = text.slice(end).match(/\S/)?.[0];
-		const currentLine = result.slice(result.lastIndexOf("\n") + 1);
-
-		if (
-			/[,:;]\s*$/.test(result) &&
-			(!nextNonWhitespace || /[.?!,;:)}\]]/.test(nextNonWhitespace))
-		) {
-			result = result.replace(/[,:;]\s*$/g, "");
-		}
-
-		if (isWordLikeCharacter(previousChar) && isWordLikeCharacter(nextChar)) {
-			result += " ";
-		}
-
-		if (
-			/^[ \t]*\|/.test(nextSlice) &&
-			currentLine.trim() &&
-			!currentLine.trimStart().startsWith("|")
-		) {
-			result += "\n";
-		}
-
-		lastIndex = end;
-		match = ASSISTANT_CITATION_PATTERN.exec(text);
-	}
-
-	ASSISTANT_CITATION_PATTERN.lastIndex = 0;
-
-	return `${result}${text.slice(lastIndex)}`
-		.replace(/[ \t]+([,.;:!?])/g, "$1")
-		.replace(/([([])[ \t]+/g, "$1")
-		.replace(/[ \t]{2,}/g, " ");
 }
 
 function stripResidualAssistantMarkers(text: string) {
@@ -670,6 +423,39 @@ function renderInlineMessageContent(
 	return parts;
 }
 
+function getMessageBubbleClasses(message: ChatMessage) {
+	if (message.role === "user") {
+		return "bg-primary/95 text-white";
+	}
+
+	if (message.rateLimited) {
+		return "border border-warning/30 bg-warning/10 text-foreground dark:bg-warning/10";
+	}
+
+	switch (message.status) {
+		case "missing":
+			return "border border-warning/25 bg-warning/8 text-foreground dark:bg-warning/10";
+		case "rejected":
+			return "border border-danger/25 bg-danger/8 text-foreground dark:bg-danger/10";
+		case "system":
+			return "border border-default-200/70 bg-default-100/70 text-default-700 dark:border-default-100/10 dark:bg-default-100/10 dark:text-default-300";
+		default:
+			return "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80";
+	}
+}
+
+function getMessageStatusLabelClasses(message: ChatMessage) {
+	if (message.rateLimited || message.status === "missing") {
+		return "text-warning";
+	}
+
+	if (message.status === "rejected") {
+		return "text-danger";
+	}
+
+	return "text-default-500";
+}
+
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
 		return [
@@ -706,7 +492,7 @@ function buildWelcomeMessage(personName: string): ChatMessage {
 function createMessage(
 	role: ChatMessage["role"],
 	content: string,
-	options?: Partial<Pick<ChatMessage, "status" | "citations">>,
+	options?: Partial<Pick<ChatMessage, "status" | "citations" | "rateLimited">>,
 ): ChatMessage {
 	return {
 		id:
@@ -733,13 +519,10 @@ export function ResumeAssistant() {
 
 		try {
 			const stored = window.localStorage.getItem(CONVERSATION_STORAGE_KEY);
+			const parsedMessages = parseStoredAssistantMessages(stored);
 
-			if (stored) {
-				const parsed = JSON.parse(stored) as ChatMessage[];
-
-				if (Array.isArray(parsed) && parsed.length > 0) {
-					return parsed;
-				}
+			if (parsedMessages) {
+				return parsedMessages;
 			}
 		} catch {
 			// ignore parse/storage errors
@@ -887,7 +670,7 @@ export function ResumeAssistant() {
 		try {
 			window.localStorage.setItem(
 				CONVERSATION_STORAGE_KEY,
-				JSON.stringify(messages),
+				serializeAssistantMessages(messages),
 			);
 		} catch {
 			// ignore storage errors (e.g. private browsing quota exceeded)
@@ -896,7 +679,7 @@ export function ResumeAssistant() {
 
 	const addAssistantMessage = (
 		content: string,
-		options?: Partial<Pick<ChatMessage, "status" | "citations">>,
+		options?: Partial<Pick<ChatMessage, "status" | "citations" | "rateLimited">>,
 	) => {
 		setMessages((currentMessages) => [
 			...currentMessages,
@@ -1066,13 +849,23 @@ export function ResumeAssistant() {
 	) => {
 		const responseCitationIds = new Set<string>(response.citations);
 
-		addAssistantMessage(response.answer, {
-			status: response.status,
-			citations: resolveResumeSnippetCitations(
-				Array.from(responseCitationIds),
-				availableSnippets,
-			),
-		});
+		if (response.rateLimited) {
+			setStatusMessage(
+				"Assistant provider rate limits are active; please retry shortly.",
+			);
+		}
+
+		addAssistantMessage(
+			response.rateLimited ? RATE_LIMITED_ASSISTANT_MESSAGE : response.answer,
+			{
+				status: response.status,
+				rateLimited: response.rateLimited,
+				citations: resolveResumeSnippetCitations(
+					Array.from(responseCitationIds),
+					availableSnippets,
+				),
+			},
+		);
 	};
 
 	const submitQuestion = async (question: string) => {
@@ -1200,6 +993,14 @@ export function ResumeAssistant() {
 					providerContext: initialAssistantResponse.providerContext || null,
 				});
 
+				if (initialAssistantResponse.rateLimited) {
+					addAssistantResponseMessage(
+						initialAssistantResponse,
+						initialSnippets,
+					);
+					return;
+				}
+
 				if (initialAssistantResponse.status !== "missing") {
 					addAssistantResponseMessage(
 						initialAssistantResponse,
@@ -1238,6 +1039,11 @@ export function ResumeAssistant() {
 					lastProvider: assistantResponse.provider || null,
 					providerContext: assistantResponse.providerContext || null,
 				});
+
+				if (assistantResponse.rateLimited) {
+					addAssistantResponseMessage(assistantResponse, relevantSnippets);
+					return;
+				}
 
 				if (assistantResponse.status !== "missing") {
 					addAssistantResponseMessage(assistantResponse, relevantSnippets);
@@ -1390,80 +1196,106 @@ export function ResumeAssistant() {
 					visibility="none"
 				>
 					<div className="flex min-h-full flex-col gap-3 pb-2 sm:gap-4 sm:pb-3">
-						{messages.map((message, index) => (
-							<div
-								className={clsx(
-									"flex scroll-mb-28",
-									message.role === "user" ? "justify-end" : "justify-start",
-								)}
-								key={message.id}
-								ref={index === messages.length - 1 ? lastMessageRef : null}
-							>
-								<div
-									className={clsx(
-										"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
-										message.role === "user"
-											? "bg-primary/95 text-white"
-											: "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80",
-									)}
-								>
-									{renderMessageContent(
-										message.content,
-										message.citations,
-										resume,
-									)}
-									{message.citations?.length ? (
-										<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
-											{message.citations.map((citation) => {
-												const href = getSnippetHref(citation);
+						{messages.map((message, index) => {
+							const statusLabel = getAssistantMessageStatusLabel(message);
 
-												return href ? (
-													<NextLink
-														href={href}
-														key={citation.id}
-														rel="noreferrer"
-														target="_blank"
-													>
-														<Tooltip delay={0}>
+							return (
+								<div
+									aria-label={
+										statusLabel
+											? `${message.role} message: ${statusLabel}`
+											: `${message.role} message`
+									}
+									className={clsx(
+										"flex scroll-mb-28",
+										message.role === "user"
+											? "justify-end"
+											: "justify-start",
+									)}
+									key={message.id}
+									ref={index === messages.length - 1 ? lastMessageRef : null}
+								>
+									<div
+										className={clsx(
+											"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
+											getMessageBubbleClasses(message),
+										)}
+									>
+										{statusLabel ? (
+											<p
+												className={clsx(
+													"mb-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
+													getMessageStatusLabelClasses(message),
+												)}
+											>
+												{statusLabel}
+											</p>
+										) : null}
+										{renderMessageContent(
+											message.content,
+											message.citations,
+											resume,
+										)}
+										{message.citations?.length ? (
+											<div className="mt-3 max-w-full overflow-hidden">
+												<p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-default-500">
+													Sources
+												</p>
+												<div className="flex max-w-full flex-wrap gap-2">
+													{message.citations.map((citation) => {
+														const href = getSnippetHref(citation);
+
+														return href ? (
+															<NextLink
+																href={href}
+																key={citation.id}
+																rel="noreferrer"
+																target="_blank"
+															>
+																<Tooltip delay={0}>
+																	<Chip
+																		className="max-w-full cursor-pointer border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
+																		size="sm"
+																		variant="secondary"
+																	>
+																		<Chip.Label className="flex max-w-full items-center gap-1 truncate">
+																			<span className="truncate">
+																				{citation.title}
+																			</span>
+																			<HiOutlineArrowTopRightOnSquare
+																				className="shrink-0"
+																				size={12}
+																			/>
+																		</Chip.Label>
+																	</Chip>
+																	<Tooltip.Content showArrow>
+																		<Tooltip.Arrow />
+																		<p>
+																			Open {citation.title} in a new tab
+																		</p>
+																	</Tooltip.Content>
+																</Tooltip>
+															</NextLink>
+														) : (
 															<Chip
-																className="max-w-full cursor-pointer border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
+																className="max-w-full border border-primary/15 bg-primary/8 text-primary"
+																key={citation.id}
 																size="sm"
 																variant="secondary"
 															>
-																<Chip.Label className="flex max-w-full items-center gap-1 truncate">
-																	<span className="truncate">
-																		{citation.title}
-																	</span>
-																	<HiOutlineArrowTopRightOnSquare
-																		className="shrink-0"
-																		size={12}
-																	/>
+																<Chip.Label className="max-w-full truncate">
+																	{citation.title}
 																</Chip.Label>
 															</Chip>
-															<Tooltip.Content showArrow>
-																<Tooltip.Arrow />
-																<p>Open {citation.title} in a new tab</p>
-															</Tooltip.Content>
-														</Tooltip>
-													</NextLink>
-												) : (
-													<Chip
-														className="max-w-full border border-primary/15 bg-primary/8 text-primary"
-														key={citation.id}
-														size="sm"
-														variant="secondary"
-													>
-														<Chip.Label className="max-w-full truncate">
-															{citation.title}
-														</Chip.Label>
-													</Chip>
-												);
-											})}
-										</div>
-									) : null}
+														);
+													})}
+												</div>
+											</div>
+										) : null}
+									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 
 						{!hasUserMessages ? (
 							<div className="flex justify-start">
@@ -1509,9 +1341,17 @@ export function ResumeAssistant() {
 
 						<div className="sticky bottom-0 z-10 mt-auto rounded-[22px] border border-default-200/70 bg-content1/92 px-2.5 pb-2 pt-2.5 shadow-[0_-10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl dark:border-default-100/10 dark:bg-[#0d1b2f]/92 sm:rounded-[24px] sm:px-3 sm:pb-3 sm:pt-3">
 							{resumeError || statusMessage ? (
-								<div className="px-1 pb-2 text-xs text-default-500 hidden">
+								<div
+									className={clsx(
+										"mb-2 rounded-2xl border px-3 py-2 text-xs",
+										resumeError
+											? "border-danger/20 bg-danger/8 text-danger"
+											: "border-warning/20 bg-warning/8 text-warning",
+									)}
+									role="status"
+								>
 									{resumeError ? (
-										<span className="text-danger">{resumeError}</span>
+										<span>{resumeError}</span>
 									) : (
 										<span>{statusMessage}</span>
 									)}
