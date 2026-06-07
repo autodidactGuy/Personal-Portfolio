@@ -1,0 +1,27 @@
+{
+  "name": "personal-portfolio",
+  "agentCanUpdateSnapshot": true,
+  "install": "yarn install --frozen-lockfile\ncd cloudflare-worker && yarn install --frozen-lockfile",
+  "ports": [
+    {
+      "name": "Next.js dev server",
+      "port": 3000
+    },
+    {
+      "name": "Cloudflare Worker",
+      "port": 8787
+    }
+  ],
+  "terminals": [
+    {
+      "name": "Next.js dev server",
+      "command": "yarn dev",
+      "description": "Regenerates resume/search artifacts, then serves the portfolio at http://localhost:3000"
+    },
+    {
+      "name": "Cloudflare Worker",
+      "command": "cd cloudflare-worker && yarn dev",
+      "description": "Optional Wrangler dev server at http://127.0.0.1:8787 for contact, assistant, and CMS OAuth E2E"
+    }
+  ]
+}
