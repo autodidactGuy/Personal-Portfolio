@@ -61,6 +61,10 @@ Update the maintenance docs in the same change whenever you modify:
 
 ## Cursor Cloud specific instructions
 
+Repo-level cloud agent configuration lives in `.cursor/environment.json`. Cursor resolves this file before personal or team saved environments.
+
+After saving a Cloud Agents environment snapshot from the dashboard, paste its ID into the `snapshot` field in `.cursor/environment.json` so future agents boot from the cached VM image. Snapshot IDs are available at [Cloud Agents → Environments](https://cursor.com/dashboard?tab=cloud-agents) after you save the environment.
+
 ### Services
 
 | Service | Command | URL | Notes |
