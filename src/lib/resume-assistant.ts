@@ -305,6 +305,30 @@ const assistantResponseSchema = z.object({
 	citations: z.array(z.string().trim()),
 });
 
+const REMOVED_ASSISTANT_CITATION_TOKEN = "__assistant_removed_citation__";
+
+function isWordLikeCharacter(value: string | undefined) {
+	return Boolean(value && /[A-Za-z0-9]/.test(value));
+}
+
+function cleanAssistantCitationSpacing(value: string) {
+	return value
+		.replace(
+			new RegExp(
+				`[ \\t]*\\([ \\t]*${REMOVED_ASSISTANT_CITATION_TOKEN}[ \\t]*\\)[ \\t]*`,
+				"g",
+			),
+			" ",
+		)
+		.replace(
+			new RegExp(`[ \\t]*${REMOVED_ASSISTANT_CITATION_TOKEN}[ \\t]*`, "g"),
+			" ",
+		)
+		.replace(/[ \t]+([,.;:!?])/g, "$1")
+		.replace(/([([])[ \t]+/g, "$1")
+		.trim();
+}
+
 function replaceInlineCitationIdsWithTitles(
 	answer: string,
 	snippets: ResumeSnippet[],
@@ -325,30 +349,36 @@ function replaceInlineCitationIdsWithTitles(
 			.replace(/\s+/g, " ")
 			.trim();
 
-	return answer.replace(
-		/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
-		(match, _citationId, offset) => {
-			const start = typeof offset === "number" ? offset : 0;
-			const citationId = match.slice(1, -1);
-			const title = snippetTitleById.get(citationId);
+	return cleanAssistantCitationSpacing(
+		answer.replace(
+			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			(match, _citationId, offset) => {
+				const start = typeof offset === "number" ? offset : 0;
+				const citationId = match.slice(1, -1);
+				const title = snippetTitleById.get(citationId);
+				const previousChar = answer[start - 1];
+				const nextChar = answer[start + match.length];
 
-			if (!title) {
-				return match;
-			}
+				if (!title) {
+					return match;
+				}
 
-			const recentContext = answer.slice(Math.max(0, start - 240), start);
-			const normalizedRecentContext = normalizeComparableText(recentContext);
-			const normalizedTitle = normalizeComparableText(title);
+				const recentContext = answer.slice(Math.max(0, start - 240), start);
+				const normalizedRecentContext = normalizeComparableText(recentContext);
+				const normalizedTitle = normalizeComparableText(title);
 
-			if (
-				normalizedTitle &&
-				normalizedRecentContext.includes(normalizedTitle)
-			) {
-				return "";
-			}
+				if (
+					normalizedTitle &&
+					normalizedRecentContext.includes(normalizedTitle)
+				) {
+					return REMOVED_ASSISTANT_CITATION_TOKEN;
+				}
 
-			return title;
-		},
+				return `${isWordLikeCharacter(previousChar) ? " " : ""}${title}${
+					isWordLikeCharacter(nextChar) ? " " : ""
+				}`;
+			},
+		),
 	);
 }
 

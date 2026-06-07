@@ -31,7 +31,6 @@ import {
 	findAssistantInlineLinkMatches,
 	type GuardrailResult,
 	generateLocalResumeAnswer,
-	generateLocalSmallTalkAnswer,
 	getAssistantWorkerUrl,
 	getSnippetHref,
 	MISSING_INFORMATION_MESSAGE,
@@ -895,22 +894,6 @@ export function ResumeAssistant() {
 		setDraft("");
 
 		if (!workerUrl) {
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippets,
-					),
-				});
-				return;
-			}
-
 			const localResponse = generateLocalResumeAnswer(
 				trimmedQuestion,
 				resume,
@@ -1046,26 +1029,6 @@ export function ResumeAssistant() {
 				}
 			}
 
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippetPool,
-					),
-				});
-				updateDebugState({
-					usedClosestMatchFallback: false,
-					fallbackReason: "llm_fell_back_to_local_small_talk",
-				});
-				return;
-			}
-
 			const localResponse = generateLocalResumeAnswer(
 				trimmedQuestion,
 				resume,
@@ -1125,26 +1088,6 @@ export function ResumeAssistant() {
 				providerContext: null,
 			});
 		} catch {
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippets,
-					),
-				});
-				updateDebugState({
-					usedClosestMatchFallback: false,
-					fallbackReason: "request_failed_fell_back_to_local_small_talk",
-				});
-				return;
-			}
-
 			const localResponse = generateLocalResumeAnswer(
 				trimmedQuestion,
 				resume,

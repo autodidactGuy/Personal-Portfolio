@@ -13,6 +13,13 @@ function isWordLikeCharacter(value: string | undefined) {
 	return Boolean(value && /[A-Za-z0-9]/.test(value));
 }
 
+function cleanAssistantCitationSpacing(value: string) {
+	return value
+		.replace(/[ \t]+([,.;:!?])/g, "$1")
+		.replace(/([([])[ \t]+/g, "$1")
+		.replace(/[ \t]{2,}/g, " ");
+}
+
 export function stripAssistantCitationMarkers(text: string) {
 	let result = "";
 	let lastIndex = 0;
@@ -28,6 +35,25 @@ export function stripAssistantCitationMarkers(text: string) {
 		const nextSlice = text.slice(end);
 		const nextNonWhitespace = text.slice(end).match(/\S/)?.[0];
 		const currentLine = result.slice(result.lastIndexOf("\n") + 1);
+		const openingParenthesisMatch = result.match(/[ \t]*\([ \t]*$/);
+		const closingParenthesisMatch = text.slice(end).match(/^[ \t]*\)/);
+
+		if (openingParenthesisMatch && closingParenthesisMatch) {
+			result = result.slice(0, -openingParenthesisMatch[0].length);
+			const afterWrapperIndex = end + closingParenthesisMatch[0].length;
+
+			if (
+				isWordLikeCharacter(result.at(-1)) &&
+				isWordLikeCharacter(text[afterWrapperIndex])
+			) {
+				result += " ";
+			}
+
+			lastIndex = afterWrapperIndex;
+			ASSISTANT_CITATION_PATTERN.lastIndex = afterWrapperIndex;
+			match = ASSISTANT_CITATION_PATTERN.exec(text);
+			continue;
+		}
 
 		if (
 			/[,:;]\s*$/.test(result) &&
@@ -54,10 +80,7 @@ export function stripAssistantCitationMarkers(text: string) {
 
 	ASSISTANT_CITATION_PATTERN.lastIndex = 0;
 
-	return `${result}${text.slice(lastIndex)}`
-		.replace(/[ \t]+([,.;:!?])/g, "$1")
-		.replace(/([([])[ \t]+/g, "$1")
-		.replace(/[ \t]{2,}/g, " ");
+	return cleanAssistantCitationSpacing(`${result}${text.slice(lastIndex)}`);
 }
 
 function parsePipeTableCells(line: string) {

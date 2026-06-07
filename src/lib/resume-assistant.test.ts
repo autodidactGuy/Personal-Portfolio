@@ -123,6 +123,60 @@ describe("assistant response parsing", () => {
 		});
 	});
 
+	it("cleans spacing when inline citation IDs are deduplicated", async () => {
+		const response = await parseAssistantFetchResponse(
+			buildAssistantResponse({
+				status: "answered",
+				answer:
+					"The Payments Project ([project:payments]) improved reliability.",
+				citations: ["project:payments"],
+			}),
+			[paymentsSnippet],
+		);
+
+		expect(response).toMatchObject({
+			status: "answered",
+			answer: "The Payments Project improved reliability.",
+			citations: ["project:payments"],
+		});
+	});
+
+	it("keeps spacing around adjacent inline citation replacements", async () => {
+		const response = await parseAssistantFetchResponse(
+			buildAssistantResponse({
+				status: "answered",
+				answer: "He built[project:payments]and shipped it.",
+				citations: ["project:payments"],
+			}),
+			[paymentsSnippet],
+		);
+
+		expect(response).toMatchObject({
+			status: "answered",
+			answer: "He built Payments Project and shipped it.",
+			citations: ["project:payments"],
+		});
+	});
+
+	it("does not collapse fenced code spacing while cleaning citations", async () => {
+		const response = await parseAssistantFetchResponse(
+			buildAssistantResponse({
+				status: "answered",
+				answer:
+					"See [project:payments].\n```ts\nfunction demo() {\n  return 'keeps  spacing';\n}\n```",
+				citations: ["project:payments"],
+			}),
+			[paymentsSnippet],
+		);
+
+		expect(response).toMatchObject({
+			status: "answered",
+			answer:
+				"See Payments Project.\n```ts\nfunction demo() {\n  return 'keeps  spacing';\n}\n```",
+			citations: ["project:payments"],
+		});
+	});
+
 	it("canonicalizes missing and rejected answers", async () => {
 		await expect(
 			parseAssistantFetchResponse(

@@ -89,6 +89,16 @@ describe("assistant message rendering helpers", () => {
 				"Built APIs [rag:project:payments] and shipped them【1:2†source】.",
 			),
 		).toBe("Built APIs and shipped them.");
+		expect(
+			stripAssistantCitationMarkers(
+				"Built APIs[rag:project:payments]and shipped them.",
+			),
+		).toBe("Built APIs and shipped them.");
+		expect(
+			stripAssistantCitationMarkers(
+				"Built APIs ([rag:project:payments]) and shipped them.",
+			),
+		).toBe("Built APIs and shipped them.");
 	});
 
 	it("normalizes escaped line breaks without splitting dates or prose heuristically", () => {
