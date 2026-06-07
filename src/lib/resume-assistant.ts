@@ -2703,16 +2703,6 @@ export function buildRateLimitedLocalAssistantResponse(args: {
 	retrievalResult?: RetrievalResult | null;
 }) {
 	const { question, resume, retrievalResult, snippets } = args;
-	const smallTalkResponse = generateLocalSmallTalkAnswer(question, resume);
-
-	if (smallTalkResponse) {
-		return {
-			response: smallTalkResponse,
-			usedClosestMatchFallback: false,
-			fallbackReason: "rate_limited_fell_back_to_local_small_talk",
-		};
-	}
-
 	const localResponse = generateLocalResumeAnswer(question, resume, snippets);
 
 	if (localResponse) {
