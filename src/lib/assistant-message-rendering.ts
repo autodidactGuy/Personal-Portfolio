@@ -136,6 +136,7 @@ function normalizeAssistantTableFormatting(content: string) {
 function normalizeAssistantProseContent(content: string) {
 	return normalizeAssistantTableFormatting(
 		stripAssistantCitationMarkers(content)
+			.replace(/\\n/g, "\n")
 			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
 			.replace(/:\s*(\d+\.\s+)/g, ":\n$1")
 			.replace(/^\s*(---+|___+|\*\*\*+)\s*$/gm, "\n")
@@ -152,9 +153,7 @@ function normalizeAssistantProseContent(content: string) {
 }
 
 export function normalizeAssistantDisplayContent(content: string) {
-	const normalizedContent = content
-		.replace(/\r\n/g, "\n")
-		.replace(/\\n/g, "\n");
+	const normalizedContent = content.replace(/\r\n/g, "\n");
 	const lines = normalizedContent.split("\n");
 	const segments: Array<{ type: "prose" | "code"; text: string }> = [];
 	let buffer: string[] = [];
