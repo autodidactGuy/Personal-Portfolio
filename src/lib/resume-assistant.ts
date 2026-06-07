@@ -448,63 +448,6 @@ const smallTalkPatterns = [
 	/^(yes|yeah|yep|yup|nope|no|nah|not really|maybe|possibly|perhaps|i (think|guess|suppose) so)(?:[!.,?]+)?$/i,
 ];
 
-const builtInAllowedKeywords = [
-	"resume",
-	"portfolio",
-	"link",
-	"links",
-	"social",
-	"public",
-	"experience",
-	"yoe",
-	"year",
-	"years",
-	"yr",
-	"yrs",
-	"worked",
-	"work",
-	"job",
-	"career",
-	"company",
-	"companies",
-	"role",
-	"roles",
-	"skills",
-	"stack",
-	"tech",
-	"technology",
-	"education",
-	"degree",
-	"school",
-	"university",
-	"project",
-	"projects",
-	"case study",
-	"case studies",
-	"blog",
-	"blogs",
-	"article",
-	"articles",
-	"writing",
-	"recommendation",
-	"recommendations",
-	"testimonial",
-	"testimonials",
-	"stats",
-	"metrics",
-	"focus",
-	"featured",
-	"contact",
-	"email",
-	"github",
-	"linkedin",
-	"calendly",
-	"about",
-	"background",
-	"summary",
-	"location",
-];
-
 function normalizeText(value: string) {
 	return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
 }
@@ -1682,7 +1625,7 @@ export function findAssistantInlineLinkMatches(args: {
 export function checkQuestionGuardrails(
 	question: string,
 	snippets: ResumeSnippet[],
-	hasConversationContext: boolean,
+	_hasConversationContext: boolean,
 ): GuardrailResult {
 	const normalizedQuestion = question.trim();
 
@@ -1706,29 +1649,7 @@ export function checkQuestionGuardrails(
 		return { allowed: true };
 	}
 
-	const tokens = tokenize(normalizedQuestion);
-	const allowedKeywords = new Set([
-		...builtInAllowedKeywords,
-		...snippets.flatMap((snippet) => snippet.keywords),
-	]);
-	const overlapCount = tokens.filter((token) =>
-		allowedKeywords.has(token),
-	).length;
-	const pronounOnlyQuestion =
-		hasConversationContext &&
-		tokens.length > 0 &&
-		tokens.every((token) =>
-			["he", "him", "his", "that", "those", "them", "there"].includes(token),
-		);
-
-	if (overlapCount > 0 || pronounOnlyQuestion) {
-		return { allowed: true };
-	}
-
-	return {
-		allowed: false,
-		message: UNRELATED_QUESTION_MESSAGE,
-	};
+	return { allowed: true };
 }
 
 export function buildRetrievalQuery(args: {
