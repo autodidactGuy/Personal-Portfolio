@@ -134,6 +134,8 @@ describe("assistant message rendering helpers", () => {
 		expect(parseStoredAssistantMessages(JSON.stringify(messages))).toEqual(
 			messages,
 		);
-		expect(parseStoredAssistantMessages('{"version":999,"messages":[]}')).toBeNull();
+		expect(
+			parseStoredAssistantMessages('{"version":999,"messages":[]}'),
+		).toBeNull();
 	});
 });

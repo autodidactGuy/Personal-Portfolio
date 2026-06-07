@@ -125,9 +125,7 @@ function renderMessageContent(
 
 	if (!blocks.length) {
 		return (
-			<p className="break-words">
-				{normalizeAssistantDisplayContent(content)}
-			</p>
+			<p className="break-words">{normalizeAssistantDisplayContent(content)}</p>
 		);
 	}
 
@@ -679,7 +677,9 @@ export function ResumeAssistant() {
 
 	const addAssistantMessage = (
 		content: string,
-		options?: Partial<Pick<ChatMessage, "status" | "citations" | "rateLimited">>,
+		options?: Partial<
+			Pick<ChatMessage, "status" | "citations" | "rateLimited">
+		>,
 	) => {
 		setMessages((currentMessages) => [
 			...currentMessages,
@@ -1201,16 +1201,9 @@ export function ResumeAssistant() {
 
 							return (
 								<div
-									aria-label={
-										statusLabel
-											? `${message.role} message: ${statusLabel}`
-											: `${message.role} message`
-									}
 									className={clsx(
 										"flex scroll-mb-28",
-										message.role === "user"
-											? "justify-end"
-											: "justify-start",
+										message.role === "user" ? "justify-end" : "justify-start",
 									)}
 									key={message.id}
 									ref={index === messages.length - 1 ? lastMessageRef : null}
@@ -1270,9 +1263,7 @@ export function ResumeAssistant() {
 																	</Chip>
 																	<Tooltip.Content showArrow>
 																		<Tooltip.Arrow />
-																		<p>
-																			Open {citation.title} in a new tab
-																		</p>
+																		<p>Open {citation.title} in a new tab</p>
 																	</Tooltip.Content>
 																</Tooltip>
 															</NextLink>

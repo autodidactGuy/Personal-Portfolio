@@ -147,7 +147,7 @@ export function normalizeAssistantDisplayContent(content: string) {
 			.replace(/\\n/g, "\n")
 			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
 			.replace(/:\s*(\d+\.\s+)/g, ":\n$1")
-			.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
+			.replace(/^\s*(---+|___+|\*\*\*+)\s*$/gm, "\n")
 			.replace(/\*{2}\s*\n\s*/g, "**")
 			.replace(/\s*\n\s*\*{2}/g, "**")
 			.replace(/\*{1}\s*\n\s*/g, "*")
@@ -425,8 +425,11 @@ function sanitizeStoredMessage(value: unknown): AssistantChatMessage | null {
 		content,
 	};
 
-	if (typeof status === "string" && VALID_MESSAGE_STATUSES.has(status)) {
-		nextMessage.status = status;
+	if (
+		typeof status === "string" &&
+		VALID_MESSAGE_STATUSES.has(status as AssistantMessageStatus)
+	) {
+		nextMessage.status = status as AssistantMessageStatus;
 	}
 
 	if (Array.isArray(citations)) {
