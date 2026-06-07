@@ -69,6 +69,20 @@ describe("assistant message rendering helpers", () => {
 		]);
 	});
 
+	it("preserves fenced code indentation and repeated spaces", () => {
+		const blocks = parseAssistantMessageBlocks(
+			"```ts\nfunction demo() {\n  return 'keeps  spacing';\n}\n```",
+		);
+
+		expect(blocks).toEqual([
+			{
+				type: "code",
+				language: "ts",
+				code: "function demo() {\n  return 'keeps  spacing';\n}",
+			},
+		]);
+	});
+
 	it("strips assistant citation markers without erasing nearby prose", () => {
 		expect(
 			stripAssistantCitationMarkers(

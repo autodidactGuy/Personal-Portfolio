@@ -110,11 +110,9 @@ function normalizeAssistantTableFormatting(content: string) {
 		.join("\n");
 }
 
-export function normalizeAssistantDisplayContent(content: string) {
+function normalizeAssistantProseContent(content: string) {
 	return normalizeAssistantTableFormatting(
 		stripAssistantCitationMarkers(content)
-			.replace(/\r\n/g, "\n")
-			.replace(/\\n/g, "\n")
 			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
 			.replace(/:\s*(\d+\.\s+)/g, ":\n$1")
 			.replace(/^\s*(---+|___+|\*\*\*+)\s*$/gm, "\n")
@@ -128,6 +126,60 @@ export function normalizeAssistantDisplayContent(content: string) {
 			.replace(/\n{3,}/g, "\n\n")
 			.trim(),
 	);
+}
+
+export function normalizeAssistantDisplayContent(content: string) {
+	const normalizedContent = content
+		.replace(/\r\n/g, "\n")
+		.replace(/\\n/g, "\n");
+	const lines = normalizedContent.split("\n");
+	const segments: Array<{ type: "prose" | "code"; text: string }> = [];
+	let buffer: string[] = [];
+	let inCodeFence = false;
+
+	const flushBuffer = () => {
+		if (!buffer.length) {
+			return;
+		}
+
+		segments.push({
+			type: inCodeFence ? "code" : "prose",
+			text: buffer.join("\n"),
+		});
+		buffer = [];
+	};
+
+	for (const rawLine of lines) {
+		const line = rawLine.trim();
+
+		if (/^```[A-Za-z0-9_-]*\s*$/.test(line)) {
+			if (inCodeFence) {
+				buffer.push(line);
+				flushBuffer();
+				inCodeFence = false;
+				continue;
+			}
+
+			flushBuffer();
+			inCodeFence = true;
+			buffer.push(line);
+			continue;
+		}
+
+		buffer.push(rawLine);
+	}
+
+	flushBuffer();
+
+	return segments
+		.map((segment) =>
+			segment.type === "code"
+				? segment.text
+				: normalizeAssistantProseContent(segment.text),
+		)
+		.filter(Boolean)
+		.join("\n")
+		.trim();
 }
 
 function isAssistantSeparatorLine(line: string) {
