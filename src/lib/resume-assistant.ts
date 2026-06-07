@@ -2696,6 +2696,53 @@ export function buildClosestMatchFallbackAnswer(args: {
 	} satisfies AssistantResponse;
 }
 
+export function buildRateLimitedLocalAssistantResponse(args: {
+	question: string;
+	resume: ResumePayload;
+	snippets: ResumeSnippet[];
+	retrievalResult?: RetrievalResult | null;
+}) {
+	const { question, resume, retrievalResult, snippets } = args;
+	const smallTalkResponse = generateLocalSmallTalkAnswer(question, resume);
+
+	if (smallTalkResponse) {
+		return {
+			response: smallTalkResponse,
+			usedClosestMatchFallback: false,
+			fallbackReason: "rate_limited_fell_back_to_local_small_talk",
+		};
+	}
+
+	const localResponse = generateLocalResumeAnswer(question, resume, snippets);
+
+	if (localResponse) {
+		return {
+			response: localResponse,
+			usedClosestMatchFallback: false,
+			fallbackReason: "rate_limited_fell_back_to_local_match",
+		};
+	}
+
+	const closestMatchFallback =
+		retrievalResult &&
+		shouldUseClosestMatchFallback({
+			query: retrievalResult.query,
+			result: retrievalResult,
+		})
+			? buildClosestMatchFallbackAnswer({ result: retrievalResult })
+			: null;
+
+	if (closestMatchFallback) {
+		return {
+			response: closestMatchFallback,
+			usedClosestMatchFallback: true,
+			fallbackReason: "rate_limited_fell_back_to_closest_match",
+		};
+	}
+
+	return null;
+}
+
 export async function hashResumePayload(resume: ResumePayload) {
 	const encoded = new TextEncoder().encode(JSON.stringify(resume));
 	const digest = await crypto.subtle.digest("SHA-256", encoded);

@@ -21,6 +21,7 @@ import {
 	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
 	buildInitialAssistantContextSnippets,
+	buildRateLimitedLocalAssistantResponse,
 	buildResumeSnippets,
 	buildRetrievalQuery,
 	checkQuestionGuardrails,
@@ -830,6 +831,41 @@ export function ResumeAssistant() {
 		});
 	};
 
+	const addRateLimitedLocalFallbackMessage = (args: {
+		question: string;
+		resume: ResumePayload;
+		snippetPool: ResumeSnippet[];
+		retrievalResult: RetrievalResult;
+	}) => {
+		const fallback = buildRateLimitedLocalAssistantResponse({
+			question: args.question,
+			resume: args.resume,
+			snippets: args.snippetPool,
+			retrievalResult: args.retrievalResult,
+		});
+
+		if (!fallback) {
+			addAssistantMessage(MISSING_INFORMATION_MESSAGE, { status: "missing" });
+			updateDebugState({
+				usedClosestMatchFallback: false,
+				fallbackReason: "rate_limited_no_local_match",
+			});
+			return;
+		}
+
+		addAssistantMessage(fallback.response.answer, {
+			status: fallback.response.status,
+			citations: resolveResumeSnippetCitations(
+				fallback.response.citations,
+				args.snippetPool,
+			),
+		});
+		updateDebugState({
+			usedClosestMatchFallback: fallback.usedClosestMatchFallback,
+			fallbackReason: fallback.fallbackReason,
+		});
+	};
+
 	const submitQuestion = async (question: string) => {
 		const trimmedQuestion = question.trim();
 
@@ -955,6 +991,16 @@ export function ResumeAssistant() {
 					providerContext: initialAssistantResponse.providerContext || null,
 				});
 
+				if (initialAssistantResponse.rateLimited) {
+					addRateLimitedLocalFallbackMessage({
+						question: trimmedQuestion,
+						resume,
+						snippetPool,
+						retrievalResult: hybridRetrievalResult,
+					});
+					return;
+				}
+
 				if (initialAssistantResponse.status !== "missing") {
 					addAssistantResponseMessage(
 						initialAssistantResponse,
@@ -993,6 +1039,16 @@ export function ResumeAssistant() {
 					lastProvider: assistantResponse.provider || null,
 					providerContext: assistantResponse.providerContext || null,
 				});
+
+				if (assistantResponse.rateLimited) {
+					addRateLimitedLocalFallbackMessage({
+						question: trimmedQuestion,
+						resume,
+						snippetPool,
+						retrievalResult,
+					});
+					return;
+				}
 
 				if (assistantResponse.status !== "missing") {
 					addAssistantResponseMessage(assistantResponse, relevantSnippets);

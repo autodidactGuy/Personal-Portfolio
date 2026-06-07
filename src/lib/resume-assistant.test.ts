@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	buildRateLimitedLocalAssistantResponse,
 	findAssistantInlineLinkMatches,
 	MISSING_INFORMATION_MESSAGE,
 	parseAssistantFetchResponse,
+	type ResumePayload,
 	type ResumeSnippet,
 	UNRELATED_QUESTION_MESSAGE,
 } from "./resume-assistant";
@@ -14,6 +16,30 @@ const paymentsSnippet: ResumeSnippet = {
 	text: "Built payment guardrails and platform workflows.",
 	keywords: ["payments", "guardrails"],
 	url: "/projects/payments/",
+};
+
+const educationSnippet: ResumeSnippet = {
+	id: "education:university",
+	category: "education",
+	title: "University Education",
+	text: "Studied computer science at Example University.",
+	keywords: ["education", "university", "computer science"],
+};
+
+const resume: ResumePayload = {
+	name: "Hassan Raza",
+	title: "Software Engineer",
+	headline: "Builds reliable software systems.",
+	summary: "Experienced in payments, platforms, and AI-assisted systems.",
+	education: [
+		{
+			degree: "BS Computer Science",
+			institute: "Example University",
+			location: "Remote",
+			from: "2014",
+			to: "2018",
+		},
+	],
 };
 
 function buildAssistantResponse(
@@ -158,5 +184,25 @@ describe("assistant inline link matching", () => {
 				external: false,
 			},
 		]);
+	});
+});
+
+describe("rate-limited local assistant fallback", () => {
+	it("builds a local answer from the provided snippet pool", () => {
+		const fallback = buildRateLimitedLocalAssistantResponse({
+			question: "Where did he study computer science?",
+			resume,
+			snippets: [educationSnippet],
+		});
+
+		expect(fallback).toMatchObject({
+			usedClosestMatchFallback: false,
+			fallbackReason: "rate_limited_fell_back_to_local_match",
+			response: {
+				status: "answered",
+				citations: ["education:university"],
+			},
+		});
+		expect(fallback?.response.answer).toContain("Example University");
 	});
 });
