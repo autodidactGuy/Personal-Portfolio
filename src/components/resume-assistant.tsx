@@ -991,16 +991,6 @@ export function ResumeAssistant() {
 					providerContext: initialAssistantResponse.providerContext || null,
 				});
 
-				if (initialAssistantResponse.rateLimited) {
-					addRateLimitedLocalFallbackMessage({
-						question: trimmedQuestion,
-						resume,
-						snippetPool,
-						retrievalResult: hybridRetrievalResult,
-					});
-					return;
-				}
-
 				if (initialAssistantResponse.status !== "missing") {
 					addAssistantResponseMessage(
 						initialAssistantResponse,
