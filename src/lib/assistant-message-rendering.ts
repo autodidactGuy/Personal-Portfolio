@@ -1,20 +1,3 @@
-import type { ResumeSnippet } from "@/lib/resume-assistant";
-
-export type AssistantMessageStatus =
-	| "answered"
-	| "missing"
-	| "rejected"
-	| "system";
-
-export type AssistantChatMessage = {
-	id: string;
-	role: "assistant" | "user";
-	content: string;
-	status?: AssistantMessageStatus;
-	citations?: ResumeSnippet[];
-	rateLimited?: boolean;
-};
-
 export type AssistantMessageBlock =
 	| { type: "paragraph"; lines: string[] }
 	| { type: "list"; items: string[]; ordered: boolean }
@@ -25,19 +8,6 @@ export type AssistantMessageBlock =
 
 const ASSISTANT_CITATION_PATTERN =
 	/【[^】]+】|\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi;
-
-const CONVERSATION_STORAGE_VERSION = 1;
-const VALID_MESSAGE_STATUSES = new Set<AssistantMessageStatus>([
-	"answered",
-	"missing",
-	"rejected",
-	"system",
-]);
-
-type StoredConversationEnvelope = {
-	version: typeof CONVERSATION_STORAGE_VERSION;
-	messages: AssistantChatMessage[];
-};
 
 function isWordLikeCharacter(value: string | undefined) {
 	return Boolean(value && /[A-Za-z0-9]/.test(value));
@@ -398,116 +368,4 @@ export function parseAssistantMessageBlocks(
 	flushInlineBuffers();
 
 	return blocks;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function sanitizeStoredMessage(value: unknown): AssistantChatMessage | null {
-	if (!isPlainObject(value)) {
-		return null;
-	}
-
-	const { id, role, content, status, citations, rateLimited } = value;
-
-	if (
-		typeof id !== "string" ||
-		(role !== "assistant" && role !== "user") ||
-		typeof content !== "string"
-	) {
-		return null;
-	}
-
-	const nextMessage: AssistantChatMessage = {
-		id,
-		role,
-		content,
-	};
-
-	if (
-		typeof status === "string" &&
-		VALID_MESSAGE_STATUSES.has(status as AssistantMessageStatus)
-	) {
-		nextMessage.status = status as AssistantMessageStatus;
-	}
-
-	if (Array.isArray(citations)) {
-		nextMessage.citations = citations.filter(
-			(citation): citation is ResumeSnippet =>
-				isPlainObject(citation) &&
-				typeof citation.id === "string" &&
-				typeof citation.title === "string" &&
-				typeof citation.text === "string",
-		);
-	}
-
-	if (rateLimited === true) {
-		nextMessage.rateLimited = true;
-	}
-
-	return nextMessage;
-}
-
-export function parseStoredAssistantMessages(stored: string | null) {
-	if (!stored) {
-		return null;
-	}
-
-	try {
-		const parsed = JSON.parse(stored) as unknown;
-		const messages = Array.isArray(parsed)
-			? parsed
-			: isPlainObject(parsed) &&
-					parsed.version === CONVERSATION_STORAGE_VERSION &&
-					Array.isArray(parsed.messages)
-				? parsed.messages
-				: null;
-
-		if (!messages) {
-			return null;
-		}
-
-		const sanitizedMessages = messages
-			.map(sanitizeStoredMessage)
-			.filter((message): message is AssistantChatMessage => Boolean(message));
-
-		return sanitizedMessages.length ? sanitizedMessages : null;
-	} catch {
-		return null;
-	}
-}
-
-export function serializeAssistantMessages(
-	messages: AssistantChatMessage[],
-): string {
-	const envelope: StoredConversationEnvelope = {
-		version: CONVERSATION_STORAGE_VERSION,
-		messages,
-	};
-
-	return JSON.stringify(envelope);
-}
-
-export function getAssistantMessageStatusLabel(
-	message: Pick<AssistantChatMessage, "role" | "status" | "rateLimited">,
-) {
-	if (message.role === "user") {
-		return null;
-	}
-
-	if (message.rateLimited) {
-		return "Rate limited";
-	}
-
-	switch (message.status) {
-		case "missing":
-			return "Missing information";
-		case "rejected":
-			return "Out of scope";
-		case "system":
-			return "Assistant note";
-		default:
-			return null;
-	}
 }

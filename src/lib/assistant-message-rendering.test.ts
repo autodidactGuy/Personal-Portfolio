@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	type AssistantChatMessage,
-	getAssistantMessageStatusLabel,
 	normalizeAssistantDisplayContent,
 	parseAssistantMessageBlocks,
-	parseStoredAssistantMessages,
-	serializeAssistantMessages,
 	stripAssistantCitationMarkers,
 } from "./assistant-message-rendering";
 
@@ -87,55 +83,5 @@ describe("assistant message rendering helpers", () => {
 				"Launch date: Jan 2. Follow-up stayed on Feb 3.\\nNext line.",
 			),
 		).toBe("Launch date: Jan 2. Follow-up stayed on Feb 3.\nNext line.");
-	});
-
-	it("labels missing, rejected, system, and rate-limited states", () => {
-		expect(
-			getAssistantMessageStatusLabel({
-				role: "assistant",
-				status: "missing",
-			}),
-		).toBe("Missing information");
-		expect(
-			getAssistantMessageStatusLabel({
-				role: "assistant",
-				status: "rejected",
-			}),
-		).toBe("Out of scope");
-		expect(
-			getAssistantMessageStatusLabel({
-				role: "assistant",
-				status: "system",
-			}),
-		).toBe("Assistant note");
-		expect(
-			getAssistantMessageStatusLabel({
-				role: "assistant",
-				status: "missing",
-				rateLimited: true,
-			}),
-		).toBe("Rate limited");
-		expect(getAssistantMessageStatusLabel({ role: "user" })).toBeNull();
-	});
-
-	it("round-trips versioned storage and migrates legacy raw arrays", () => {
-		const messages: AssistantChatMessage[] = [
-			{
-				id: "assistant-1",
-				role: "assistant",
-				content: "Please retry later.",
-				status: "missing",
-				rateLimited: true,
-			},
-		];
-		const serialized = serializeAssistantMessages(messages);
-
-		expect(parseStoredAssistantMessages(serialized)).toEqual(messages);
-		expect(parseStoredAssistantMessages(JSON.stringify(messages))).toEqual(
-			messages,
-		);
-		expect(
-			parseStoredAssistantMessages('{"version":999,"messages":[]}'),
-		).toBeNull();
 	});
 });

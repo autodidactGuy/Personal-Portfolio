@@ -12,12 +12,8 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
-	type AssistantChatMessage,
-	getAssistantMessageStatusLabel,
 	normalizeAssistantDisplayContent,
 	parseAssistantMessageBlocks,
-	parseStoredAssistantMessages,
-	serializeAssistantMessages,
 	stripAssistantCitationMarkers,
 } from "@/lib/assistant-message-rendering";
 import {
@@ -50,12 +46,16 @@ import {
 	UNRELATED_QUESTION_MESSAGE,
 } from "@/lib/resume-assistant";
 
-type ChatMessage = AssistantChatMessage;
+type ChatMessage = {
+	id: string;
+	role: "assistant" | "user";
+	content: string;
+	status?: "answered" | "missing" | "rejected" | "system";
+	citations?: ResumeSnippet[];
+};
 
 const CONVERSATION_STORAGE_KEY = "portfolio-assistant-conversation";
 const IS_LOCAL_DEVELOPMENT = process.env.NODE_ENV === "development";
-const RATE_LIMITED_ASSISTANT_MESSAGE =
-	"The assistant is temporarily rate limited. Please wait a moment and try again.";
 
 type AssistantDebugState = {
 	retrievalResult: RetrievalResult | null;
@@ -203,15 +203,19 @@ function renderMessageContent(
 						</table>
 					</div>
 				) : block.type === "heading" ? (
-					<p
-						className={clsx(
-							"break-words font-semibold text-foreground",
-							block.level === 2 ? "text-base" : "text-sm",
-						)}
-						key={blockKey}
-					>
-						{renderInlineMessageContent(block.text, citations, resume)}
-					</p>
+					block.level === 2 ? (
+						<h2 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h2>
+					) : block.level === 3 ? (
+						<h3 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h3>
+					) : (
+						<h4 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h4>
+					)
 				) : block.type === "quote" ? (
 					<blockquote
 						className="border-l-2 border-primary/30 pl-3 text-foreground/85"
@@ -421,39 +425,6 @@ function renderInlineMessageContent(
 	return parts;
 }
 
-function getMessageBubbleClasses(message: ChatMessage) {
-	if (message.role === "user") {
-		return "bg-primary/95 text-white";
-	}
-
-	if (message.rateLimited) {
-		return "border border-warning/30 bg-warning/10 text-foreground dark:bg-warning/10";
-	}
-
-	switch (message.status) {
-		case "missing":
-			return "border border-warning/25 bg-warning/8 text-foreground dark:bg-warning/10";
-		case "rejected":
-			return "border border-danger/25 bg-danger/8 text-foreground dark:bg-danger/10";
-		case "system":
-			return "border border-default-200/70 bg-default-100/70 text-default-700 dark:border-default-100/10 dark:bg-default-100/10 dark:text-default-300";
-		default:
-			return "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80";
-	}
-}
-
-function getMessageStatusLabelClasses(message: ChatMessage) {
-	if (message.rateLimited || message.status === "missing") {
-		return "text-warning";
-	}
-
-	if (message.status === "rejected") {
-		return "text-danger";
-	}
-
-	return "text-default-500";
-}
-
 function buildQuestionSuggestions(resume: ResumePayload | null) {
 	if (!resume) {
 		return [
@@ -490,7 +461,7 @@ function buildWelcomeMessage(personName: string): ChatMessage {
 function createMessage(
 	role: ChatMessage["role"],
 	content: string,
-	options?: Partial<Pick<ChatMessage, "status" | "citations" | "rateLimited">>,
+	options?: Partial<Pick<ChatMessage, "status" | "citations">>,
 ): ChatMessage {
 	return {
 		id:
@@ -517,10 +488,13 @@ export function ResumeAssistant() {
 
 		try {
 			const stored = window.localStorage.getItem(CONVERSATION_STORAGE_KEY);
-			const parsedMessages = parseStoredAssistantMessages(stored);
 
-			if (parsedMessages) {
-				return parsedMessages;
+			if (stored) {
+				const parsed = JSON.parse(stored) as ChatMessage[];
+
+				if (Array.isArray(parsed) && parsed.length > 0) {
+					return parsed;
+				}
 			}
 		} catch {
 			// ignore parse/storage errors
@@ -668,7 +642,7 @@ export function ResumeAssistant() {
 		try {
 			window.localStorage.setItem(
 				CONVERSATION_STORAGE_KEY,
-				serializeAssistantMessages(messages),
+				JSON.stringify(messages),
 			);
 		} catch {
 			// ignore storage errors (e.g. private browsing quota exceeded)
@@ -677,9 +651,7 @@ export function ResumeAssistant() {
 
 	const addAssistantMessage = (
 		content: string,
-		options?: Partial<
-			Pick<ChatMessage, "status" | "citations" | "rateLimited">
-		>,
+		options?: Partial<Pick<ChatMessage, "status" | "citations">>,
 	) => {
 		setMessages((currentMessages) => [
 			...currentMessages,
@@ -849,23 +821,13 @@ export function ResumeAssistant() {
 	) => {
 		const responseCitationIds = new Set<string>(response.citations);
 
-		if (response.rateLimited) {
-			setStatusMessage(
-				"Assistant provider rate limits are active; please retry shortly.",
-			);
-		}
-
-		addAssistantMessage(
-			response.rateLimited ? RATE_LIMITED_ASSISTANT_MESSAGE : response.answer,
-			{
-				status: response.status,
-				rateLimited: response.rateLimited,
-				citations: resolveResumeSnippetCitations(
-					Array.from(responseCitationIds),
-					availableSnippets,
-				),
-			},
-		);
+		addAssistantMessage(response.answer, {
+			status: response.status,
+			citations: resolveResumeSnippetCitations(
+				Array.from(responseCitationIds),
+				availableSnippets,
+			),
+		});
 	};
 
 	const submitQuestion = async (question: string) => {
@@ -993,14 +955,6 @@ export function ResumeAssistant() {
 					providerContext: initialAssistantResponse.providerContext || null,
 				});
 
-				if (initialAssistantResponse.rateLimited) {
-					addAssistantResponseMessage(
-						initialAssistantResponse,
-						initialSnippets,
-					);
-					return;
-				}
-
 				if (initialAssistantResponse.status !== "missing") {
 					addAssistantResponseMessage(
 						initialAssistantResponse,
@@ -1039,11 +993,6 @@ export function ResumeAssistant() {
 					lastProvider: assistantResponse.provider || null,
 					providerContext: assistantResponse.providerContext || null,
 				});
-
-				if (assistantResponse.rateLimited) {
-					addAssistantResponseMessage(assistantResponse, relevantSnippets);
-					return;
-				}
 
 				if (assistantResponse.status !== "missing") {
 					addAssistantResponseMessage(assistantResponse, relevantSnippets);
@@ -1196,97 +1145,80 @@ export function ResumeAssistant() {
 					visibility="none"
 				>
 					<div className="flex min-h-full flex-col gap-3 pb-2 sm:gap-4 sm:pb-3">
-						{messages.map((message, index) => {
-							const statusLabel = getAssistantMessageStatusLabel(message);
-
-							return (
+						{messages.map((message, index) => (
+							<div
+								className={clsx(
+									"flex scroll-mb-28",
+									message.role === "user" ? "justify-end" : "justify-start",
+								)}
+								key={message.id}
+								ref={index === messages.length - 1 ? lastMessageRef : null}
+							>
 								<div
 									className={clsx(
-										"flex scroll-mb-28",
-										message.role === "user" ? "justify-end" : "justify-start",
+										"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
+										message.role === "user"
+											? "bg-primary/95 text-white"
+											: "border border-default-200/70 bg-content1/80 text-foreground dark:bg-[#11233b]/80",
 									)}
-									key={message.id}
-									ref={index === messages.length - 1 ? lastMessageRef : null}
 								>
-									<div
-										className={clsx(
-											"max-w-[88%] min-w-0 rounded-[24px] px-4 py-3 text-sm leading-6 shadow-sm",
-											getMessageBubbleClasses(message),
-										)}
-									>
-										{statusLabel ? (
-											<p
-												className={clsx(
-													"mb-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
-													getMessageStatusLabelClasses(message),
-												)}
-											>
-												{statusLabel}
-											</p>
-										) : null}
-										{renderMessageContent(
-											message.content,
-											message.citations,
-											resume,
-										)}
-										{message.citations?.length ? (
-											<div className="mt-3 max-w-full overflow-hidden">
-												<p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-default-500">
-													Sources
-												</p>
-												<div className="flex max-w-full flex-wrap gap-2">
-													{message.citations.map((citation) => {
-														const href = getSnippetHref(citation);
+									{renderMessageContent(
+										message.content,
+										message.citations,
+										resume,
+									)}
+									{message.citations?.length ? (
+										<div className="mt-3 flex max-w-full flex-wrap gap-2 overflow-hidden">
+											{message.citations.map((citation) => {
+												const href = getSnippetHref(citation);
 
-														return href ? (
-															<NextLink
-																href={href}
-																key={citation.id}
-																rel="noreferrer"
-																target="_blank"
-															>
-																<Tooltip delay={0}>
-																	<Chip
-																		className="max-w-full cursor-pointer border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
-																		size="sm"
-																		variant="secondary"
-																	>
-																		<Chip.Label className="flex max-w-full items-center gap-1 truncate">
-																			<span className="truncate">
-																				{citation.title}
-																			</span>
-																			<HiOutlineArrowTopRightOnSquare
-																				className="shrink-0"
-																				size={12}
-																			/>
-																		</Chip.Label>
-																	</Chip>
-																	<Tooltip.Content showArrow>
-																		<Tooltip.Arrow />
-																		<p>Open {citation.title} in a new tab</p>
-																	</Tooltip.Content>
-																</Tooltip>
-															</NextLink>
-														) : (
+												return href ? (
+													<NextLink
+														href={href}
+														key={citation.id}
+														rel="noreferrer"
+														target="_blank"
+													>
+														<Tooltip delay={0}>
 															<Chip
-																className="max-w-full border border-primary/15 bg-primary/8 text-primary"
-																key={citation.id}
+																className="max-w-full cursor-pointer border border-primary/15 bg-primary/8 text-primary transition-colors hover:bg-primary/12"
 																size="sm"
 																variant="secondary"
 															>
-																<Chip.Label className="max-w-full truncate">
-																	{citation.title}
+																<Chip.Label className="flex max-w-full items-center gap-1 truncate">
+																	<span className="truncate">
+																		{citation.title}
+																	</span>
+																	<HiOutlineArrowTopRightOnSquare
+																		className="shrink-0"
+																		size={12}
+																	/>
 																</Chip.Label>
 															</Chip>
-														);
-													})}
-												</div>
-											</div>
-										) : null}
-									</div>
+															<Tooltip.Content showArrow>
+																<Tooltip.Arrow />
+																<p>Open {citation.title} in a new tab</p>
+															</Tooltip.Content>
+														</Tooltip>
+													</NextLink>
+												) : (
+													<Chip
+														className="max-w-full border border-primary/15 bg-primary/8 text-primary"
+														key={citation.id}
+														size="sm"
+														variant="secondary"
+													>
+														<Chip.Label className="max-w-full truncate">
+															{citation.title}
+														</Chip.Label>
+													</Chip>
+												);
+											})}
+										</div>
+									) : null}
 								</div>
-							);
-						})}
+							</div>
+						))}
 
 						{!hasUserMessages ? (
 							<div className="flex justify-start">
@@ -1332,17 +1264,9 @@ export function ResumeAssistant() {
 
 						<div className="sticky bottom-0 z-10 mt-auto rounded-[22px] border border-default-200/70 bg-content1/92 px-2.5 pb-2 pt-2.5 shadow-[0_-10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl dark:border-default-100/10 dark:bg-[#0d1b2f]/92 sm:rounded-[24px] sm:px-3 sm:pb-3 sm:pt-3">
 							{resumeError || statusMessage ? (
-								<div
-									className={clsx(
-										"mb-2 rounded-2xl border px-3 py-2 text-xs",
-										resumeError
-											? "border-danger/20 bg-danger/8 text-danger"
-											: "border-warning/20 bg-warning/8 text-warning",
-									)}
-									role="status"
-								>
+								<div className="px-1 pb-2 text-xs text-default-500 hidden">
 									{resumeError ? (
-										<span>{resumeError}</span>
+										<span className="text-danger">{resumeError}</span>
 									) : (
 										<span>{statusMessage}</span>
 									)}
