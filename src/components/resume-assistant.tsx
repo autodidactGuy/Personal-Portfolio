@@ -12,10 +12,16 @@ import {
 } from "react-icons/hi2";
 import { siteConfig, withBasePath } from "@/config/site";
 import {
+	normalizeAssistantDisplayContent,
+	parseAssistantMessageBlocks,
+	stripAssistantCitationMarkers,
+} from "@/lib/assistant-message-rendering";
+import {
 	type AssistantDebugProvider,
 	buildAssistantContextSnippets,
 	buildClosestMatchFallbackAnswer,
 	buildInitialAssistantContextSnippets,
+	buildRateLimitedLocalAssistantResponse,
 	buildResumeSnippets,
 	buildRetrievalQuery,
 	checkQuestionGuardrails,
@@ -25,7 +31,6 @@ import {
 	findAssistantInlineLinkMatches,
 	type GuardrailResult,
 	generateLocalResumeAnswer,
-	generateLocalSmallTalkAnswer,
 	getAssistantWorkerUrl,
 	getSnippetHref,
 	MISSING_INFORMATION_MESSAGE,
@@ -111,145 +116,17 @@ const THINKING_STATES = [
 	},
 ];
 
-const ASSISTANT_CITATION_PATTERN =
-	/【[^】]+】|\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi;
-
 function renderMessageContent(
 	content: string,
 	citations: ResumeSnippet[] | undefined,
 	resume: ResumePayload | null,
 ) {
-	const normalizedContent = normalizeAssistantDisplayContent(content);
-	const lines = normalizedContent.split("\n");
-	const blocks: Array<
-		| { type: "paragraph"; lines: string[] }
-		| { type: "list"; items: string[]; ordered: boolean }
-		| { type: "table"; rows: string[][] }
-	> = [];
-	let paragraphBuffer: string[] = [];
-	let listBuffer: string[] = [];
-	let tableBuffer: string[][] = [];
-	let listOrdered = false;
-	let pendingListBreak = false;
-
-	const flushParagraphBuffer = () => {
-		if (!paragraphBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "paragraph",
-			lines: paragraphBuffer,
-		});
-		paragraphBuffer = [];
-	};
-
-	const flushListBuffer = () => {
-		if (!listBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "list",
-			items: listBuffer,
-			ordered: listOrdered,
-		});
-		listBuffer = [];
-		listOrdered = false;
-		pendingListBreak = false;
-	};
-
-	const flushTableBuffer = () => {
-		if (!tableBuffer.length) {
-			return;
-		}
-
-		blocks.push({
-			type: "table",
-			rows: tableBuffer,
-		});
-		tableBuffer = [];
-	};
-
-	const appendToCurrentListItem = (line: string) => {
-		if (!listBuffer.length) {
-			return false;
-		}
-
-		const lastIndex = listBuffer.length - 1;
-		listBuffer[lastIndex] = `${listBuffer[lastIndex]}\n${line}`.trim();
-		return true;
-	};
-
-	for (const rawLine of lines) {
-		const line = rawLine.trim();
-
-		if (!line || isAssistantSeparatorLine(line)) {
-			flushTableBuffer();
-			if (listBuffer.length) {
-				pendingListBreak = true;
-			} else {
-				flushParagraphBuffer();
-				flushListBuffer();
-			}
-			continue;
-		}
-
-		if (isAssistantTableLine(line)) {
-			flushParagraphBuffer();
-			flushListBuffer();
-			pendingListBreak = false;
-			const cells = parseAssistantTableLine(line);
-
-			if (cells.length) {
-				tableBuffer.push(cells);
-			}
-			continue;
-		}
-
-		flushTableBuffer();
-
-		if (/^-\s+/.test(line)) {
-			flushParagraphBuffer();
-			if (listBuffer.length && listOrdered) {
-				flushListBuffer();
-			}
-			listOrdered = false;
-			pendingListBreak = false;
-			listBuffer.push(line.replace(/^-\s+/, "").trim());
-			continue;
-		}
-
-		if (/^\d+\.\s+/.test(line)) {
-			flushParagraphBuffer();
-			if (listBuffer.length && !listOrdered) {
-				flushListBuffer();
-			}
-			listOrdered = true;
-			pendingListBreak = false;
-			listBuffer.push(line.replace(/^\d+\.\s+/, "").trim());
-			continue;
-		}
-
-		if (appendToCurrentListItem(line)) {
-			pendingListBreak = false;
-			continue;
-		}
-
-		if (pendingListBreak) {
-			flushListBuffer();
-		}
-
-		flushListBuffer();
-		paragraphBuffer.push(line);
-	}
-
-	flushParagraphBuffer();
-	flushListBuffer();
-	flushTableBuffer();
+	const blocks = parseAssistantMessageBlocks(content);
 
 	if (!blocks.length) {
-		return <p className="break-words">{normalizedContent}</p>;
+		return (
+			<p className="break-words">{normalizeAssistantDisplayContent(content)}</p>
+		);
 	}
 
 	return (
@@ -260,7 +137,11 @@ function renderMessageContent(
 						? `${block.ordered ? "ordered" : "unordered"}:${block.items.join("|")}`
 						: block.type === "table"
 							? block.rows.map((row) => row.join("|")).join("||")
-							: block.lines.join("|");
+							: block.type === "code"
+								? `${block.language}:${block.code}`
+								: block.type === "heading"
+									? `${block.level}:${block.text}`
+									: block.lines.join("|");
 				const blockKey = `${block.type}:${blockContent}`;
 
 				return block.type === "list" ? (
@@ -321,6 +202,38 @@ function renderMessageContent(
 							</tbody>
 						</table>
 					</div>
+				) : block.type === "heading" ? (
+					block.level === 2 ? (
+						<h2 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h2>
+					) : block.level === 3 ? (
+						<h3 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h3>
+					) : (
+						<h4 className="break-words whitespace-break-spaces" key={blockKey}>
+							{renderInlineMessageContent(block.text, citations, resume)}
+						</h4>
+					)
+				) : block.type === "quote" ? (
+					<blockquote
+						className="border-l-2 border-primary/30 pl-3 text-foreground/85"
+						key={blockKey}
+					>
+						{renderInlineMessageContent(
+							block.lines.join("\n"),
+							citations,
+							resume,
+						)}
+					</blockquote>
+				) : block.type === "code" ? (
+					<pre
+						className="overflow-x-auto rounded-2xl border border-default-200/70 bg-default-100/70 px-3 py-2 text-xs leading-5 text-foreground"
+						key={blockKey}
+					>
+						<code>{block.code}</code>
+					</pre>
 				) : (
 					<p className="break-words whitespace-break-spaces" key={blockKey}>
 						{renderInlineMessageContent(
@@ -333,113 +246,6 @@ function renderMessageContent(
 			})}
 		</div>
 	);
-}
-
-function normalizeAssistantDisplayContent(content: string) {
-	return normalizeAssistantTableFormatting(
-		stripAssistantCitationMarkers(content)
-			.replace(/\r\n/g, "\n")
-			.replace(/\\n/g, "\n")
-			.replace(/(^|[\t ]+)\/n(?=[\t ]+|$)/gm, "$1\n")
-			.replace(/:\s*(\d+\.\s*)/g, ":\n$1")
-			.replace(/([A-Za-z),])(\d+\.\s*)/g, "$1\n$2")
-			.replace(
-				/([A-Za-z.)])(?=(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b)/g,
-				"$1\n",
-			)
-			.replace(/([^\n])\n?(---+|___+|\*\*\*+)\n?/g, "$1\n\n")
-			.replace(/(\*\*[^*\n]+\*\*)\s+[—-]\s+(?=\*\*|[A-Z0-9])/g, "$1\n- ")
-			.replace(/\s+[—-]\s+(?=\*\*[^*\n]+\*\*)/g, "\n- ")
-			.replace(/([^\n])\s+(\d+\.\s+\*\*[^*\n]+\*\*)/g, "$1\n$2")
-			.replace(/([^\n])\s+(\d+\.\s+[A-Z][^\n]{3,})/g, "$1\n$2")
-			.replace(/\*{2}\s*\n\s*/g, "**")
-			.replace(/\s*\n\s*\*{2}/g, "**")
-			.replace(/\*{1}\s*\n\s*/g, "*")
-			.replace(/\s*\n\s*\*{1}/g, "*")
-			.replace(/[ \t]{2,}/g, " ")
-			.replace(/[ \t]+\n/g, "\n")
-			.replace(/\n[ \t]+/g, "\n")
-			.replace(/\n{3,}/g, "\n\n")
-			.trim(),
-	);
-}
-
-function parsePipeTableCells(line: string) {
-	return line
-		.replace(/^\|/, "")
-		.replace(/\|$/, "")
-		.split("|")
-		.map((cell) => cell.trim());
-}
-
-function looksLikePipeDelimitedTableLine(line: string) {
-	if (!line.includes("|")) {
-		return false;
-	}
-
-	const cells = parsePipeTableCells(line);
-	return cells.length >= 3 && cells.some((cell) => cell.length > 0);
-}
-
-function normalizeAssistantTableFormatting(content: string) {
-	return content
-		.split("\n")
-		.flatMap((line) => {
-			if (!line.trim()) {
-				return [line];
-			}
-
-			const firstPipeIndex = line.indexOf("|");
-
-			if (
-				firstPipeIndex > 0 &&
-				!line.trimStart().startsWith("|") &&
-				looksLikePipeDelimitedTableLine(line.slice(firstPipeIndex))
-			) {
-				return [line.slice(0, firstPipeIndex), line.slice(firstPipeIndex)];
-			}
-
-			const italicBlockIndex = line.indexOf("|*");
-
-			if (italicBlockIndex >= 0) {
-				const tableCandidate = line.slice(0, italicBlockIndex + 1);
-
-				if (looksLikePipeDelimitedTableLine(tableCandidate)) {
-					return [tableCandidate, line.slice(italicBlockIndex + 1)];
-				}
-			}
-
-			return [line];
-		})
-		.join("\n");
-}
-
-function isAssistantSeparatorLine(line: string) {
-	return /^([-_*])\1{2,}$/.test(line.trim());
-}
-
-function isAssistantTableLine(line: string) {
-	return (
-		/^\|/.test(line) ||
-		looksLikePipeDelimitedTableLine(line) ||
-		/^[^\t\n]+(?:\t[^\t\n]+){2,}$/.test(line)
-	);
-}
-
-function parseAssistantTableLine(line: string) {
-	const cells = /\t/.test(line)
-		? line.split("\t").map((cell) => cell.trim())
-		: parsePipeTableCells(line);
-
-	if (
-		!cells.length ||
-		cells.every((cell) => !cell) ||
-		cells.every((cell) => /^:?-{3,}:?$/.test(cell))
-	) {
-		return [];
-	}
-
-	return cells;
 }
 
 function renderBoldMarkdown(text: string) {
@@ -470,57 +276,6 @@ function renderBoldMarkdown(text: string) {
 	}
 
 	return parts;
-}
-
-function isWordLikeCharacter(value: string | undefined) {
-	return Boolean(value && /[A-Za-z0-9]/.test(value));
-}
-
-function stripAssistantCitationMarkers(text: string) {
-	let result = "";
-	let lastIndex = 0;
-	let match: RegExpExecArray | null = ASSISTANT_CITATION_PATTERN.exec(text);
-
-	while (match) {
-		const start = match.index ?? 0;
-		const end = start + match[0].length;
-		result += text.slice(lastIndex, start);
-
-		const previousChar = result.at(-1);
-		const nextChar = text[end];
-		const nextSlice = text.slice(end);
-		const nextNonWhitespace = text.slice(end).match(/\S/)?.[0];
-		const currentLine = result.slice(result.lastIndexOf("\n") + 1);
-
-		if (
-			/[,:;]\s*$/.test(result) &&
-			(!nextNonWhitespace || /[.?!,;:)}\]]/.test(nextNonWhitespace))
-		) {
-			result = result.replace(/[,:;]\s*$/g, "");
-		}
-
-		if (isWordLikeCharacter(previousChar) && isWordLikeCharacter(nextChar)) {
-			result += " ";
-		}
-
-		if (
-			/^[ \t]*\|/.test(nextSlice) &&
-			currentLine.trim() &&
-			!currentLine.trimStart().startsWith("|")
-		) {
-			result += "\n";
-		}
-
-		lastIndex = end;
-		match = ASSISTANT_CITATION_PATTERN.exec(text);
-	}
-
-	ASSISTANT_CITATION_PATTERN.lastIndex = 0;
-
-	return `${result}${text.slice(lastIndex)}`
-		.replace(/[ \t]+([,.;:!?])/g, "$1")
-		.replace(/([([])[ \t]+/g, "$1")
-		.replace(/[ \t]{2,}/g, " ");
 }
 
 function stripResidualAssistantMarkers(text: string) {
@@ -1075,6 +830,41 @@ export function ResumeAssistant() {
 		});
 	};
 
+	const addRateLimitedLocalFallbackMessage = (args: {
+		question: string;
+		resume: ResumePayload;
+		snippetPool: ResumeSnippet[];
+		retrievalResult: RetrievalResult;
+	}) => {
+		const fallback = buildRateLimitedLocalAssistantResponse({
+			question: args.question,
+			resume: args.resume,
+			snippets: args.snippetPool,
+			retrievalResult: args.retrievalResult,
+		});
+
+		if (!fallback) {
+			addAssistantMessage(MISSING_INFORMATION_MESSAGE, { status: "missing" });
+			updateDebugState({
+				usedClosestMatchFallback: false,
+				fallbackReason: "rate_limited_no_local_match",
+			});
+			return;
+		}
+
+		addAssistantMessage(fallback.response.answer, {
+			status: fallback.response.status,
+			citations: resolveResumeSnippetCitations(
+				fallback.response.citations,
+				args.snippetPool,
+			),
+		});
+		updateDebugState({
+			usedClosestMatchFallback: fallback.usedClosestMatchFallback,
+			fallbackReason: fallback.fallbackReason,
+		});
+	};
+
 	const submitQuestion = async (question: string) => {
 		const trimmedQuestion = question.trim();
 
@@ -1104,22 +894,6 @@ export function ResumeAssistant() {
 		setDraft("");
 
 		if (!workerUrl) {
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippets,
-					),
-				});
-				return;
-			}
-
 			const localResponse = generateLocalResumeAnswer(
 				trimmedQuestion,
 				resume,
@@ -1239,30 +1013,20 @@ export function ResumeAssistant() {
 					providerContext: assistantResponse.providerContext || null,
 				});
 
+				if (assistantResponse.rateLimited) {
+					addRateLimitedLocalFallbackMessage({
+						question: trimmedQuestion,
+						resume,
+						snippetPool,
+						retrievalResult,
+					});
+					return;
+				}
+
 				if (assistantResponse.status !== "missing") {
 					addAssistantResponseMessage(assistantResponse, relevantSnippets);
 					return;
 				}
-			}
-
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippetPool,
-					),
-				});
-				updateDebugState({
-					usedClosestMatchFallback: false,
-					fallbackReason: "llm_fell_back_to_local_small_talk",
-				});
-				return;
 			}
 
 			const localResponse = generateLocalResumeAnswer(
@@ -1324,26 +1088,6 @@ export function ResumeAssistant() {
 				providerContext: null,
 			});
 		} catch {
-			const smallTalkResponse = generateLocalSmallTalkAnswer(
-				trimmedQuestion,
-				resume,
-			);
-
-			if (smallTalkResponse) {
-				addAssistantMessage(smallTalkResponse.answer, {
-					status: smallTalkResponse.status,
-					citations: resolveResumeSnippetCitations(
-						smallTalkResponse.citations,
-						snippets,
-					),
-				});
-				updateDebugState({
-					usedClosestMatchFallback: false,
-					fallbackReason: "request_failed_fell_back_to_local_small_talk",
-				});
-				return;
-			}
-
 			const localResponse = generateLocalResumeAnswer(
 				trimmedQuestion,
 				resume,

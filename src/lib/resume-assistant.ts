@@ -224,6 +224,7 @@ export type AssistantResponse = {
 	status: "answered" | "missing" | "rejected";
 	answer: string;
 	citations: string[];
+	rateLimited?: boolean;
 	provider?: string | null;
 	providerContext?: Array<{
 		provider: string;
@@ -304,6 +305,30 @@ const assistantResponseSchema = z.object({
 	citations: z.array(z.string().trim()),
 });
 
+const REMOVED_ASSISTANT_CITATION_TOKEN = "__assistant_removed_citation__";
+
+function isWordLikeCharacter(value: string | undefined) {
+	return Boolean(value && /[A-Za-z0-9]/.test(value));
+}
+
+function cleanAssistantCitationSpacing(value: string) {
+	return value
+		.replace(
+			new RegExp(
+				`[ \\t]*\\([ \\t]*${REMOVED_ASSISTANT_CITATION_TOKEN}[ \\t]*\\)[ \\t]*`,
+				"g",
+			),
+			" ",
+		)
+		.replace(
+			new RegExp(`[ \\t]*${REMOVED_ASSISTANT_CITATION_TOKEN}[ \\t]*`, "g"),
+			" ",
+		)
+		.replace(/[ \t]+([,.;:!?])/g, "$1")
+		.replace(/([([])[ \t]+/g, "$1")
+		.trim();
+}
+
 function replaceInlineCitationIdsWithTitles(
 	answer: string,
 	snippets: ResumeSnippet[],
@@ -324,30 +349,36 @@ function replaceInlineCitationIdsWithTitles(
 			.replace(/\s+/g, " ")
 			.trim();
 
-	return answer.replace(
-		/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
-		(match, _citationId, offset) => {
-			const start = typeof offset === "number" ? offset : 0;
-			const citationId = match.slice(1, -1);
-			const title = snippetTitleById.get(citationId);
+	return cleanAssistantCitationSpacing(
+		answer.replace(
+			/\[(rag:[^\]]+|summary|about|skills|links|contact|hero|focus|stats|experience:[^\]]+|education:[^\]]+|project:[^\]]+|article:[^\]]+|case-study:[^\]]+|recommendation:[^\]]+)\]/gi,
+			(match, _citationId, offset) => {
+				const start = typeof offset === "number" ? offset : 0;
+				const citationId = match.slice(1, -1);
+				const title = snippetTitleById.get(citationId);
+				const previousChar = answer[start - 1];
+				const nextChar = answer[start + match.length];
 
-			if (!title) {
-				return match;
-			}
+				if (!title) {
+					return match;
+				}
 
-			const recentContext = answer.slice(Math.max(0, start - 240), start);
-			const normalizedRecentContext = normalizeComparableText(recentContext);
-			const normalizedTitle = normalizeComparableText(title);
+				const recentContext = answer.slice(Math.max(0, start - 240), start);
+				const normalizedRecentContext = normalizeComparableText(recentContext);
+				const normalizedTitle = normalizeComparableText(title);
 
-			if (
-				normalizedTitle &&
-				normalizedRecentContext.includes(normalizedTitle)
-			) {
-				return "";
-			}
+				if (
+					normalizedTitle &&
+					normalizedRecentContext.includes(normalizedTitle)
+				) {
+					return REMOVED_ASSISTANT_CITATION_TOKEN;
+				}
 
-			return title;
-		},
+				return `${isWordLikeCharacter(previousChar) ? " " : ""}${title}${
+					isWordLikeCharacter(nextChar) ? " " : ""
+				}`;
+			},
+		),
 	);
 }
 
@@ -415,63 +446,6 @@ const smallTalkPatterns = [
 	/^(lol|haha|ha|hehe|😄|👍|🙏|❤️)(?:[!.,?]+)?$/i,
 	/^(interesting|tell me more|go on|continue|really|no way|seriously|wow really|that'?s (interesting|cool|neat|wild))(?:[!.,?]+)?$/i,
 	/^(yes|yeah|yep|yup|nope|no|nah|not really|maybe|possibly|perhaps|i (think|guess|suppose) so)(?:[!.,?]+)?$/i,
-];
-
-const builtInAllowedKeywords = [
-	"resume",
-	"portfolio",
-	"link",
-	"links",
-	"social",
-	"public",
-	"experience",
-	"yoe",
-	"year",
-	"years",
-	"yr",
-	"yrs",
-	"worked",
-	"work",
-	"job",
-	"career",
-	"company",
-	"companies",
-	"role",
-	"roles",
-	"skills",
-	"stack",
-	"tech",
-	"technology",
-	"education",
-	"degree",
-	"school",
-	"university",
-	"project",
-	"projects",
-	"case study",
-	"case studies",
-	"blog",
-	"blogs",
-	"article",
-	"articles",
-	"writing",
-	"recommendation",
-	"recommendations",
-	"testimonial",
-	"testimonials",
-	"stats",
-	"metrics",
-	"focus",
-	"featured",
-	"contact",
-	"email",
-	"github",
-	"linkedin",
-	"calendly",
-	"about",
-	"background",
-	"summary",
-	"location",
 ];
 
 function normalizeText(value: string) {
@@ -1651,7 +1625,7 @@ export function findAssistantInlineLinkMatches(args: {
 export function checkQuestionGuardrails(
 	question: string,
 	snippets: ResumeSnippet[],
-	hasConversationContext: boolean,
+	_hasConversationContext: boolean,
 ): GuardrailResult {
 	const normalizedQuestion = question.trim();
 
@@ -1675,29 +1649,7 @@ export function checkQuestionGuardrails(
 		return { allowed: true };
 	}
 
-	const tokens = tokenize(normalizedQuestion);
-	const allowedKeywords = new Set([
-		...builtInAllowedKeywords,
-		...snippets.flatMap((snippet) => snippet.keywords),
-	]);
-	const overlapCount = tokens.filter((token) =>
-		allowedKeywords.has(token),
-	).length;
-	const pronounOnlyQuestion =
-		hasConversationContext &&
-		tokens.length > 0 &&
-		tokens.every((token) =>
-			["he", "him", "his", "that", "those", "them", "there"].includes(token),
-		);
-
-	if (overlapCount > 0 || pronounOnlyQuestion) {
-		return { allowed: true };
-	}
-
-	return {
-		allowed: false,
-		message: UNRELATED_QUESTION_MESSAGE,
-	};
+	return { allowed: true };
 }
 
 export function buildRetrievalQuery(args: {
@@ -2695,6 +2647,43 @@ export function buildClosestMatchFallbackAnswer(args: {
 	} satisfies AssistantResponse;
 }
 
+export function buildRateLimitedLocalAssistantResponse(args: {
+	question: string;
+	resume: ResumePayload;
+	snippets: ResumeSnippet[];
+	retrievalResult?: RetrievalResult | null;
+}) {
+	const { question, resume, retrievalResult, snippets } = args;
+	const localResponse = generateLocalResumeAnswer(question, resume, snippets);
+
+	if (localResponse) {
+		return {
+			response: localResponse,
+			usedClosestMatchFallback: false,
+			fallbackReason: "rate_limited_fell_back_to_local_match",
+		};
+	}
+
+	const closestMatchFallback =
+		retrievalResult &&
+		shouldUseClosestMatchFallback({
+			query: retrievalResult.query,
+			result: retrievalResult,
+		})
+			? buildClosestMatchFallbackAnswer({ result: retrievalResult })
+			: null;
+
+	if (closestMatchFallback) {
+		return {
+			response: closestMatchFallback,
+			usedClosestMatchFallback: true,
+			fallbackReason: "rate_limited_fell_back_to_closest_match",
+		};
+	}
+
+	return null;
+}
+
 export async function hashResumePayload(resume: ResumePayload) {
 	const encoded = new TextEncoder().encode(JSON.stringify(resume));
 	const digest = await crypto.subtle.digest("SHA-256", encoded);
@@ -3004,32 +2993,43 @@ export async function fetchSemanticRelevantSnippets(args: {
 	};
 }
 
-export async function fetchAssistantResponse(args: {
-	workerUrl: string;
-	question: string;
-	recentMessages: Array<{
-		role: "user" | "assistant";
-		content: string;
-	}>;
-	snippets: ResumeSnippet[];
-}) {
-	const { question, recentMessages, snippets, workerUrl } = args;
-	const requestBody = buildAssistantChatRequestBody({
-		question,
-		recentMessages,
-		snippets,
-	});
+function parseAssistantProviderContextHeader(header: string | null) {
+	if (!header) {
+		return null;
+	}
 
-	const response = await fetch(
-		new URL("/assistant-routed", workerUrl).toString(),
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(requestBody),
-		},
-	);
+	try {
+		const parsedProviderContext = JSON.parse(header) as Array<{
+			provider?: unknown;
+			status?: unknown;
+			error?: unknown;
+		}>;
+
+		return Array.isArray(parsedProviderContext)
+			? parsedProviderContext
+					.filter(
+						(entry) =>
+							entry &&
+							typeof entry.provider === "string" &&
+							typeof entry.status === "number",
+					)
+					.map((entry) => ({
+						provider: entry.provider as string,
+						status: entry.status as number,
+						error: typeof entry.error === "string" ? entry.error : null,
+					}))
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+export async function parseAssistantFetchResponse(
+	response: Response,
+	snippets: ResumeSnippet[],
+) {
+	const rateLimited =
+		response.headers.get("X-Assistant-Rate-Limited")?.toLowerCase() === "true";
 
 	if (!response.ok) {
 		const errorPayload = await parseAssistantJsonPayload(response).catch(
@@ -3053,36 +3053,9 @@ export async function fetchAssistantResponse(args: {
 		}>;
 	};
 	const provider = response.headers.get("X-Assistant-Provider");
-	const providerContextHeader = response.headers.get("X-Assistant-Providers");
-	let providerContext: AssistantResponse["providerContext"] = null;
-
-	if (providerContextHeader) {
-		try {
-			const parsedProviderContext = JSON.parse(providerContextHeader) as Array<{
-				provider?: unknown;
-				status?: unknown;
-				error?: unknown;
-			}>;
-
-			providerContext = Array.isArray(parsedProviderContext)
-				? parsedProviderContext
-						.filter(
-							(entry) =>
-								entry &&
-								typeof entry.provider === "string" &&
-								typeof entry.status === "number",
-						)
-						.map((entry) => ({
-							provider: entry.provider as string,
-							status: entry.status as number,
-							error: typeof entry.error === "string" ? entry.error : null,
-						}))
-				: null;
-		} catch {
-			providerContext = null;
-		}
-	}
-
+	const providerContext = parseAssistantProviderContextHeader(
+		response.headers.get("X-Assistant-Providers"),
+	);
 	const rawContent = payload.choices?.[0]?.message?.content;
 
 	if (!rawContent) {
@@ -3111,6 +3084,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3121,6 +3095,7 @@ export async function fetchAssistantResponse(args: {
 			status: "answered",
 			answer: normalizedAnswer,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3131,6 +3106,7 @@ export async function fetchAssistantResponse(args: {
 			status: "missing",
 			answer: MISSING_INFORMATION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3141,6 +3117,7 @@ export async function fetchAssistantResponse(args: {
 			status: "rejected",
 			answer: UNRELATED_QUESTION_MESSAGE,
 			citations: [],
+			rateLimited,
 			provider,
 			providerContext,
 		} satisfies AssistantResponse;
@@ -3150,9 +3127,40 @@ export async function fetchAssistantResponse(args: {
 		status: "answered",
 		answer: normalizedAnswer,
 		citations: filteredCitations,
+		rateLimited,
 		provider,
 		providerContext,
 	} satisfies AssistantResponse;
+}
+
+export async function fetchAssistantResponse(args: {
+	workerUrl: string;
+	question: string;
+	recentMessages: Array<{
+		role: "user" | "assistant";
+		content: string;
+	}>;
+	snippets: ResumeSnippet[];
+}) {
+	const { question, recentMessages, snippets, workerUrl } = args;
+	const requestBody = buildAssistantChatRequestBody({
+		question,
+		recentMessages,
+		snippets,
+	});
+
+	const response = await fetch(
+		new URL("/assistant-routed", workerUrl).toString(),
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(requestBody),
+		},
+	);
+
+	return parseAssistantFetchResponse(response, snippets);
 }
 
 export async function fetchAssistantRawProviderResponse(args: {
