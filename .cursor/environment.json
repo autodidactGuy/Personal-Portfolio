@@ -1,6 +1,6 @@
 {
   "name": "personal-portfolio",
-  "snapshot": "snapshot-20260607-fb4c6f7e-f523-4c29-bdb7-97820a2ff587",
+  "snapshot": "snapshot-20260607-b24dde60-5635-444e-a9a9-5c0136eeef41",
   "agentCanUpdateSnapshot": true,
   "install": "yarn install --frozen-lockfile\ncd cloudflare-worker && yarn install --frozen-lockfile",
   "ports": [
