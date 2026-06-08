@@ -59,6 +59,13 @@ Update the maintenance docs in the same change whenever you modify:
 - worker endpoints, providers, retrieval, or deployment flow
 - CI, deployment, or required environment variables
 
+For significant changes that should be documented, keep the docs canvas in sync too:
+
+- Update the relevant repo docs, especially [docs/repo-maintenance.md](/Users/hassanraza/Projects/Personal-Portfolio/docs/repo-maintenance.md) and [docs/repo-architecture-graph.md](/Users/hassanraza/Projects/Personal-Portfolio/docs/repo-architecture-graph.md).
+- Update the repo-published canvas source at [docs/personal-portfolio-repo-docs.canvas.tsx](/Users/hassanraza/Projects/Personal-Portfolio/docs/personal-portfolio-repo-docs.canvas.tsx).
+- If the live Cursor canvas exists, mirror the same meaningful updates into `/Users/hassanraza/.cursor/projects/Users-hassanraza-Projects-Personal-Portfolio/canvases/personal-portfolio-repo-docs.canvas.tsx`.
+- Keep Known Drift / Follow-ups current by removing resolved drift and adding newly discovered drift.
+
 ## Cursor Cloud specific instructions
 
 Repo-level cloud agent configuration lives in `.cursor/environment.json`. Cursor resolves this file before personal or team saved environments.
@@ -68,7 +75,7 @@ After saving a Cloud Agents environment snapshot from the dashboard, paste its I
 ### Services
 
 | Service | Command | URL | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Next.js dev server (required for site work) | `yarn dev` | `http://localhost:3000` | Regenerates `resume.json` and `search-index.json` before starting |
 | Static export preview (optional) | `yarn build && yarn start` | `http://localhost:3000` | Serves the `out/` directory |
 | Cloudflare Worker (optional) | `cd cloudflare-worker && yarn dev` | `http://127.0.0.1:8787` | Needed for contact form, AI assistant, and CMS OAuth E2E |

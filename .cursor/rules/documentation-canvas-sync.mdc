@@ -1,0 +1,15 @@
+---
+description: Keep repo docs and canvas documentation synchronized after significant changes
+alwaysApply: true
+---
+
+# Documentation And Canvas Sync
+
+When a change is large enough to affect repository documentation, update all relevant documentation surfaces in the same change:
+
+- Update the repo docs that own the topic, especially `docs/repo-maintenance.md` and `docs/repo-architecture-graph.md` for architecture, ownership, data flow, generated artifacts, SEO, worker endpoints, deployment, or environment changes.
+- Update `docs/personal-portfolio-repo-docs.canvas.tsx` so the repo-published canvas source stays aligned with the current architecture and known drift.
+- If the live Cursor canvas exists, mirror the same meaningful updates into `/Users/hassanraza/.cursor/projects/Users-hassanraza-Projects-Personal-Portfolio/canvases/personal-portfolio-repo-docs.canvas.tsx`.
+- Keep the Known Drift / Follow-ups section current: remove resolved drift and add newly discovered drift.
+
+Do not leave the markdown docs and canvas docs disagreeing about routes, content models, generation paths, worker contracts, deployment flow, or validation commands.
