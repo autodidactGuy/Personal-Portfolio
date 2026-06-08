@@ -22,6 +22,8 @@ flowchart TD
     L["src/styles/globals.css"] --> M["All React pages and components"]
     N["src/config/fonts.ts"] --> O["src/pages/_app.tsx"]
     P["tailwind.config.ts"] --> L
+    BA["docs/personal-portfolio-repo-docs.canvas.tsx"] --> BB["src/pages/docs/repo-canvas.tsx"]
+    BC["src/cursor/canvas.tsx"] --> BB
 
     B --> Q["src/lib/seo.ts"]
     Q --> R["src/layouts/head.tsx"]
@@ -69,6 +71,7 @@ flowchart TD
 - `src/lib/seo.ts` plus `src/layouts/head.tsx` own metadata and structured data behavior.
 - `public/*` generated assets are downstream outputs and should not become manual truth sources.
 - The worker depends on portfolio content and generated resume data for RAG ingestion and assistant quality.
+- `src/pages/docs/repo-canvas.tsx` is a noindex preview for the repo-published canvas source. `src/cursor/canvas.tsx` is the local compatibility shim for the subset of Cursor canvas primitives used by that doc.
 
 ## Update Rules
 

@@ -22,6 +22,7 @@ The portfolio is content-driven. Published content lives under `content/`, page 
 - Content loading: [src/lib/content.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/lib/content.ts)
 - Content schemas: [src/types/content.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/types/content.ts)
 - SEO layer: [src/lib/seo.ts](/Users/hassanraza/Projects/Personal-Portfolio/src/lib/seo.ts) and [src/layouts/head.tsx](/Users/hassanraza/Projects/Personal-Portfolio/src/layouts/head.tsx)
+- Docs canvas preview: [src/pages/docs/repo-canvas.tsx](/Users/hassanraza/Projects/Personal-Portfolio/src/pages/docs/repo-canvas.tsx), backed by [src/cursor/canvas.tsx](/Users/hassanraza/Projects/Personal-Portfolio/src/cursor/canvas.tsx), renders with `noindex`
 
 ### Worker app
 
@@ -87,6 +88,7 @@ Rules:
 - `yarn build` is the main site integrity check because it runs lint, SEO asset generation, resume generation, search generation, and the static build.
 - Worker behavior changes should keep `yarn test` and `yarn typecheck` healthy inside `cloudflare-worker/`.
 - Keep CI commands consistent with local scripts instead of inventing workflow-only logic where possible.
+- The `cursor/canvas` TypeScript path maps to a local preview shim only for rendering repo canvas docs in development. Keep it compatible with the subset used by `docs/personal-portfolio-repo-docs.canvas.tsx`.
 
 ## Generated Artifact Map
 

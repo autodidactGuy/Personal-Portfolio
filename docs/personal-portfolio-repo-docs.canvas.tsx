@@ -34,8 +34,8 @@ const sections = [
 type SectionId = (typeof sections)[number]["id"];
 
 const repoStats = [
-	{ value: "143", label: "workspace files inventoried" },
-	{ value: "16", label: "Next.js page files" },
+	{ value: "147", label: "workspace files inventoried" },
+	{ value: "17", label: "Next.js page files" },
 	{ value: "19", label: "content source files" },
 	{ value: "10", label: "published MDX entries" },
 	{ value: "5", label: "root generators" },
@@ -130,6 +130,11 @@ const routeRows = [
 		"/search",
 		"Search",
 		"Lazy loads public/search-index.json only after a query and groups results by content type.",
+	],
+	[
+		"/docs/repo-canvas",
+		"Canvas preview",
+		"Noindex preview for docs/personal-portfolio-repo-docs.canvas.tsx using the src/cursor/canvas.tsx shim.",
 	],
 	["/admin", "Admin redirect", "Forwards editors toward the static Decap CMS admin surface."],
 	["/404", "Not found", "Static fallback page for the exported app."],
@@ -332,6 +337,8 @@ const keyFiles = [
 	{ path: "src/lib/seo.ts", label: "SEO helpers" },
 	{ path: "src/components/resume-assistant.tsx", label: "Assistant UI" },
 	{ path: "src/lib/resume-assistant.ts", label: "Assistant client logic" },
+	{ path: "src/pages/docs/repo-canvas.tsx", label: "Canvas preview" },
+	{ path: "src/cursor/canvas.tsx", label: "Canvas local shim" },
 	{ path: "cloudflare-worker/src/index.ts", label: "Worker entrypoint" },
 	{ path: "cloudflare-worker/wrangler.jsonc", label: "Worker bindings" },
 ];
