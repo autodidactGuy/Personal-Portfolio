@@ -1953,9 +1953,9 @@ gray-matter@^4.0.3:
     strip-bom-string "^1.0.0"
 
 hono@^4.12.14:
-  version "4.12.26"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.26.tgz#450edfd64aad96cccc36829d63ec1430272e3ef8"
-  integrity sha512-uyZtpnYxM9CmQ7QsQknM4zN8EftNqhON1qYeIKM0Se67CCEe2c44xyGURwB0axX2fBDu1dqHrHAc1hmNT8ITkw==
+  version "4.12.28"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.28.tgz#c2e12c32027f0e9fb8b0cef2ecfb73050c2ca62e"
+  integrity sha512-YwUvVpSF7m1yOblFPrU3Hbo8XhPheBoiyfGuII6z19LnOr6JpDnyyp7LFNrfV56wS8tpvtBFGRISHN02pDdLOA==
 
 is-extendable@^0.1.0:
   version "0.1.1"
