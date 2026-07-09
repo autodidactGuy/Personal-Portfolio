@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@heroui/react": "3.1.0",
+    "@heroui/react": "3.2.1",
     "@heroui/styles": "^3.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@react-spectrum/provider": "^3.0.0",
