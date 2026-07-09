@@ -60,6 +60,7 @@ flowchart TD
 
     AN[".github/workflows/deploy.yml"] --> AO["GitHub Pages deploy"]
     AP[".github/workflows/deploy-worker.yml"] --> AQ["Cloudflare Worker deploy"]
+    AR[".github/dependabot.yml"] --> AS["Dependabot monthly update PRs"]
 ```
 
 ## Node Notes
@@ -72,6 +73,7 @@ flowchart TD
 - `public/*` generated assets are downstream outputs and should not become manual truth sources.
 - The worker depends on portfolio content and generated resume data for RAG ingestion and assistant quality.
 - `src/pages/docs/repo-canvas.tsx` is a noindex preview for the repo-published canvas source. `src/cursor/canvas.tsx` is the local compatibility shim for the subset of Cursor canvas primitives used by that doc.
+- `.github/dependabot.yml` owns the automated dependency-update cadence for the root app, worker, and GitHub Actions.
 
 ## Update Rules
 
