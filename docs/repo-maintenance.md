@@ -82,12 +82,14 @@ Rules:
 - TypeScript config: [tsconfig.json](/Users/hassanraza/Projects/Personal-Portfolio/tsconfig.json)
 - Site deploy workflow: [\.github/workflows/deploy.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/workflows/deploy.yml)
 - Worker deploy workflow: [\.github/workflows/deploy-worker.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/workflows/deploy-worker.yml)
+- Dependency update cadence: [\.github/dependabot.yml](/Users/hassanraza/Projects/Personal-Portfolio/.github/dependabot.yml)
 
 Rules:
 
 - `yarn build` is the main site integrity check because it runs lint, SEO asset generation, resume generation, search generation, and the static build.
 - Worker behavior changes should keep `yarn test` and `yarn typecheck` healthy inside `cloudflare-worker/`.
 - Keep CI commands consistent with local scripts instead of inventing workflow-only logic where possible.
+- Dependabot is configured for monthly version-update PRs across the site app, worker app, and GitHub Actions. Security alerts and security update PRs remain separate from this schedule.
 - The `cursor/canvas` TypeScript path maps to a local preview shim only for rendering repo canvas docs in development. Keep it compatible with the subset used by `docs/personal-portfolio-repo-docs.canvas.tsx`.
 
 ## Generated Artifact Map

@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "06:00"
     open-pull-requests-limit: 5
@@ -27,8 +27,6 @@ updates:
       tooling-and-build:
         patterns:
           - "typescript"
-          - "eslint"
-          - "eslint-config-next"
           - "@types/*"
           - "tailwindcss"
           - "autoprefixer"
@@ -39,19 +37,13 @@ updates:
       - dependency-name: "next"
         update-types:
           - "version-update:semver-major"
-      - dependency-name: "eslint-config-next"
-        update-types:
-          - "version-update:semver-major"
-      - dependency-name: "eslint"
-        update-types:
-          - "version-update:semver-major"
       - dependency-name: "glob"
       - dependency-name: "minimatch"
 
   - package-ecosystem: "npm"
     directory: "/cloudflare-worker"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "06:15"
     open-pull-requests-limit: 2
@@ -66,7 +58,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "06:30"
     open-pull-requests-limit: 2
