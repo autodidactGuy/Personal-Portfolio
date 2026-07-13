@@ -43,7 +43,7 @@
   "description": "Senior software engineer building fintech infrastructure, distributed systems, and AI-driven data platforms. Currently designing systems supporting ~1000 organizations and processing over $1B annually across payments, data pipelines, and analytics.",
   "slogan": "Designing systems that move money, data, and decisions at scale.",
   "comingSoonMode": {
-    "enabled": false,
+    "enabled": true,
     "headline": "Coming Soon",
     "description": "A refreshed experience is on the way."
   }
