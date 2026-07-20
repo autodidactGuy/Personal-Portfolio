@@ -2,9 +2,9 @@
   "title": "Financial Systems at Scale",
   "badgeLabel": "Snapshot",
   "items": [
-    { "label": "Annual Transaction Volume", "value": "$1B+" },
-    { "label": "Organizations Supported", "value": "1,000+" },
-    { "label": "Transactions Processed", "value": "15M+" },
-    { "label": "Records Migrated", "value": "5M+" }
+    { "label": "System Scope", "value": "Enterprise" },
+    { "label": "Processing Volume", "value": "Billions" },
+    { "label": "Migration Scale", "value": "Millions" },
+    { "label": "Transaction Count", "value": "Millions" }
   ]
 }
