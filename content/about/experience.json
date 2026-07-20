@@ -7,10 +7,10 @@
       "location": "Los Gatos, California, USA",
       "from": "Apr, 2024",
       "to": "Present",
-      "highlight": "Built and scaled fintech systems processing $1B+ annually across payments, data pipelines, and AI-driven analytics",
+      "highlight": "Built and scaled fintech systems with Multi-Billion financial throughput across payments, data pipelines, and AI-driven analytics",
       "details": [
         "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds",
-        "Built large-scale data ingestion and migration pipelines for external platforms, handled over 10M+ records with validation and deduplication",
+        "Built large-scale data ingestion and migration pipelines for external platforms, handled Multi-Million records with validation and deduplication",
         "Developed AI-driven analytics features enabling natural language queries over multi-tenant financial datasets with strict safety guardrails",
         "Architected event-driven systems using queues and background workers to ensure reliability, retries, and observability",
         "Improved system scalability and maintainability through modular architecture and clear service boundaries"
@@ -68,7 +68,7 @@
       "to": "Jan, 2024",
       "highlight": "Built distributed backend systems supporting a global hiring platform serving 1.5M+ users",
       "details": [
-        "Developed scalable backend services for Amazon’s hiring platform impacting over 1.5 million hourly workers",
+        "Developed scalable backend services for Amazon's hiring platform impacting over 1.5 million hourly workers",
         "Built and maintained core infrastructure using Java, Node.js, and AWS services",
         "Improved system reliability and availability through monitoring, logging, and fault-tolerant design",
         "Contributed to CI/CD pipelines and deployment automation ensuring stable and frequent releases",

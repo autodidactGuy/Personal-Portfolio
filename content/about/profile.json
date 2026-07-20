@@ -15,7 +15,7 @@
     "Data Pipelines"
   ],
   "body": [
-    "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
+    "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting Enterprise-Scale footprint and Multi-Billion financial throughput annually. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
     "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
   ],
   "photo": "/images/about/about.jpeg",

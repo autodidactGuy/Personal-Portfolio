@@ -46,9 +46,9 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 									<svg
 										aria-hidden="true"
 										className="h-16 w-20"
-										viewBox="0 0 80 64"
+										viewBox="0 0 80 44"
 									>
-										<path
+										{/* <path
 											d="M8 52H70"
 											fill="none"
 											stroke="currentColor"
@@ -56,7 +56,7 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 											strokeOpacity="0.22"
 											strokeWidth="2"
 											className="text-primary"
-										/>
+										/> */}
 										<path
 											d="M10 44L24 38L36 42L49 26L61 30L72 12"
 											fill="none"
@@ -107,12 +107,12 @@ export function HomeStatsSection({ stats }: HomeStatsSectionProps) {
 							<div className="relative z-10 ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-primary/80 shadow-[0_0_18px_rgba(0,114,245,0.45)]" />
 						</CardHeader>
 						<CardContent className="relative flex flex-col gap-3 pb-0 pt-0">
-							<p className="relative z-10 text-5xl font-semibold leading-none tracking-[-0.06em] text-foreground lg:text-6xl">
-								{item.value}
+							<p className="relative z-10 text-2xl font-semibold leading-none tracking-[-0.06em] text-foreground lg:text-3xl">
+								{item.label}
 							</p>
 							<div className="relative z-10 h-px w-12 bg-gradient-to-r from-primary/70 via-primary/40 to-transparent transition-all duration-300 group-hover:w-20" />
-							<p className="relative z-10 max-w-[25ch] text-xs font-medium uppercase tracking-[0.10em] text-default-500">
-								{item.label}
+							<p className="relative z-10 max-w-[25ch] text-sm font-medium uppercase tracking-[0.05em] text-default-600">
+								{item.value}
 							</p>
 						</CardContent>
 					</Card>

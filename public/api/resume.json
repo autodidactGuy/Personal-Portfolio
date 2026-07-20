@@ -33,7 +33,7 @@
       "Data Pipelines"
     ],
     "body": [
-      "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting ~1000 organizations and over $1B in annual donation volume. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
+      "In my current role, I build and scale systems for a nonprofit-focused financial platform supporting Enterprise-Scale footprint and Multi-Billion financial throughput annually. This includes payment infrastructure, data ingestion and ETL pipelines, and AI-powered analytics systems designed for secure, multi-tenant environments.",
       "I focus on systems that need to be reliable, scalable, and maintainable over time—whether it's high-throughput payment processing, large-scale data migration, or building guardrails for AI-driven data access. My approach balances system design, performance, and practical product needs in production environments."
     ]
   },
@@ -56,20 +56,20 @@
     "badgeLabel": "Snapshot",
     "items": [
       {
-        "label": "Annual Transaction Volume",
-        "value": "$1B+"
+        "label": "System Scope",
+        "value": "Enterprise"
       },
       {
-        "label": "Organizations Supported",
-        "value": "1,000+"
+        "label": "Processing Volume",
+        "value": "Billions"
       },
       {
-        "label": "Transactions Processed",
-        "value": "15M+"
+        "label": "Migration Scale",
+        "value": "Millions"
       },
       {
-        "label": "Records Migrated",
-        "value": "5M+"
+        "label": "Transaction Count",
+        "value": "Millions"
       }
     ]
   },
@@ -259,10 +259,10 @@
       "location": "Los Gatos, California, USA",
       "from": "Apr, 2024",
       "to": "Present",
-      "highlight": "Built and scaled fintech systems processing $1B+ annually across payments, data pipelines, and AI-driven analytics",
+      "highlight": "Built and scaled fintech systems with Multi-Billion financial throughput across payments, data pipelines, and AI-driven analytics",
       "details": [
         "Designed and implemented backend systems supporting high-volume donation processing across ACH, cards, stock, crypto, and donor-advised funds",
-        "Built large-scale data ingestion and migration pipelines for external platforms, handled over 10M+ records with validation and deduplication",
+        "Built large-scale data ingestion and migration pipelines for external platforms, handled Multi-Million records with validation and deduplication",
         "Developed AI-driven analytics features enabling natural language queries over multi-tenant financial datasets with strict safety guardrails",
         "Architected event-driven systems using queues and background workers to ensure reliability, retries, and observability",
         "Improved system scalability and maintainability through modular architecture and clear service boundaries"
@@ -320,7 +320,7 @@
       "to": "Jan, 2024",
       "highlight": "Built distributed backend systems supporting a global hiring platform serving 1.5M+ users",
       "details": [
-        "Developed scalable backend services for Amazon’s hiring platform impacting over 1.5 million hourly workers",
+        "Developed scalable backend services for Amazon's hiring platform impacting over 1.5 million hourly workers",
         "Built and maintained core infrastructure using Java, Node.js, and AWS services",
         "Improved system reliability and availability through monitoring, logging, and fault-tolerant design",
         "Contributed to CI/CD pipelines and deployment automation ensuring stable and frequent releases",
