@@ -3310,10 +3310,15 @@ tailwind-merge@3.4.0:
   resolved "https://registry.yarnpkg.com/tailwind-merge/-/tailwind-merge-3.4.0.tgz#5a264e131a096879965f1175d11f8c36e6b64eca"
   integrity sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==
 
-tailwind-variants@3.2.2, tailwind-variants@^3.2.2:
+tailwind-variants@3.2.2:
   version "3.2.2"
   resolved "https://registry.yarnpkg.com/tailwind-variants/-/tailwind-variants-3.2.2.tgz#3ac8ccc735cae8b6f416330070f5f7437a77a0f3"
   integrity sha512-Mi4kHeMTLvKlM98XPnK+7HoBPmf4gygdFmqQPaDivc3DpYS6aIY6KiG/PgThrGvii5YZJqRsPz0aPyhoFzmZgg==
+
+tailwind-variants@^3.2.2:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/tailwind-variants/-/tailwind-variants-3.3.0.tgz#85474a90cfd17450e83768a873ce57b6dc06338e"
+  integrity sha512-t1QsB42dcwUdaCEArO0tRZcP0nbCcAmJKRYCs7jmwYSFOCXlGqgO8c0TrCYm9OranYmT6i9YOi8LFo2gxmxnow==
 
 tailwindcss@4.3.0:
   version "4.3.0"
