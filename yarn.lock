@@ -3316,9 +3316,9 @@ tailwind-variants@3.2.2:
   integrity sha512-Mi4kHeMTLvKlM98XPnK+7HoBPmf4gygdFmqQPaDivc3DpYS6aIY6KiG/PgThrGvii5YZJqRsPz0aPyhoFzmZgg==
 
 tailwind-variants@^3.2.2:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/tailwind-variants/-/tailwind-variants-3.3.0.tgz#85474a90cfd17450e83768a873ce57b6dc06338e"
-  integrity sha512-t1QsB42dcwUdaCEArO0tRZcP0nbCcAmJKRYCs7jmwYSFOCXlGqgO8c0TrCYm9OranYmT6i9YOi8LFo2gxmxnow==
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/tailwind-variants/-/tailwind-variants-3.3.1.tgz#7eca8fac48ad83fe9c9e1424a379e8411ed3f5ca"
+  integrity sha512-4pAvwUtM4HKBiRZftncAbpn6V9Hhwoa5Fl7O2u5zbp7Z5Cvu+/o/6+176WY3WCEES209543quG8zFIcXCsc5Jw==
 
 tailwindcss@4.3.0:
   version "4.3.0"
