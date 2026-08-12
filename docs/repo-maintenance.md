@@ -90,6 +90,7 @@ Rules:
 - Worker behavior changes should keep `yarn test` and `yarn typecheck` healthy inside `cloudflare-worker/`.
 - Keep CI commands consistent with local scripts instead of inventing workflow-only logic where possible.
 - Dependabot is configured for monthly version-update PRs across the site app, worker app, and GitHub Actions. Security alerts and security update PRs remain separate from this schedule.
+- Dependabot ignores TypeScript major-version updates. TypeScript 7 requires an intentional migration because the current project configuration targets TypeScript 6 compatibility; TypeScript 6 patch and minor updates remain eligible.
 - The `cursor/canvas` TypeScript path maps to a local preview shim only for rendering repo canvas docs in development. Keep it compatible with the subset used by `docs/personal-portfolio-repo-docs.canvas.tsx`.
 
 ## Generated Artifact Map

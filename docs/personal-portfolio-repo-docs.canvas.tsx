@@ -730,6 +730,10 @@ function MaintenanceSection() {
 				Update <Code>docs/repo-maintenance.md</Code> and <Code>docs/repo-architecture-graph.md</Code> whenever route ownership, content models, generated outputs, SEO behavior, worker endpoints, deployment, env vars, or source-of-truth ownership changes.
 			</Callout>
 
+			<Callout tone="warning" title="Dependency updates">
+				<Code>.github/dependabot.yml</Code> schedules monthly dependency updates. TypeScript major versions are intentionally ignored until a dedicated migration validates the project configuration; TypeScript 6 patch and minor updates remain automated.
+			</Callout>
+
 			<H3>Known Drift From Repo Read</H3>
 			<Table
 				headers={["Area", "Finding", "Follow-up"]}
