@@ -34,6 +34,10 @@ updates:
           - "zod"
           - "sharp"
     ignore:
+      # TypeScript 7 requires a deliberate migration; keep 6.x maintenance updates automated.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
       - dependency-name: "next"
         update-types:
           - "version-update:semver-major"
